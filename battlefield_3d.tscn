@@ -1,0 +1,90 @@
+[gd_scene format=3 uid="uid://dp6yeqqg78j3r"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
+size = Vector2(14, 8)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kb538"]
+albedo_color = Color(0.35116842, 0.46622092, 0.23631617, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_lmsbs"]
+size = Vector3(1.02, 0.02, 1.34)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qglca"]
+albedo_color = Color(1, 0.78431374, 0.43529412, 1)
+metallic = 0.46
+roughness = 0.62
+
+[node name="Battlefield3D" type="Node3D" unique_id=1594429578]
+
+[node name="BoardPlane" type="MeshInstance3D" parent="." unique_id=1652894338]
+mesh = SubResource("PlaneMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_kb538")
+
+[node name="Camera3D" type="Camera3D" parent="." unique_id=1256937891]
+transform = Transform3D(1, 0, 0, 0, 0.26218924, 0.9650165, 0, -0.9650165, 0.26218924, 0, 4.8, 2.125)
+current = true
+
+[node name="Sunlight" type="DirectionalLight3D" parent="." unique_id=1091007707]
+transform = Transform3D(0.8660254, -0.43301272, 0.24999999, 0, 0.49999997, 0.86602545, -0.5, -0.75, 0.43301266, 0, 0, 0)
+
+[node name="Laneslots" type="Node3D" parent="." unique_id=937115534]
+
+[node name="P_Back_Left" type="MeshInstance3D" parent="Laneslots" unique_id=275245076]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, 0.06, 2.6)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="P_Back_Middle" type="MeshInstance3D" parent="Laneslots" unique_id=855351099]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.6)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="P_Back_Right" type="MeshInstance3D" parent="Laneslots" unique_id=1822201659]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0, 2.6)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="P_Front_Left" type="MeshInstance3D" parent="Laneslots" unique_id=1732378880]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, 0.06, 0.94)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="P_Front_Middle" type="MeshInstance3D" parent="Laneslots" unique_id=604105679]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.94)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="P_Front_Right" type="MeshInstance3D" parent="Laneslots" unique_id=660038963]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0, 0.94)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="E_Back_Left" type="MeshInstance3D" parent="Laneslots" unique_id=1762695617]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, 0.06, -2.6)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="E_Back_Middle" type="MeshInstance3D" parent="Laneslots" unique_id=961975063]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.6)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="E_Back_Right" type="MeshInstance3D" parent="Laneslots" unique_id=645410467]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0, -2.6)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="E_Front_Left" type="MeshInstance3D" parent="Laneslots" unique_id=760634006]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, 0.06, -0.94)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="E_Front_Middle" type="MeshInstance3D" parent="Laneslots" unique_id=1906344403]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.94)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
+
+[node name="E_Front_Right" type="MeshInstance3D" parent="Laneslots" unique_id=2096020533]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0, -0.94)
+mesh = SubResource("BoxMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
