@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://dp6yeqqg78j3r"]
 
 [ext_resource type="Script" uid="uid://08vh6g385ekw" path="res://Scripts/Battlefield/BoardSlot.gd" id="1_kb538"]
+[ext_resource type="Script" uid="uid://brfudyn18b5kf" path="res://Scripts/Hand.gd" id="2_qglca"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(14, 8)
@@ -298,3 +299,14 @@ debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
 [node name="CardPoint" type="Marker3D" parent="Laneslots/E_Front_Right" unique_id=876838718]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=645512207]
+
+[node name="Hand" type="Control" parent="UI" unique_id=1087332879]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("2_qglca")

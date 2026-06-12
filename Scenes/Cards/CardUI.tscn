@@ -1,0 +1,21 @@
+[gd_scene format=3 uid="uid://4ey5xvae5o2s"]
+
+[node name="CardUI" type="Panel" unique_id=641877519]
+custom_minimum_size = Vector2(150, 200)
+offset_right = 110.0
+offset_bottom = 150.0
+
+[node name="NameLabel" type="Label" parent="." unique_id=1551746864]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -26.0
+offset_top = -11.5
+offset_right = 26.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+text = "Card A"
