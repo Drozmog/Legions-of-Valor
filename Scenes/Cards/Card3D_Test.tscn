@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://ebgcigmaimxx"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_13m0g"]
+size = Vector3(1.02, 0.02, 1.34)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_mx420"]
+albedo_color = Color(0.32156864, 0.16078432, 0.21568628, 1)
+metallic = 0.48
+roughness = 0.46
+
+[node name="Card3D_Test" type="Node3D" unique_id=708655845]
+
+[node name="CardBody" type="MeshInstance3D" parent="." unique_id=1559280475]
+mesh = SubResource("BoxMesh_13m0g")
+surface_material_override/0 = SubResource("StandardMaterial3D_mx420")
