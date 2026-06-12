@@ -34,10 +34,19 @@ size = Vector3(1.02, 0.02, 1.34)
 script = ExtResource("1_qglca")
 
 [node name="BoardPlane" type="MeshInstance3D" parent="." unique_id=1652894338]
+visible = false
 mesh = SubResource("PlaneMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_kb538")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="BoardPlane" unique_id=2068140905]
+mesh = SubResource("RibbonTrailMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_pie2m")
+
+[node name="BoardPlaneWithIMG" type="MeshInstance3D" parent="." unique_id=254097105]
+mesh = SubResource("PlaneMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_kb538")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="BoardPlaneWithIMG" unique_id=726912815]
 mesh = SubResource("RibbonTrailMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_pie2m")
 
