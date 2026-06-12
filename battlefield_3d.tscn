@@ -1,6 +1,9 @@
 [gd_scene format=3 uid="uid://dp6yeqqg78j3r"]
 
 [ext_resource type="Script" uid="uid://08vh6g385ekw" path="res://Scripts/Battlefield/BoardSlot.gd" id="1_kb538"]
+[ext_resource type="Script" uid="uid://d1bxaxrw4bbx1" path="res://Scripts/Battlefield/BattlefieldManager.gd" id="1_qglca"]
+[ext_resource type="Script" uid="uid://mrjpnlt8klf1" path="res://Scripts/Battlefield/GameLog.gd" id="3_pie2m"]
+[ext_resource type="Script" uid="uid://do8rfvsttcccj" path="res://Scripts/Battlefield/TributeManager.gd" id="4_6gjcl"]
 [ext_resource type="Script" uid="uid://brfudyn18b5kf" path="res://Scripts/Hand.gd" id="2_qglca"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
@@ -30,12 +33,22 @@ roughness = 0.62
 size = Vector3(1.02, 0.02, 1.34)
 
 [node name="Battlefield3D" type="Node3D" unique_id=1594429578]
+script = ExtResource("1_qglca")
 
 [node name="BoardPlane" type="MeshInstance3D" parent="." unique_id=1652894338]
+visible = false
 mesh = SubResource("PlaneMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_kb538")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="BoardPlane" unique_id=2068140905]
+mesh = SubResource("RibbonTrailMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_pie2m")
+
+[node name="BoardPlaneWithIMG" type="MeshInstance3D" parent="." unique_id=254097105]
+mesh = SubResource("PlaneMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_kb538")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="BoardPlaneWithIMG" unique_id=726912815]
 mesh = SubResource("RibbonTrailMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_pie2m")
 
@@ -46,9 +59,9 @@ current = true
 [node name="Sunlight" type="DirectionalLight3D" parent="." unique_id=1091007707]
 transform = Transform3D(0.8660254, -0.43301272, 0.24999999, 0, 0.49999997, 0.86602545, -0.5, -0.75, 0.43301266, 0, 0, 0)
 
-[node name="Laneslots" type="Node3D" parent="." unique_id=937115534]
+[node name="BoardSlots" type="Node3D" parent="." unique_id=937115534]
 
-[node name="P_Back_Left" type="MeshInstance3D" parent="Laneslots" unique_id=275245076]
+[node name="P_Back_Left" type="MeshInstance3D" parent="BoardSlots" unique_id=275245076]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, 0.06, 2.6)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -59,17 +72,17 @@ metadata/column = "middle"
 metadata/slot_id = "P_Back_Left"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/P_Back_Left" unique_id=259839617]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/P_Back_Left" unique_id=259839617]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/P_Back_Left/ClickArea" unique_id=803344067]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/P_Back_Left/ClickArea" unique_id=803344067]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/P_Back_Left" unique_id=874799549]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/P_Back_Left" unique_id=874799549]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="P_Back_Middle" type="MeshInstance3D" parent="Laneslots" unique_id=855351099]
+[node name="P_Back_Middle" type="MeshInstance3D" parent="BoardSlots" unique_id=855351099]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 2.6)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -80,17 +93,17 @@ metadata/column = "middle"
 metadata/slot_id = "P_Back_Middle"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/P_Back_Middle" unique_id=1839502999]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/P_Back_Middle" unique_id=1839502999]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/P_Back_Middle/ClickArea" unique_id=2009207044]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/P_Back_Middle/ClickArea" unique_id=2009207044]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/P_Back_Middle" unique_id=1720699448]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/P_Back_Middle" unique_id=1720699448]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="P_Back_Right" type="MeshInstance3D" parent="Laneslots" unique_id=1822201659]
+[node name="P_Back_Right" type="MeshInstance3D" parent="BoardSlots" unique_id=1822201659]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0, 2.6)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -101,17 +114,17 @@ metadata/column = "right"
 metadata/slot_id = "P_Back_Right"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/P_Back_Right" unique_id=1510277826]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/P_Back_Right" unique_id=1510277826]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/P_Back_Right/ClickArea" unique_id=1073590381]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/P_Back_Right/ClickArea" unique_id=1073590381]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/P_Back_Right" unique_id=789157727]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/P_Back_Right" unique_id=789157727]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="P_Front_Left" type="MeshInstance3D" parent="Laneslots" unique_id=1732378880]
+[node name="P_Front_Left" type="MeshInstance3D" parent="BoardSlots" unique_id=1732378880]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, 0.06, 0.94)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -122,17 +135,17 @@ metadata/column = "left"
 metadata/slot_id = "P_Front_Left"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/P_Front_Left" unique_id=792622474]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/P_Front_Left" unique_id=792622474]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/P_Front_Left/ClickArea" unique_id=1433973957]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/P_Front_Left/ClickArea" unique_id=1433973957]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/P_Front_Left" unique_id=729374752]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/P_Front_Left" unique_id=729374752]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="P_Front_Middle" type="MeshInstance3D" parent="Laneslots" unique_id=604105679]
+[node name="P_Front_Middle" type="MeshInstance3D" parent="BoardSlots" unique_id=604105679]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.94)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -143,17 +156,17 @@ metadata/column = "middle"
 metadata/slot_id = "P_Front_Middle"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/P_Front_Middle" unique_id=2079473236]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/P_Front_Middle" unique_id=2079473236]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/P_Front_Middle/ClickArea" unique_id=1224930813]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/P_Front_Middle/ClickArea" unique_id=1224930813]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/P_Front_Middle" unique_id=1741570026]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/P_Front_Middle" unique_id=1741570026]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="P_Front_Right" type="MeshInstance3D" parent="Laneslots" unique_id=660038963]
+[node name="P_Front_Right" type="MeshInstance3D" parent="BoardSlots" unique_id=660038963]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0, 0.94)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -164,17 +177,17 @@ metadata/column = "right"
 metadata/slot_id = "P_Front_Right"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/P_Front_Right" unique_id=1045867132]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/P_Front_Right" unique_id=1045867132]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/P_Front_Right/ClickArea" unique_id=757025912]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/P_Front_Right/ClickArea" unique_id=757025912]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/P_Front_Right" unique_id=53396615]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/P_Front_Right" unique_id=53396615]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="E_Back_Left" type="MeshInstance3D" parent="Laneslots" unique_id=1762695617]
+[node name="E_Back_Left" type="MeshInstance3D" parent="BoardSlots" unique_id=1762695617]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, 0.06, -2.6)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -185,17 +198,17 @@ metadata/column = "left"
 metadata/slot_id = "E_Back_Left"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/E_Back_Left" unique_id=1867611774]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/E_Back_Left" unique_id=1867611774]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/E_Back_Left/ClickArea" unique_id=237702422]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/E_Back_Left/ClickArea" unique_id=237702422]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/E_Back_Left" unique_id=343053295]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/E_Back_Left" unique_id=343053295]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="E_Back_Middle" type="MeshInstance3D" parent="Laneslots" unique_id=961975063]
+[node name="E_Back_Middle" type="MeshInstance3D" parent="BoardSlots" unique_id=961975063]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.6)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -206,17 +219,17 @@ metadata/column = "middle"
 metadata/slot_id = "E_Back_Middle"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/E_Back_Middle" unique_id=282301276]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/E_Back_Middle" unique_id=282301276]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/E_Back_Middle/ClickArea" unique_id=1428429016]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/E_Back_Middle/ClickArea" unique_id=1428429016]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/E_Back_Middle" unique_id=379644923]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/E_Back_Middle" unique_id=379644923]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="E_Back_Right" type="MeshInstance3D" parent="Laneslots" unique_id=645410467]
+[node name="E_Back_Right" type="MeshInstance3D" parent="BoardSlots" unique_id=645410467]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0, -2.6)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -227,17 +240,17 @@ metadata/column = "right"
 metadata/slot_id = "E_Back_Right"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/E_Back_Right" unique_id=451291521]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/E_Back_Right" unique_id=451291521]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/E_Back_Right/ClickArea" unique_id=1815346963]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/E_Back_Right/ClickArea" unique_id=1815346963]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/E_Back_Right" unique_id=87845180]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/E_Back_Right" unique_id=87845180]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="E_Front_Left" type="MeshInstance3D" parent="Laneslots" unique_id=760634006]
+[node name="E_Front_Left" type="MeshInstance3D" parent="BoardSlots" unique_id=760634006]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25, 0.06, -0.94)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -248,17 +261,17 @@ metadata/column = "right"
 metadata/slot_id = "E_Front_Left"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/E_Front_Left" unique_id=349035110]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/E_Front_Left" unique_id=349035110]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/E_Front_Left/ClickArea" unique_id=456215408]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/E_Front_Left/ClickArea" unique_id=456215408]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/E_Front_Left" unique_id=795906570]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/E_Front_Left" unique_id=795906570]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="E_Front_Middle" type="MeshInstance3D" parent="Laneslots" unique_id=1906344403]
+[node name="E_Front_Middle" type="MeshInstance3D" parent="BoardSlots" unique_id=1906344403]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.94)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -269,17 +282,17 @@ metadata/column = "middle"
 metadata/slot_id = "E_Front_Middle"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/E_Front_Middle" unique_id=1741794757]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/E_Front_Middle" unique_id=1741794757]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/E_Front_Middle/ClickArea" unique_id=426614756]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/E_Front_Middle/ClickArea" unique_id=426614756]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/E_Front_Middle" unique_id=176634066]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/E_Front_Middle" unique_id=176634066]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 
-[node name="E_Front_Right" type="MeshInstance3D" parent="Laneslots" unique_id=2096020533]
+[node name="E_Front_Right" type="MeshInstance3D" parent="BoardSlots" unique_id=2096020533]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.25, 0, -0.94)
 mesh = SubResource("BoxMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_qglca")
@@ -290,15 +303,35 @@ metadata/column = "right"
 metadata/slot_id = "E_Front_Right"
 metadata/occupied = false
 
-[node name="ClickArea" type="Area3D" parent="Laneslots/E_Front_Right" unique_id=498180893]
+[node name="ClickArea" type="Area3D" parent="BoardSlots/E_Front_Right" unique_id=498180893]
 
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Laneslots/E_Front_Right/ClickArea" unique_id=154781962]
+[node name="CollisionShape3D" type="CollisionShape3D" parent="BoardSlots/E_Front_Right/ClickArea" unique_id=154781962]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, 0)
 shape = SubResource("BoxShape3D_lmsbs")
 debug_color = Color(0, 0.6, 0.69803923, 0.8509804)
 
-[node name="CardPoint" type="Marker3D" parent="Laneslots/E_Front_Right" unique_id=876838718]
+[node name="CardPoint" type="Marker3D" parent="BoardSlots/E_Front_Right" unique_id=876838718]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
+
+[node name="GameLog" type="CanvasLayer" parent="." unique_id=1172457772]
+script = ExtResource("3_pie2m")
+
+[node name="PanelContainer" type="PanelContainer" parent="GameLog" unique_id=1950943258]
+custom_minimum_size = Vector2(400, 230)
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 420.0
+offset_bottom = 250.0
+
+[node name="MarginContainer" type="MarginContainer" parent="GameLog/PanelContainer" unique_id=1738730753]
+layout_mode = 2
+
+[node name="LogText" type="RichTextLabel" parent="GameLog/PanelContainer/MarginContainer" unique_id=982092983]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="TributeManager" type="Node" parent="." unique_id=600675561]
+script = ExtResource("4_6gjcl")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=645512207]
 

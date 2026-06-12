@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dvm8i7f1ksqma"]
+
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://Scenes/Cards/CardData.gd" id="1_405bc"]
+
+[resource]
+script = ExtResource("1_405bc")
+card_id = "Elf_Canopy_Archer"
+card_name = "Elf Canopy Archer"
+race = "elf"
+card_type = "unit"
+rarity = "common"
+tribute_cost = 1
+ap = 2
+dp = 1
+ability_text = "Basic ranged elf."
+lore_text = "Kaleji"
+metadata/_custom_type_script = "uid://20ngslec6o41"

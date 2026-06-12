@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cfbnmmx05pk75"]
+
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://Scenes/Cards/CardData.gd" id="1_wfqw6"]
+
+[resource]
+script = ExtResource("1_wfqw6")
+card_id = "Test_Ruse"
+card_name = "Test Ruse"
+race = "netural"
+card_type = "ruse"
+rarity = "common"
+tribute_cost = 1
+dp = 1
+ability_text = "Returns to hand if exposed by a cautious strike."
+lore_text = "Ungli"
+metadata/_custom_type_script = "uid://20ngslec6o41"

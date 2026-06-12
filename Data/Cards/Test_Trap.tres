@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cc8bxdp2ornko"]
+
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://Scenes/Cards/CardData.gd" id="1_lvhmn"]
+
+[resource]
+script = ExtResource("1_lvhmn")
+card_id = "Test_Trap"
+card_name = "Test Trap"
+race = "neutral"
+card_type = "trap"
+rarity = "common"
+tribute_cost = 1
+dp = 1
+ability_text = "Triggers when attacked."
+lore_text = "Seedhi Ungli"
+metadata/_custom_type_script = "uid://20ngslec6o41"

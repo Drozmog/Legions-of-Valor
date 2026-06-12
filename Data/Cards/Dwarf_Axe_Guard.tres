@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://v38jpetv5aha"]
+
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://Scenes/Cards/CardData.gd" id="1_awqur"]
+
+[resource]
+script = ExtResource("1_awqur")
+card_id = "Dwarf_Axe_Guard"
+card_name = "Dwarf Axe Guard"
+race = "dwarf"
+card_type = "unit"
+rarity = "common"
+tribute_cost = 2
+ap = 2
+dp = 3
+ability_text = "Basic frontline dwarf unit."
+lore_text = "Werha Gashti"
+metadata/_custom_type_script = "uid://20ngslec6o41"
