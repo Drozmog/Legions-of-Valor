@@ -4,4 +4,13 @@
 
 [resource]
 script = ExtResource("1_pd6ev")
+card_id = "Orc_Blood_Raider"
+card_name = "Orc Blood Raider"
+race = "orc"
+card_type = "unit"
+rarity = "common"
+tribute_cost = 2
+ap = 3
+ability_text = "Basic orc berserker."
+lore_text = "Saand Penchod"
 metadata/_custom_type_script = "uid://20ngslec6o41"

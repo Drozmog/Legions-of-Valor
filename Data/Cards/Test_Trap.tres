@@ -4,13 +4,13 @@
 
 [resource]
 script = ExtResource("1_lvhmn")
-card_id = "dwarf_axe_guard"
-card_name = "Dwarf Axe Guard"
-race = "dwarf"
-card_type = "unit"
+card_id = "Test_Trap"
+card_name = "Test Trap"
+race = "neutral"
+card_type = "trap"
 rarity = "common"
-mana_cost = 2
-ap = 2
-dp = 3
-ability_text = "Basic frontline dwarf unit."
+tribute_cost = 1
+dp = 1
+ability_text = "Triggers when attacked."
+lore_text = "Seedhi Ungli"
 metadata/_custom_type_script = "uid://20ngslec6o41"

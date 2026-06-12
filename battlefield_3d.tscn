@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://08vh6g385ekw" path="res://Scripts/Battlefield/BoardSlot.gd" id="1_kb538"]
 [ext_resource type="Script" uid="uid://d1bxaxrw4bbx1" path="res://Scripts/Battlefield/BattlefieldManager.gd" id="1_qglca"]
 [ext_resource type="Script" uid="uid://mrjpnlt8klf1" path="res://Scripts/Battlefield/GameLog.gd" id="3_pie2m"]
+[ext_resource type="Script" uid="uid://do8rfvsttcccj" path="res://Scripts/Battlefield/TributeManager.gd" id="4_6gjcl"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(14, 8)
@@ -327,3 +328,6 @@ layout_mode = 2
 [node name="LogText" type="RichTextLabel" parent="GameLog/PanelContainer/MarginContainer" unique_id=982092983]
 layout_mode = 2
 bbcode_enabled = true
+
+[node name="TributeManager" type="Node" parent="." unique_id=600675561]
+script = ExtResource("4_6gjcl")

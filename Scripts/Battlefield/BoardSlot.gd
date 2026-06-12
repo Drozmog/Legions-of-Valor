@@ -38,7 +38,7 @@ func _on_click_area_input_event(
 			slot_right_clicked.emit(self)
 
 
-func place_card(card_scene: PackedScene) -> bool:
+func place_card(card_scene: PackedScene, card_data: CardData) -> bool:
 	if occupied:
 		print(get_meta("slot_id"), " is already occupied.")
 		return false
@@ -48,6 +48,9 @@ func place_card(card_scene: PackedScene) -> bool:
 
 	placed_card.position = Vector3.ZERO
 	placed_card.rotation = Vector3.ZERO
+
+	if placed_card.has_method("assign_card_data"):
+		placed_card.assign_card_data(card_data)
 
 	occupied = true
 	set_meta("occupied", true)
