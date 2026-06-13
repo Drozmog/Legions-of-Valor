@@ -2,22 +2,25 @@
 
 [ext_resource type="Script" uid="uid://d1bxaxrw4bbx1" path="res://battlefield/BattlefieldManager.gd" id="1_a265j"]
 [ext_resource type="Script" uid="uid://08vh6g385ekw" path="res://battlefield/BoardSlot.gd" id="2_do6fa"]
+[ext_resource type="Texture2D" uid="uid://cbk3mh61d0f0i" path="res://Textures/SO4M8W0.png" id="2_rdvt6"]
 [ext_resource type="Script" uid="uid://mrjpnlt8klf1" path="res://battlefield/GameLog.gd" id="3_rdvt6"]
+[ext_resource type="Texture2D" uid="uid://baae7yi6oh20k" path="res://Textures/Ground.png" id="3_rn43s"]
 [ext_resource type="Script" uid="uid://do8rfvsttcccj" path="res://battlefield/TributeManager.gd" id="4_rn43s"]
 [ext_resource type="Script" uid="uid://brfudyn18b5kf" path="res://ui/Hand.gd" id="5_yr2pt"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(14, 8)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_kb538"]
-albedo_color = Color(0.35116842, 0.46622092, 0.23631617, 1)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rn43s"]
+albedo_texture = ExtResource("3_rn43s")
+normal_texture = ExtResource("2_rdvt6")
 
 [sub_resource type="RibbonTrailMesh" id="RibbonTrailMesh_lmsbs"]
 size = 5.854
 sections = 2
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pie2m"]
-albedo_color = Color(0.39688927, 0.39688927, 0.39688924, 1)
+albedo_color = Color(0.24976444, 0.44726175, 0.31470284, 1)
 metallic = 0.35
 roughness = 0.42
 
@@ -37,19 +40,10 @@ script = ExtResource("1_a265j")
 hand = NodePath("UI/Hand")
 
 [node name="BoardPlane" type="MeshInstance3D" parent="." unique_id=1652894338]
-visible = false
 mesh = SubResource("PlaneMesh_lmsbs")
-surface_material_override/0 = SubResource("StandardMaterial3D_kb538")
+surface_material_override/0 = SubResource("StandardMaterial3D_rn43s")
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="BoardPlane" unique_id=2068140905]
-mesh = SubResource("RibbonTrailMesh_lmsbs")
-surface_material_override/0 = SubResource("StandardMaterial3D_pie2m")
-
-[node name="BoardPlaneWithIMG" type="MeshInstance3D" parent="." unique_id=254097105]
-mesh = SubResource("PlaneMesh_lmsbs")
-surface_material_override/0 = SubResource("StandardMaterial3D_kb538")
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="BoardPlaneWithIMG" unique_id=726912815]
 mesh = SubResource("RibbonTrailMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_pie2m")
 
