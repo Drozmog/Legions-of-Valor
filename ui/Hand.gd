@@ -3,17 +3,17 @@ extends Control
 
 const CARD_UI_SCENE: PackedScene = preload("res://cards/CardUI.tscn")
 
-@export var card_scale: float = 0.70
+@export var card_scale: float = 0.62
 
-@export var raised_anchor_from_bottom: float = 120.0
-@export var lowered_anchor_below_screen: float = 160.0
+@export var raised_anchor_from_bottom: float = 85.0
+@export var lowered_anchor_below_screen: float = 180.0
 
 @export var min_spacing: float = 75.0
-@export var max_spacing: float = 150.0
+@export var max_spacing: float = 145.0
 @export var max_fan_width: float = 1050.0
 
-@export var max_rotation_degrees: float = 16.0
-@export var fan_curve_drop: float = 45.0
+@export var max_rotation_degrees: float = 7.0
+@export var fan_curve_drop: float = 35.0
 @export var hover_lift: float = 55.0
 @export var tween_time: float = 0.22
 
@@ -126,7 +126,8 @@ func arrange_fan(animated: bool = true) -> void:
 			normalized = (float(i) / float(count - 1)) * 2.0 - 1.0
 
 		var target_x := start_x + spacing * float(i)
-		var target_y := anchor_y + absf(normalized) * fan_curve_drop
+		var edge_drop := pow(absf(normalized), 1.2) * fan_curve_drop
+		var target_y := anchor_y + edge_drop
 		var target_rotation := normalized * max_rotation_degrees
 
 		card.pivot_offset = Vector2(card.size.x / 2.0, card.size.y)
