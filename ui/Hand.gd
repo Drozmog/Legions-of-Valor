@@ -6,9 +6,7 @@ const CARD_UI_SCENE: PackedScene = preload("res://cards/CardUI.tscn")
 signal card_drag_started(card: CardUI)
 signal card_drag_released(card: CardUI, screen_position: Vector2)
 
-signal card_preview_requested(card_data: CardData)
-signal card_preview_cleared()
-signal card_inspect_requested(card_data: CardData)
+signal card_inspect_requested(card: CardUI, card_data: CardData)
 
 @warning_ignore("unused_signal")
 signal card_selected(card: Control)
@@ -224,7 +222,7 @@ func _on_card_clicked(card: CardUI, _screen_position: Vector2) -> void:
 	if card.card_data == null:
 		return
 
-	card_inspect_requested.emit(card.card_data)
+	card_inspect_requested.emit(card, card.card_data)
 
 
 func return_dragged_card_to_hand(card: CardUI) -> void:
