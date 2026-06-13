@@ -50,7 +50,8 @@ func _ready() -> void:
 
 func clear_old_preview_children() -> void:
 	for child in get_children():
-		child.queue_free()
+		remove_child(child)
+		child.free()
 
 
 func setup_position() -> void:
@@ -95,6 +96,7 @@ func build_3d_preview() -> void:
 	add_child(viewport_container)
 
 	preview_viewport = SubViewport.new()
+	preview_viewport.own_world_3d = true
 	preview_viewport.transparent_bg = true
 	preview_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	preview_viewport.size = Vector2i(700, 950)
@@ -132,6 +134,9 @@ func build_3d_preview() -> void:
 	card_mesh.position = Vector3(0.0, 0.0, 0.0)
 
 	world_root.add_child(card_mesh)
+	print("CardInspectPanel children after build: ", get_child_count())
+	for child in get_children():
+		print(" - ", child.name)
 
 
 func auto_find_missing_references() -> void:
