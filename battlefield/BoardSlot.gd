@@ -10,18 +10,56 @@ var occupied: bool = false
 var placed_card: Node3D = null
 var slot_material: StandardMaterial3D
 
-var default_color: Color = Color(1.0, 0.82, 0.35, 1.0)
+var default_color: Color = Color(1.0, 1.0, 1.0, 1.0)
 var valid_color: Color = Color(0.35, 1.0, 0.35, 1.0)
 var invalid_color: Color = Color(1.0, 0.25, 0.25, 1.0)
+
+var highlight_outline: Node3D
+var outline_material: StandardMaterial3D
+
+const SLOT_WIDTH: float = 1.02
+const SLOT_HEIGHT: float = 1.34
+const OUTLINE_THICKNESS: float = 0.04
+const OUTLINE_Y_OFFSET: float = 0.025
+
 
 func _ready() -> void:
 	occupied = get_meta("occupied", false)
 
+	setup_highlight_outline()
 	setup_slot_material()
 
 	click_area.input_ray_pickable = true
 	click_area.input_event.connect(_on_click_area_input_event)
 
+func set_highlight(active: bool) -> void:
+	if highlight_outline == null:
+		return
+
+	if active:
+		set_outline_color(Color(0.35, 1.0, 0.35, 1.0))
+		highlight_outline.visible = true
+	else:
+		highlight_outline.visible = false
+
+
+func set_invalid_highlight(active: bool) -> void:
+	if highlight_outline == null:
+		return
+
+	if active:
+		set_outline_color(Color(1.0, 0.2, 0.2, 1.0))
+		highlight_outline.visible = true
+	else:
+		highlight_outline.visible = false
+
+
+func set_outline_color(color: Color) -> void:
+	if outline_material == null:
+		return
+
+	outline_material.albedo_color = color
+	outline_material.emission = color
 
 func _on_click_area_input_event(
 	_camera: Node,
@@ -71,44 +109,67 @@ func clear_slot() -> void:
 
 	print("Cleared slot: ", get_meta("slot_id"))
 
-
-func set_highlight(active: bool) -> void:
-	if slot_material == null:
-		setup_slot_material()
-
-	if active:
-		slot_material.albedo_color = valid_color
-		slot_material.emission_enabled = true
-		slot_material.emission = valid_color
-		slot_material.emission_energy_multiplier = 0.5
-	else:
-		slot_material.albedo_color = default_color
-		slot_material.emission_enabled = false
-
-
-func set_invalid_highlight(active: bool) -> void:
-	if slot_material == null:
-		setup_slot_material()
-
-	if active:
-		slot_material.albedo_color = invalid_color
-		slot_material.emission_enabled = true
-		slot_material.emission = invalid_color
-		slot_material.emission_energy_multiplier = 0.5
-	else:
-		slot_material.albedo_color = default_color
-		slot_material.emission_enabled = false
-
-
 func setup_slot_material() -> void:
-	var existing_material := material_override as StandardMaterial3D
+	var existing_material := get_active_material(0) as StandardMaterial3D
 
 	if existing_material != null:
 		slot_material = existing_material.duplicate()
+		material_override = slot_material
 		default_color = slot_material.albedo_color
 	else:
 		slot_material = StandardMaterial3D.new()
 		slot_material.albedo_color = default_color
+		material_override = slot_material
 
-	slot_material.roughness = 1.0
-	material_override = slot_material
+func setup_highlight_outline() -> void:
+	highlight_outline = Node3D.new()
+	highlight_outline.name = "HighlightOutline"
+	add_child(highlight_outline)
+
+	outline_material = StandardMaterial3D.new()
+	outline_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	outline_material.albedo_color = Color(0.4, 1.0, 0.4, 1.0)
+	outline_material.emission_enabled = true
+	outline_material.emission = Color(0.4, 1.0, 0.4, 1.0)
+	outline_material.emission_energy_multiplier = 1.2
+
+	var top_bar := create_outline_bar(
+		"TopBar",
+		Vector3(SLOT_WIDTH + OUTLINE_THICKNESS, OUTLINE_THICKNESS, OUTLINE_THICKNESS),
+		Vector3(0, OUTLINE_Y_OFFSET, -SLOT_HEIGHT / 2.0)
+	)
+
+	var bottom_bar := create_outline_bar(
+		"BottomBar",
+		Vector3(SLOT_WIDTH + OUTLINE_THICKNESS, OUTLINE_THICKNESS, OUTLINE_THICKNESS),
+		Vector3(0, OUTLINE_Y_OFFSET, SLOT_HEIGHT / 2.0)
+	)
+
+	var left_bar := create_outline_bar(
+		"LeftBar",
+		Vector3(OUTLINE_THICKNESS, OUTLINE_THICKNESS, SLOT_HEIGHT + OUTLINE_THICKNESS),
+		Vector3(-SLOT_WIDTH / 2.0, OUTLINE_Y_OFFSET, 0)
+	)
+
+	var right_bar := create_outline_bar(
+		"RightBar",
+		Vector3(OUTLINE_THICKNESS, OUTLINE_THICKNESS, SLOT_HEIGHT + OUTLINE_THICKNESS),
+		Vector3(SLOT_WIDTH / 2.0, OUTLINE_Y_OFFSET, 0)
+	)
+
+	highlight_outline.visible = false
+	
+func create_outline_bar(bar_name: String, bar_size: Vector3, bar_position: Vector3) -> MeshInstance3D:
+	var bar := MeshInstance3D.new()
+	bar.name = bar_name
+
+	var mesh := BoxMesh.new()
+	mesh.size = bar_size
+
+	bar.mesh = mesh
+	bar.position = bar_position
+	bar.material_override = outline_material
+
+	highlight_outline.add_child(bar)
+
+	return bar
