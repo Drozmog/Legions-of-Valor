@@ -18,6 +18,7 @@ var has_selected_card: bool = false
 
 @export var hand: HandUI
 @export var draw_pile: DrawPile
+@export var tribute_pile: TributePile
 
 func _ready() -> void:
 	connect_all_slots()
@@ -25,6 +26,7 @@ func _ready() -> void:
 	hand.card_cleared.connect(_on_hand_card_cleared)
 	tribute_manager.add_tribute(3)
 	draw_pile.pile_clicked.connect(_on_draw_pile_clicked)
+	tribute_pile.tribute_pile_clicked.connect(_on_tribute_pile_clicked)
 	log_msg("Starting Tribute: " + tribute_manager.get_status_text())
 		
 
@@ -46,6 +48,17 @@ func _on_hand_card_cleared() -> void:
 	
 func _on_draw_pile_clicked() -> void:
 	hand.draw_card()
+	
+func _on_tribute_pile_clicked() -> void:
+	if not has_selected_card:
+		log_msg("Select a card from your hand to sacrifice for tribute.")
+		return
+	tribute_manager.add_tribute(1)        # each sacrifice = +1 TP for now
+	tribute_pile.add_card()               # grow the visual pile
+	log_msg("Sacrificed " + selected_card_data.card_name + " for 1 TP. " + tribute_manager.get_status_text())
+	hand.remove_selected_card()           # the card leaves your hand
+	cancel_selected_card()
+	
 	
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
