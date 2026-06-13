@@ -2,8 +2,7 @@
 
 [ext_resource type="Script" uid="uid://d1bxaxrw4bbx1" path="res://battlefield/BattlefieldManager.gd" id="1_a265j"]
 [ext_resource type="Script" uid="uid://08vh6g385ekw" path="res://battlefield/BoardSlot.gd" id="2_do6fa"]
-[ext_resource type="Texture2D" uid="uid://cbk3mh61d0f0i" path="res://Textures/SO4M8W0.png" id="2_rdvt6"]
-[ext_resource type="Texture2D" uid="uid://dnwcw2smdpix6" path="res://Textures/Ground with Crack.png" id="2_rn43s"]
+[ext_resource type="Texture2D" uid="uid://dnwcw2smdpix6" path="res://Textures/Grassy Field.png" id="2_rn43s"]
 [ext_resource type="Script" uid="uid://mrjpnlt8klf1" path="res://battlefield/GameLog.gd" id="3_rdvt6"]
 [ext_resource type="Script" uid="uid://do8rfvsttcccj" path="res://battlefield/TributeManager.gd" id="4_rn43s"]
 [ext_resource type="Texture2D" uid="uid://dlcuxga8mdox5" path="res://Textures/Snowy Path.png" id="4_yr2pt"]
@@ -13,9 +12,11 @@
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(14, 8)
 
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_rn43s"]
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rn43s"]
 albedo_texture = ExtResource("2_rn43s")
-normal_texture = ExtResource("2_rdvt6")
+normal_texture = SubResource("CompressedTexture2D_rn43s")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1fhha"]
 albedo_texture = ExtResource("4_yr2pt")
