@@ -7,6 +7,7 @@
 [ext_resource type="Texture2D" uid="uid://baae7yi6oh20k" path="res://Textures/Ground.png" id="3_rn43s"]
 [ext_resource type="Script" uid="uid://do8rfvsttcccj" path="res://battlefield/TributeManager.gd" id="4_rn43s"]
 [ext_resource type="Script" uid="uid://brfudyn18b5kf" path="res://ui/Hand.gd" id="5_yr2pt"]
+[ext_resource type="Script" uid="uid://d3gtu3v3ewks1" path="res://battlefield/DrawPile.gd" id="6_do6fa"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(14, 8)
@@ -35,9 +36,13 @@ roughness = 0.62
 [sub_resource type="BoxShape3D" id="BoxShape3D_lmsbs"]
 size = Vector3(1.02, 0.02, 1.34)
 
-[node name="Battlefield3D" type="Node3D" unique_id=1594429578 node_paths=PackedStringArray("hand")]
+[sub_resource type="BoxShape3D" id="BoxShape3D_do6fa"]
+size = Vector3(1.02, 0.5, 1.34)
+
+[node name="Battlefield3D" type="Node3D" unique_id=1594429578 node_paths=PackedStringArray("hand", "draw_pile")]
 script = ExtResource("1_a265j")
 hand = NodePath("UI/Hand")
+draw_pile = NodePath("DrawPile")
 
 [node name="BoardPlane" type="MeshInstance3D" parent="." unique_id=1652894338]
 mesh = SubResource("PlaneMesh_lmsbs")
@@ -339,3 +344,12 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("5_yr2pt")
+
+[node name="DrawPile" type="Node3D" parent="." unique_id=2072337119]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.0152125, 0.1, 2.19526)
+script = ExtResource("6_do6fa")
+
+[node name="ClickArea" type="Area3D" parent="DrawPile" unique_id=873756467]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DrawPile/ClickArea" unique_id=240919002]
+shape = SubResource("BoxShape3D_do6fa")

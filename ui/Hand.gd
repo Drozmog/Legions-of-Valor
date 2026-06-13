@@ -9,6 +9,7 @@ const CARD_UI_SCENE: PackedScene = preload("res://cards/CardUI.tscn")
 
 var cards: Array[Control] = []
 var selected_card: Control = null
+var deck: Array[CardData] = []
 signal card_selected(card: Control)
 signal card_cleared()
 
@@ -21,14 +22,27 @@ const SAMPLE_CARDS: Array[CardData] = [
 ]
 
 func _ready() -> void:
-	for i in range(SAMPLE_CARDS.size()):
-		var card: CardUI = CARD_UI_SCENE.instantiate()
-		add_child(card)
-		cards.append(card)
-		card.setup(SAMPLE_CARDS[i])
-		card.mouse_entered.connect(_on_card_hovered.bind(card))
-		card.mouse_exited.connect(_on_card_unhovered.bind(card))
-		card.gui_input.connect(_on_card_gui_input.bind(card))
+	build_deck()
+	for i in range(5):
+		draw_card()
+
+func build_deck() -> void:
+	deck.clear()
+	for n in range(4):
+		deck.append_array(SAMPLE_CARDS)
+	deck.shuffle()
+	
+func draw_card():
+	if deck.is_empty():
+		return
+	var data : CardData = deck.pop_back()
+	var card: CardUI = CARD_UI_SCENE.instantiate()
+	add_child(card)
+	cards.append(card)
+	card.setup(data)
+	card.mouse_entered.connect(_on_card_hovered.bind(card))
+	card.mouse_exited.connect(_on_card_unhovered.bind(card))
+	card.gui_input.connect(_on_card_gui_input.bind(card))
 	arrange_fan()
 
 func arrange_fan() -> void:

@@ -17,12 +17,14 @@ var selected_card_data: CardData = null
 var has_selected_card: bool = false
 
 @export var hand: HandUI
+@export var draw_pile: DrawPile
 
 func _ready() -> void:
 	connect_all_slots()
 	hand.card_selected.connect(_on_hand_card_selected)
 	hand.card_cleared.connect(_on_hand_card_cleared)
 	tribute_manager.add_tribute(3)
+	draw_pile.pile_clicked.connect(_on_draw_pile_clicked)
 	log_msg("Starting Tribute: " + tribute_manager.get_status_text())
 		
 
@@ -41,6 +43,9 @@ func _on_hand_card_selected(card) -> void:
 	
 func _on_hand_card_cleared() -> void:
 	cancel_selected_card()
+	
+func _on_draw_pile_clicked() -> void:
+	hand.draw_card()
 	
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
@@ -69,6 +74,9 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_Y:
 			tribute_manager.refresh_tribute_points()
 			log_msg("Tribute refreshed. " + tribute_manager.get_status_text())
+			
+		if event.keycode == KEY_D:
+			hand.draw_card()
 
 
 func select_card(card_data: CardData) -> void:
