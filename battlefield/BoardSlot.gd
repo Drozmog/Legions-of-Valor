@@ -133,25 +133,25 @@ func setup_highlight_outline() -> void:
 	outline_material.emission = Color(0.4, 1.0, 0.4, 1.0)
 	outline_material.emission_energy_multiplier = 1.2
 
-	var top_bar := create_outline_bar(
-		"TopBar",
-		Vector3(SLOT_WIDTH + OUTLINE_THICKNESS, OUTLINE_THICKNESS, OUTLINE_THICKNESS),
-		Vector3(0, OUTLINE_Y_OFFSET, -SLOT_HEIGHT / 2.0)
+	create_outline_bar(
+	"TopBar",
+	Vector3(SLOT_WIDTH + OUTLINE_THICKNESS, OUTLINE_THICKNESS, OUTLINE_THICKNESS),
+	Vector3(0, OUTLINE_Y_OFFSET, -SLOT_HEIGHT / 2.0)
 	)
 
-	var bottom_bar := create_outline_bar(
+	create_outline_bar(
 		"BottomBar",
 		Vector3(SLOT_WIDTH + OUTLINE_THICKNESS, OUTLINE_THICKNESS, OUTLINE_THICKNESS),
 		Vector3(0, OUTLINE_Y_OFFSET, SLOT_HEIGHT / 2.0)
 	)
 
-	var left_bar := create_outline_bar(
+	create_outline_bar(
 		"LeftBar",
 		Vector3(OUTLINE_THICKNESS, OUTLINE_THICKNESS, SLOT_HEIGHT + OUTLINE_THICKNESS),
 		Vector3(-SLOT_WIDTH / 2.0, OUTLINE_Y_OFFSET, 0)
 	)
 
-	var right_bar := create_outline_bar(
+	create_outline_bar(
 		"RightBar",
 		Vector3(OUTLINE_THICKNESS, OUTLINE_THICKNESS, SLOT_HEIGHT + OUTLINE_THICKNESS),
 		Vector3(SLOT_WIDTH / 2.0, OUTLINE_Y_OFFSET, 0)
@@ -163,10 +163,10 @@ func create_outline_bar(bar_name: String, bar_size: Vector3, bar_position: Vecto
 	var bar := MeshInstance3D.new()
 	bar.name = bar_name
 
-	var mesh := BoxMesh.new()
-	mesh.size = bar_size
+	var bar_mesh := BoxMesh.new()
+	bar_mesh.size = bar_size
 
-	bar.mesh = mesh
+	bar.mesh = bar_mesh
 	bar.position = bar_position
 	bar.material_override = outline_material
 
