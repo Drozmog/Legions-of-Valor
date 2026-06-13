@@ -16,9 +16,12 @@ var selected_card_scene: PackedScene = null
 var selected_card_data: CardData = null
 var has_selected_card: bool = false
 
+@export var hand: HandUI
 
 func _ready() -> void:
 	connect_all_slots()
+	hand.card_selected.connect(_on_hand_card_selected)
+	hand.card_cleared.connect(_on_hand_card_cleared)
 	tribute_manager.add_tribute(3)
 	log_msg("Starting Tribute: " + tribute_manager.get_status_text())
 		
@@ -33,6 +36,12 @@ func connect_all_slots() -> void:
 			slot.slot_right_clicked.connect(_on_slot_right_clicked)
 
 
+func _on_hand_card_selected(card) -> void:
+	select_card(card.card_data)
+	
+func _on_hand_card_cleared() -> void:
+	cancel_selected_card()
+	
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_1:
@@ -108,6 +117,7 @@ func _on_slot_clicked(slot: Node) -> void:
 	if placed_successfully:
 		tribute_manager.spend_tribute(selected_card_data.tribute_cost)
 		log_msg("Spent " + str(selected_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
+		hand.remove_selected_card()     # drop the played card from the hand
 		cancel_selected_card()
 
 

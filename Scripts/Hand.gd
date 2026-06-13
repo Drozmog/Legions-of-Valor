@@ -1,3 +1,4 @@
+class_name HandUI
 extends Control
 
 const CARD_UI_SCENE: PackedScene = preload("res://Scenes/Cards/CardUI.tscn")
@@ -8,12 +9,23 @@ const CARD_UI_SCENE: PackedScene = preload("res://Scenes/Cards/CardUI.tscn")
 
 var cards: Array[Control] = []
 var selected_card: Control = null
-# Called when the node enters the scene tree for the first time.
+signal card_selected(card: Control)
+signal card_cleared()
+
+const SAMPLE_CARDS: Array[CardData] = [
+	preload("res://Data/Cards/Dwarf_Axe_Guard.tres"),
+	preload("res://Data/Cards/Elf_Canopy_Archer.tres"),
+	preload("res://Data/Cards/Orc_Blood_Raider.tres"),
+	preload("res://Data/Cards/Test_Ruse.tres"),
+	preload("res://Data/Cards/Test_Trap.tres"),
+]
+
 func _ready() -> void:
-	for i in range(5):
-		var card : Control = CARD_UI_SCENE.instantiate()
+	for i in range(SAMPLE_CARDS.size()):
+		var card: CardUI = CARD_UI_SCENE.instantiate()
 		add_child(card)
 		cards.append(card)
+		card.setup(SAMPLE_CARDS[i])
 		card.mouse_entered.connect(_on_card_hovered.bind(card))
 		card.mouse_exited.connect(_on_card_unhovered.bind(card))
 		card.gui_input.connect(_on_card_gui_input.bind(card))
@@ -67,14 +79,24 @@ func select_card(card: Control) -> void:
 	if selected_card == card:
 		_move_card_to(card, card.get_meta("home_position"))
 		selected_card = null
+		card_cleared.emit()
 		return
 	if selected_card != null:        # something else was selected: drop it back down
 		_move_card_to(selected_card, selected_card.get_meta("home_position"))
 	selected_card = card             # remember the new choice
 	card.move_to_front()
 	_move_card_to(card, card.get_meta("home_position") + Vector2(0, -hover_lift))  # raise it
+	card_selected.emit(card)
 
 func _move_card_to(card: Control, target: Vector2) -> void:
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(card, "position", target, 0.12)
+
+func remove_selected_card() -> void:
+	if selected_card == null:
+		return
+	cards.erase(selected_card)      # take it out of the hand's list
+	selected_card.queue_free()      # delete the card node
+	selected_card = null            # nothing selected anymore
+	arrange_fan()                   # re-fan the cards that remain
