@@ -3,6 +3,11 @@ extends Control
 
 const CARD_UI_SCENE: PackedScene = preload("res://cards/CardUI.tscn")
 
+signal card_drag_started(card: CardUI)
+signal card_drag_released(card: CardUI, screen_position: Vector2)
+
+var dragged_card: CardUI = null
+
 @export var card_scale: float = 0.62
 
 @export var raised_anchor_from_bottom: float = 85.0
@@ -69,13 +74,49 @@ func draw_card() -> void:
 	cards.append(card)
 
 	card.setup(data)
-
+	card.drag_started.connect(_on_card_drag_started)
+	card.drag_released.connect(_on_card_drag_released)
 	card.mouse_entered.connect(_on_card_hovered.bind(card))
 	card.mouse_exited.connect(_on_card_unhovered.bind(card))
 	card.gui_input.connect(_on_card_gui_input.bind(card))
 
 	arrange_fan()
 
+func _on_card_drag_started(card: CardUI) -> void:
+	dragged_card = card
+	selected_card = card
+
+	lower_hand()
+
+	card_drag_started.emit(card)
+
+
+func _on_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
+	card_drag_released.emit(card, screen_position)
+
+
+func return_dragged_card_to_hand(card: CardUI) -> void:
+	dragged_card = null
+	selected_card = null
+
+	if not cards.has(card):
+		cards.append(card)
+
+	raise_hand()
+	arrange_fan()
+
+
+func consume_dragged_card(card: CardUI) -> void:
+	cards.erase(card)
+
+	if card != null:
+		card.queue_free()
+
+	dragged_card = null
+	selected_card = null
+
+	lower_hand()
+	arrange_fan()
 
 func toggle_hand() -> void:
 	hand_is_raised = !hand_is_raised
@@ -119,6 +160,8 @@ func arrange_fan(animated: bool = true) -> void:
 
 	for i in range(count):
 		var card := cards[i]
+		if card == dragged_card:
+			continue
 
 		var normalized := 0.0
 

@@ -22,6 +22,8 @@ var has_selected_card: bool = false
 
 func _ready() -> void:
 	connect_all_slots()
+	hand.card_drag_started.connect(_on_hand_card_drag_started)
+	hand.card_drag_released.connect(_on_hand_card_drag_released)
 	hand.card_selected.connect(_on_hand_card_selected)
 	hand.card_cleared.connect(_on_hand_card_cleared)
 	tribute_manager.add_tribute(3)
@@ -30,6 +32,116 @@ func _ready() -> void:
 	log_msg("Starting Tribute: " + tribute_manager.get_status_text())
 		
 
+func _on_hand_card_drag_started(card: CardUI) -> void:
+	select_card(card.card_data)
+
+
+func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
+	var target_node := get_3d_node_under_screen_position(screen_position)
+
+	var target_slot := find_board_slot_from_node(target_node)
+
+	if target_slot != null:
+		var placed := try_place_selected_card_on_slot(target_slot)
+
+		if placed:
+			hand.consume_dragged_card(card)
+			cancel_selected_card()
+		else:
+			hand.return_dragged_card_to_hand(card)
+			cancel_selected_card()
+
+		return
+
+	if is_node_inside_target(target_node, tribute_pile):
+		var sacrificed := try_sacrifice_selected_card_to_tribute()
+
+		if sacrificed:
+			hand.consume_dragged_card(card)
+			cancel_selected_card()
+		else:
+			hand.return_dragged_card_to_hand(card)
+			cancel_selected_card()
+
+		return
+
+	log_msg("Card dropped nowhere valid.")
+	hand.return_dragged_card_to_hand(card)
+	cancel_selected_card()
+
+func try_place_selected_card_on_slot(slot: Node) -> bool:
+	var slot_id: String = slot.get_meta("slot_id", "")
+
+	if not has_selected_card:
+		log_msg("No card selected.")
+		return false
+
+	if selected_card_data == null:
+		log_msg("Selected card data is missing.")
+		return false
+
+	if not is_valid_slot_for_selected_card(slot):
+		log_msg("Invalid placement for " + selected_card_data.card_name + " on " + str(slot_id))
+		return false
+
+	if not tribute_manager.can_afford(selected_card_data.tribute_cost):
+		log_msg("Not enough Tribute Points. Need " + str(selected_card_data.tribute_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
+		return false
+
+	log_msg("Trying to place: " + selected_card_data.card_name)
+
+	var placed_successfully: bool = slot.place_card(selected_card_scene, selected_card_data)
+
+	if placed_successfully:
+		tribute_manager.spend_tribute(selected_card_data.tribute_cost)
+		log_msg("Spent " + str(selected_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
+		return true
+
+	return false
+
+func get_3d_node_under_screen_position(screen_position: Vector2) -> Node:
+	var camera := get_viewport().get_camera_3d()
+
+	if camera == null:
+		return null
+
+	var ray_origin := camera.project_ray_origin(screen_position)
+	var ray_end := ray_origin + camera.project_ray_normal(screen_position) * 1000.0
+
+	var query := PhysicsRayQueryParameters3D.create(ray_origin, ray_end)
+	query.collide_with_areas = true
+	query.collide_with_bodies = true
+
+	var result := get_world_3d().direct_space_state.intersect_ray(query)
+
+	if result.is_empty():
+		return null
+
+	return result.get("collider", null)
+
+
+func find_board_slot_from_node(node: Node) -> Node:
+	var current := node
+
+	while current != null:
+		if current.has_method("place_card") and current.has_meta("slot_id"):
+			return current
+
+		current = current.get_parent()
+
+	return null
+
+
+func is_node_inside_target(node: Node, target: Node) -> bool:
+	var current := node
+
+	while current != null:
+		if current == target:
+			return true
+
+		current = current.get_parent()
+
+	return false
 
 func connect_all_slots() -> void:
 	for slot in board_slots.get_children():
@@ -111,36 +223,11 @@ func cancel_selected_card() -> void:
 
 
 func _on_slot_clicked(slot: Node) -> void:
-	var slot_id: String = slot.get_meta("slot_id", "")
+	var placed := try_place_selected_card_on_slot(slot)
 
-	log_msg("Clicked slot: " + str(slot_id))
-
-	if not has_selected_card:
-		log_msg("No card selected.")
-		return
-
-	if selected_card_data == null:
-		log_msg("Selected card data is missing.")
-		return
-
-	if not is_valid_slot_for_selected_card(slot):
-		log_msg("Invalid placement for " + selected_card_data.card_name + " on " + str(slot_id))
-		return
-
-	log_msg("Trying to place: " + selected_card_data.card_name)
-	
-	if not tribute_manager.can_afford(selected_card_data.tribute_cost):
-		log_msg("Not enough Tribute Points. Need " + str(selected_card_data.tribute_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
-		return
-	
-	var placed_successfully: bool = slot.place_card(selected_card_scene, selected_card_data)
-
-	if placed_successfully:
-		tribute_manager.spend_tribute(selected_card_data.tribute_cost)
-		log_msg("Spent " + str(selected_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
-		hand.remove_selected_card()     # drop the played card from the hand
+	if placed:
+		hand.remove_selected_card()
 		cancel_selected_card()
-
 
 func _on_slot_right_clicked(slot: Node) -> void:
 	var slot_id: String = slot.get_meta("slot_id", "")
@@ -148,6 +235,21 @@ func _on_slot_right_clicked(slot: Node) -> void:
 	log_msg("Cleared slot: " + str(slot_id))
 	update_slot_highlights()
 
+func try_sacrifice_selected_card_to_tribute() -> bool:
+	if not has_selected_card:
+		log_msg("No card selected for tribute.")
+		return false
+
+	if selected_card_data == null:
+		log_msg("Selected card data is missing.")
+		return false
+
+	tribute_manager.add_tribute(1)
+	tribute_pile.add_card()
+
+	log_msg("Sacrificed " + selected_card_data.card_name + " for Tribute. " + tribute_manager.get_status_text())
+
+	return true
 
 func is_valid_slot_for_selected_card(slot: Node) -> bool:
 	var slot_owner: String = slot.get_meta("owner", "")
