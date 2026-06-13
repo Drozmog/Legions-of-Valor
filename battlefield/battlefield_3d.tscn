@@ -12,13 +12,14 @@
 [ext_resource type="Script" uid="uid://cqmyr7rmuptnr" path="res://battlefield/TributePile.gd" id="9_yr2pt"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
-size = Vector2(14, 8)
+size = Vector2(17.135, 8.305)
 
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_rn43s"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rn43s"]
 albedo_texture = ExtResource("2_rn43s")
 normal_texture = SubResource("CompressedTexture2D_rn43s")
+uv1_scale = Vector3(0.97, 1, 1)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1fhha"]
 albedo_texture = ExtResource("4_yr2pt")

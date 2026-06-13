@@ -6,7 +6,9 @@ const CARD_UI_SCENE: PackedScene = preload("res://cards/CardUI.tscn")
 signal card_drag_started(card: CardUI)
 signal card_drag_released(card: CardUI, screen_position: Vector2)
 
+@warning_ignore("unused_signal")
 signal card_selected(card: Control)
+@warning_ignore("unused_signal")
 signal card_cleared()
 
 @export var card_scale: float = 0.62
