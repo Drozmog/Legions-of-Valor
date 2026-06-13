@@ -1,7 +1,7 @@
 class_name HandUI
 extends Control
 
-const CARD_UI_SCENE: PackedScene = preload("res://Scenes/Cards/CardUI.tscn")
+const CARD_UI_SCENE: PackedScene = preload("res://cards/CardUI.tscn")
 
 @export var fan_radius: float = 500.0          # bigger = flatter fan, smaller = more curved
 @export var fan_spread_degrees: float = 50.0 # total fan rotation
@@ -13,11 +13,11 @@ signal card_selected(card: Control)
 signal card_cleared()
 
 const SAMPLE_CARDS: Array[CardData] = [
-	preload("res://Data/Cards/Dwarf_Axe_Guard.tres"),
-	preload("res://Data/Cards/Elf_Canopy_Archer.tres"),
-	preload("res://Data/Cards/Orc_Blood_Raider.tres"),
-	preload("res://Data/Cards/Test_Ruse.tres"),
-	preload("res://Data/Cards/Test_Trap.tres"),
+	preload("res://cards/definitions/Dwarf_Axe_Guard.tres"),
+	preload("res://cards/definitions/Elf_Canopy_Archer.tres"),
+	preload("res://cards/definitions/Orc_Blood_Raider.tres"),
+	preload("res://cards/definitions/Test_Ruse.tres"),
+	preload("res://cards/definitions/Test_Trap.tres"),
 ]
 
 func _ready() -> void:

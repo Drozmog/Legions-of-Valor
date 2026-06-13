@@ -1,12 +1,12 @@
 extends Node3D
 
-const TEST_CARD_SCENE: PackedScene = preload("res://Scenes/Cards/Card3D_Test.tscn")
+const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
 
-const DWARF_AXE_GUARD: CardData = preload("res://Data/Cards/Dwarf_Axe_Guard.tres")
-const ELF_CANOPY_ARCHER: CardData = preload("res://Data/Cards/Elf_Canopy_Archer.tres")
-const ORC_BLOOD_RAIDER: CardData = preload("res://Data/Cards/Orc_Blood_Raider.tres")
-const TEST_RUSE: CardData = preload("res://Data/Cards/Test_Ruse.tres")
-const TEST_TRAP: CardData = preload("res://Data/Cards/Test_Trap.tres")
+const DWARF_AXE_GUARD: CardData = preload("res://cards/definitions/Dwarf_Axe_Guard.tres")
+const ELF_CANOPY_ARCHER: CardData = preload("res://cards/definitions/Elf_Canopy_Archer.tres")
+const ORC_BLOOD_RAIDER: CardData = preload("res://cards/definitions/Orc_Blood_Raider.tres")
+const TEST_RUSE: CardData = preload("res://cards/definitions/Test_Ruse.tres")
+const TEST_TRAP: CardData = preload("res://cards/definitions/Test_Trap.tres")
 
 @onready var board_slots: Node3D = $BoardSlots
 @onready var game_log = $GameLog
