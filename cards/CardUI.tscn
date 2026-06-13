@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://dl8kik37l6gl" path="res://cards/CardUI.gd" id="1_1b7sk"]
 
 [node name="CardUI" type="Panel" unique_id=641877519]
-custom_minimum_size = Vector2(170, 220)
+custom_minimum_size = Vector2(250, 350)
 offset_right = 110.0
 offset_bottom = 150.0
 mouse_default_cursor_shape = 2
