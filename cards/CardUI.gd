@@ -6,8 +6,9 @@ signal drag_released(card: CardUI, screen_position: Vector2)
 
 @onready var name_label: Label = $NameLabel
 
-var card_data: CardData
+var card_data: CardData = null
 var is_dragging: bool = false
+var is_face_down: bool = false
 var drag_offset: Vector2 = Vector2.ZERO
 
 
@@ -18,13 +19,35 @@ func _ready() -> void:
 
 func setup(data: CardData) -> void:
 	card_data = data
-	name_label.text = data.card_name
+	show_front()
+
+
+func show_front() -> void:
+	is_face_down = false
+
+	if name_label != null:
+		name_label.visible = true
+
+		if card_data != null:
+			name_label.text = card_data.card_name
+
+	self_modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+
+func show_back() -> void:
+	is_face_down = true
+
+	if name_label != null:
+		name_label.visible = false
+
+	self_modulate = Color(0.08, 0.08, 0.08, 0.95)
 
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			start_dragging()
+			accept_event()
 
 
 func start_dragging() -> void:
@@ -49,6 +72,9 @@ func _process(_delta: float) -> void:
 
 
 func stop_dragging() -> void:
+	if not is_dragging:
+		return
+
 	is_dragging = false
 	set_process(false)
 
