@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" uid="uid://dnwcw2smdpix6" path="res://Textures/Ground with Crack.png" id="2_rn43s"]
 [ext_resource type="Script" uid="uid://mrjpnlt8klf1" path="res://battlefield/GameLog.gd" id="3_rdvt6"]
 [ext_resource type="Script" uid="uid://do8rfvsttcccj" path="res://battlefield/TributeManager.gd" id="4_rn43s"]
+[ext_resource type="Texture2D" uid="uid://dlcuxga8mdox5" path="res://Textures/Snowy Path.png" id="4_yr2pt"]
 [ext_resource type="Script" uid="uid://brfudyn18b5kf" path="res://ui/Hand.gd" id="5_yr2pt"]
 [ext_resource type="Script" uid="uid://d3gtu3v3ewks1" path="res://battlefield/DrawPile.gd" id="6_do6fa"]
 [ext_resource type="Script" uid="uid://cqmyr7rmuptnr" path="res://battlefield/TributePile.gd" id="9_yr2pt"]
@@ -16,6 +17,9 @@ size = Vector2(14, 8)
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rn43s"]
 albedo_texture = ExtResource("2_rn43s")
 normal_texture = ExtResource("2_rdvt6")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1fhha"]
+albedo_texture = ExtResource("4_yr2pt")
 
 [sub_resource type="BoxMesh" id="BoxMesh_lmsbs"]
 size = Vector3(1.02, 0.02, 1.34)
@@ -40,9 +44,14 @@ hand = NodePath("UI/Hand")
 draw_pile = NodePath("DrawPile")
 tribute_pile = NodePath("TributePile")
 
-[node name="BoardPlane" type="MeshInstance3D" parent="." unique_id=1652894338]
+[node name="BoardPlaneGrass" type="MeshInstance3D" parent="." unique_id=1652894338]
 mesh = SubResource("PlaneMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_rn43s")
+
+[node name="BoardPlaneSnow" type="MeshInstance3D" parent="." unique_id=1368429057]
+visible = false
+mesh = SubResource("PlaneMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_1fhha")
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1256937891]
 transform = Transform3D(1, 0, 0, 0, 0.26218924, 0.9650165, 0, -0.9650165, 0.26218924, 0, 4.8, 2.125)
