@@ -14,7 +14,7 @@ func _ready() -> void:
 
 func build_stack() -> void:
 	var mesh := BoxMesh.new()
-	mesh.size = Vector3(1.02, card_thickness, 1.34)
+	mesh.size = Vector3(1.1, card_thickness, 1.5)
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.82, 0.74, 0.55) 	# dark card-back colour
 	for i in range(card_count):
