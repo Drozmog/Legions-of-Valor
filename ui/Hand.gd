@@ -31,62 +31,19 @@ var cards: Array[CardUI] = []
 var selected_card: CardUI = null
 var dragged_card: CardUI = null
 
-var deck: Array[CardData] = []
-
 var hand_is_raised: bool = false
 
 var draw_drag_card: CardUI = null
 var pending_draw_data: CardData = null
 
-const SAMPLE_CARDS: Array[CardData] = [
-	preload("res://cards/definitions/Dwarf_Axe_Guard.tres"),
-	preload("res://cards/definitions/Elf_Canopy_Archer.tres"),
-	preload("res://cards/definitions/Orc_Blood_Raider.tres"),
-	preload("res://cards/definitions/Test_Spell.tres"),
-	preload("res://cards/definitions/Test_Equipment.tres"),
-]
-
 
 func _ready() -> void:
-	build_deck()
-
-	for i in range(5):
-		draw_card(false)
-
 	arrange_fan(false)
-
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_SPACE:
 			toggle_hand()
-
-
-func build_deck() -> void:
-	deck.clear()
-
-	for n in range(8):
-		deck.append_array(SAMPLE_CARDS)
-
-	deck.shuffle()
-
-
-func draw_card(animated: bool = true) -> void:
-	if deck.is_empty():
-		return
-
-	var data: CardData = deck.pop_back()
-	var card := CARD_UI_SCENE.instantiate() as CardUI
-
-	add_child(card)
-	cards.append(card)
-
-	card.setup(data)
-	card.scale = Vector2(card_scale, card_scale)
-
-	connect_hand_card_signals(card)
-
-	arrange_fan(animated)
 
 
 func connect_hand_card_signals(card: CardUI) -> void:
@@ -110,6 +67,23 @@ func raise_hand() -> void:
 func lower_hand() -> void:
 	hand_is_raised = false
 	arrange_fan()
+
+
+func add_card_to_hand(card_data: CardData, animated: bool = true) -> void:
+	if card_data == null:
+		return
+
+	var card := CARD_UI_SCENE.instantiate() as CardUI
+
+	add_child(card)
+	cards.append(card)
+
+	card.setup(card_data)
+	card.scale = Vector2(card_scale, card_scale)
+
+	connect_hand_card_signals(card)
+
+	arrange_fan(animated)
 
 
 func arrange_fan(animated: bool = true) -> void:
@@ -291,11 +265,11 @@ func remove_selected_card() -> void:
 # DRAW PILE DRAG INTO HAND
 # ------------------------------------------------------------
 
-func start_draw_pile_drag(screen_position: Vector2) -> bool:
-	if deck.is_empty():
+func start_draw_pile_drag(screen_position: Vector2, preview_card_data: CardData) -> bool:
+	if preview_card_data == null:
 		return false
 
-	pending_draw_data = deck.back()
+	pending_draw_data = preview_card_data
 
 	draw_drag_card = CARD_UI_SCENE.instantiate() as CardUI
 	add_child(draw_drag_card)
@@ -311,7 +285,6 @@ func start_draw_pile_drag(screen_position: Vector2) -> bool:
 
 	return true
 
-
 func update_draw_pile_drag(screen_position: Vector2) -> void:
 	if draw_drag_card == null:
 		return
@@ -319,7 +292,7 @@ func update_draw_pile_drag(screen_position: Vector2) -> void:
 	draw_drag_card.global_position = screen_position - draw_drag_card.size * card_scale / 2.0
 
 
-func finish_draw_pile_drag(screen_position: Vector2) -> bool:
+func finish_draw_pile_drag(screen_position: Vector2, drawn_card_data: CardData) -> bool:
 	if draw_drag_card == null:
 		return false
 
@@ -329,9 +302,13 @@ func finish_draw_pile_drag(screen_position: Vector2) -> bool:
 		pending_draw_data = null
 		return false
 
-	var drawn_data: CardData = deck.pop_back()
+	if drawn_card_data == null:
+		draw_drag_card.queue_free()
+		draw_drag_card = null
+		pending_draw_data = null
+		return false
 
-	draw_drag_card.card_data = drawn_data
+	draw_drag_card.card_data = drawn_card_data
 	draw_drag_card.show_back()
 
 	cards.append(draw_drag_card)
@@ -343,7 +320,7 @@ func finish_draw_pile_drag(screen_position: Vector2) -> bool:
 	pending_draw_data = null
 
 	return true
-
+	
 
 func is_screen_position_in_hand_drop_zone(screen_position: Vector2) -> bool:
 	var viewport_size := get_viewport_rect().size

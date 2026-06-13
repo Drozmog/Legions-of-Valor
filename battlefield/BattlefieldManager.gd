@@ -15,6 +15,7 @@ const TEST_EQUIPMENT: CardData = preload("res://cards/definitions/Test_Equipment
 @export var hand: HandUI
 @export var draw_pile: DrawPile
 @export var tribute_pile: TributePile
+@export var player_deck: PlayerDeck
 
 var selected_card_scene: PackedScene = null
 var selected_card_data: CardData = null
@@ -40,6 +41,7 @@ func _ready() -> void:
 		tribute_manager.tribute_changed.connect(_on_tribute_changed)
 
 	update_tribute_counter()
+	deal_starting_hand()
 
 	log_msg("Starting Tribute: " + tribute_manager.get_status_text())
 
@@ -99,6 +101,26 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 	cancel_selected_card()
 
 
+func deal_starting_hand() -> void:
+	if hand == null:
+		return
+
+	if player_deck == null:
+		log_msg("PlayerDeck is missing.")
+		return
+
+	for i in range(5):
+		var drawn_card: CardData = player_deck.draw_top_card()
+
+		if drawn_card == null:
+			log_msg("Deck ran out while dealing starting hand.")
+			return
+
+		hand.add_card_to_hand(drawn_card, false)
+
+	log_msg("Starting hand dealt. Deck remaining: " + str(player_deck.cards_remaining()))
+
+
 # ------------------------------------------------------------
 # DRAW PILE DRAG TO HAND
 # ------------------------------------------------------------
@@ -107,7 +129,13 @@ func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
 	if hand == null:
 		return
 
-	var started := hand.start_draw_pile_drag(screen_position)
+	if player_deck == null:
+		log_msg("PlayerDeck is missing.")
+		return
+
+	var preview_card: CardData = player_deck.peek_top_card()
+
+	var started: bool = hand.start_draw_pile_drag(screen_position, preview_card)
 
 	if started:
 		log_msg("Dragging card from Draw Pile.")
@@ -126,11 +154,24 @@ func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
 	if hand == null:
 		return
 
-	var accepted := hand.finish_draw_pile_drag(screen_position)
+	if player_deck == null:
+		log_msg("PlayerDeck is missing.")
+		return
+
+	if not hand.is_screen_position_in_hand_drop_zone(screen_position):
+		var cancelled: bool = hand.finish_draw_pile_drag(screen_position, null)
+
+		if not cancelled:
+			log_msg("Draw cancelled.")
+
+		return
+
+	var drawn_card: CardData = player_deck.draw_top_card()
+	var accepted: bool = hand.finish_draw_pile_drag(screen_position, drawn_card)
 
 	if accepted:
 		draw_pile.consume_top_card()
-		log_msg("Card drawn into hand.")
+		log_msg("Card drawn into hand. Deck remaining: " + str(player_deck.cards_remaining()))
 	else:
 		log_msg("Draw cancelled.")
 
@@ -212,7 +253,19 @@ func _input(event: InputEvent) -> void:
 			log_msg("Tribute refreshed. " + tribute_manager.get_status_text())
 
 		if event.keycode == KEY_D and hand != null:
-			hand.draw_card()
+			if player_deck == null:
+				log_msg("PlayerDeck is missing.")
+				return
+
+			var drawn_card: CardData = player_deck.draw_top_card()
+
+			if drawn_card == null:
+				log_msg("Deck is empty.")
+				return
+
+			hand.add_card_to_hand(drawn_card)
+			draw_pile.consume_top_card()
+			log_msg("Debug drew card. Deck remaining: " + str(player_deck.cards_remaining()))
 
 
 # ------------------------------------------------------------
