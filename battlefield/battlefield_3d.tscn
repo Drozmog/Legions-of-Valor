@@ -11,6 +11,7 @@
 [ext_resource type="Script" uid="uid://d3gtu3v3ewks1" path="res://battlefield/DrawPile.gd" id="6_do6fa"]
 [ext_resource type="Script" uid="uid://di4kmq4hqvt7y" path="res://ui/PlayerStatusPanel.gd" id="9_m3t58"]
 [ext_resource type="Script" uid="uid://cqmyr7rmuptnr" path="res://battlefield/TributePile.gd" id="9_yr2pt"]
+[ext_resource type="Script" uid="uid://cyvkeliuugthi" path="res://ui/CardPreviewPanel.gd" id="10_qq2ha"]
 [ext_resource type="Script" uid="uid://m7q1yvvrvjud" path="res://cards/PlayerDeck.gd" id="11_abnmj"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
@@ -364,6 +365,11 @@ script = ExtResource("5_yr2pt")
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("9_m3t58")
+
+[node name="CardPreviewPanel" type="PanelContainer" parent="UI" unique_id=764930402]
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("10_qq2ha")
 
 [node name="DrawPile" type="Node3D" parent="." unique_id=2072337119]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.3937798, 0.1, 2.19526)

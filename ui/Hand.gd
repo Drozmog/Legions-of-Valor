@@ -6,6 +6,9 @@ const CARD_UI_SCENE: PackedScene = preload("res://cards/CardUI.tscn")
 signal card_drag_started(card: CardUI)
 signal card_drag_released(card: CardUI, screen_position: Vector2)
 
+signal card_preview_requested(card_data: CardData)
+signal card_preview_cleared()
+
 @warning_ignore("unused_signal")
 signal card_selected(card: Control)
 @warning_ignore("unused_signal")
@@ -172,11 +175,16 @@ func _on_card_hovered(card: CardUI) -> void:
 	if home_position == null:
 		return
 
+	if card.card_data != null:
+		card_preview_requested.emit(card.card_data)
+
 	card.move_to_front()
 	_move_card_to(card, home_position + Vector2(0, -hover_lift))
 
 
 func _on_card_unhovered(card: CardUI) -> void:
+	card_preview_cleared.emit()
+	
 	if card == selected_card:
 		return
 
