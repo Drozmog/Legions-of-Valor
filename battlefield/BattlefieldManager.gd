@@ -5,8 +5,8 @@ const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
 const DWARF_AXE_GUARD: CardData = preload("res://cards/definitions/Dwarf_Axe_Guard.tres")
 const ELF_CANOPY_ARCHER: CardData = preload("res://cards/definitions/Elf_Canopy_Archer.tres")
 const ORC_BLOOD_RAIDER: CardData = preload("res://cards/definitions/Orc_Blood_Raider.tres")
-const TEST_RUSE: CardData = preload("res://cards/definitions/Test_Ruse.tres")
-const TEST_TRAP: CardData = preload("res://cards/definitions/Test_Trap.tres")
+const TEST_SPELL: CardData = preload("res://cards/definitions/Test_Spell.tres")
+const TEST_EQUIPMENT: CardData = preload("res://cards/definitions/Test_Equipment.tres")
 
 @onready var board_slots: Node3D = $BoardSlots
 @onready var game_log = $GameLog
@@ -35,10 +35,15 @@ func _ready() -> void:
 
 	if tribute_pile != null:
 		tribute_pile.tribute_pile_clicked.connect(_on_tribute_pile_clicked)
+	
+	if tribute_manager != null:
+		tribute_manager.tribute_changed.connect(_on_tribute_changed)
 
-	tribute_manager.add_tribute(3)
+	update_tribute_counter()
 
 	log_msg("Starting Tribute: " + tribute_manager.get_status_text())
+
+
 
 
 func connect_all_slots() -> void:
@@ -174,10 +179,10 @@ func _input(event: InputEvent) -> void:
 			select_card(DWARF_AXE_GUARD)
 
 		if event.keycode == KEY_2:
-			select_card(TEST_RUSE)
+			select_card(TEST_SPELL)
 
 		if event.keycode == KEY_3:
-			select_card(TEST_TRAP)
+			select_card(TEST_EQUIPMENT)
 
 		if event.keycode == KEY_4:
 			select_card(ELF_CANOPY_ARCHER)
@@ -188,9 +193,19 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_ESCAPE:
 			cancel_selected_card()
 
+		if event.keycode == KEY_E:
+			tribute_manager.cleanup_temporary_tribute()
+			log_msg("End Turn cleanup: temporary TP removed. " + tribute_manager.get_status_text())
+			update_tribute_counter()
+
 		if event.keycode == KEY_T:
-			tribute_manager.add_tribute(1)
-			log_msg("Added 1 card to Tribute Pile. " + tribute_manager.get_status_text())
+			if selected_card_data == null:
+				log_msg("Select a card first, then press T to tribute it.")
+				return
+
+			tribute_manager.offer_card_to_tribute(selected_card_data)
+			log_msg("Debug tributed: " + selected_card_data.card_name + ". " + tribute_manager.get_status_text())
+			log_msg("Unlocked factions: " + str(tribute_manager.get_unlocked_factions()))
 
 		if event.keycode == KEY_Y:
 			tribute_manager.refresh_tribute_points()
@@ -273,12 +288,17 @@ func try_sacrifice_selected_card_to_tribute() -> bool:
 		log_msg("Selected card data is missing.")
 		return false
 
-	tribute_manager.add_tribute(1)
+	var tribute_success: bool = tribute_manager.offer_card_to_tribute(selected_card_data)
+
+	if not tribute_success:
+		log_msg("Could not sacrifice " + selected_card_data.card_name + ". Invalid card type.")
+		return false
 
 	if tribute_pile != null:
 		tribute_pile.add_card()
 
 	log_msg("Sacrificed " + selected_card_data.card_name + " for Tribute. " + tribute_manager.get_status_text())
+	log_msg("Unlocked factions: " + str(tribute_manager.get_unlocked_factions()))
 
 	return true
 
@@ -380,6 +400,20 @@ func is_node_inside_target(node: Node, target: Node) -> bool:
 		current = current.get_parent()
 
 	return false
+
+func _on_tribute_changed(_status_text: String) -> void:
+	update_tribute_counter()
+
+
+func update_tribute_counter() -> void:
+	if tribute_pile == null:
+		return
+
+	if tribute_manager == null:
+		return
+
+	if tribute_pile.has_method("set_status_text"):
+		tribute_pile.set_status_text(tribute_manager.get_counter_text())
 
 
 # ------------------------------------------------------------

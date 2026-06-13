@@ -1,11 +1,11 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cc8bxdp2ornko"]
 
-[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="1_lvhmn"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="1_8ly4a"]
 
 [resource]
-script = ExtResource("1_lvhmn")
-card_id = "Test_Trap"
-card_name = "Test Trap"
+script = ExtResource("1_8ly4a")
+card_id = "Test_Equipment"
+card_name = "Test Equipment"
 race = "neutral"
 card_type = "trap"
 rarity = "common"

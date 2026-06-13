@@ -1,13 +1,13 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cfbnmmx05pk75"]
 
-[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="1_wfqw6"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="1_ym8ql"]
 
 [resource]
-script = ExtResource("1_wfqw6")
-card_id = "Test_Ruse"
-card_name = "Test Ruse"
+script = ExtResource("1_ym8ql")
+card_id = "Test_Spell"
+card_name = "Test Spell"
 race = "netural"
-card_type = "ruse"
+card_type = "spell"
 rarity = "common"
 tribute_cost = 1
 dp = 1

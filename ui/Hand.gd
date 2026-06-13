@@ -42,8 +42,8 @@ const SAMPLE_CARDS: Array[CardData] = [
 	preload("res://cards/definitions/Dwarf_Axe_Guard.tres"),
 	preload("res://cards/definitions/Elf_Canopy_Archer.tres"),
 	preload("res://cards/definitions/Orc_Blood_Raider.tres"),
-	preload("res://cards/definitions/Test_Ruse.tres"),
-	preload("res://cards/definitions/Test_Trap.tres"),
+	preload("res://cards/definitions/Test_Spell.tres"),
+	preload("res://cards/definitions/Test_Equipment.tres"),
 ]
 
 
@@ -187,8 +187,19 @@ func _on_card_hovered(card: CardUI) -> void:
 	if card == dragged_card:
 		return
 
+	if card == draw_drag_card:
+		return
+
+	if not card.has_meta("home_position"):
+		return
+
+	var home_position = card.get_meta("home_position")
+
+	if home_position == null:
+		return
+
 	card.move_to_front()
-	_move_card_to(card, card.get_meta("home_position") + Vector2(0, -hover_lift))
+	_move_card_to(card, home_position + Vector2(0, -hover_lift))
 
 
 func _on_card_unhovered(card: CardUI) -> void:
@@ -198,8 +209,18 @@ func _on_card_unhovered(card: CardUI) -> void:
 	if card == dragged_card:
 		return
 
-	if card.has_meta("home_position"):
-		_move_card_to(card, card.get_meta("home_position"))
+	if card == draw_drag_card:
+		return
+
+	if not card.has_meta("home_position"):
+		return
+
+	var home_position = card.get_meta("home_position")
+
+	if home_position == null:
+		return
+
+	_move_card_to(card, home_position)
 
 
 func _on_card_drag_started(card: CardUI) -> void:
