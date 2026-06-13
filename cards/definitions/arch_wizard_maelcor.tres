@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://v38jpetv5aha"]
+
+[ext_resource type="Texture2D" uid="uid://ciuru71wbvway" path="res://cards/images/arch_wizard_maelcor.png" id="1_2b2ca"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_uq2nh"]
+
+[resource]
+script = ExtResource("2_uq2nh")
+card_id = "arch_wizard_maelcor"
+card_name = "Arch Wizard Maelcor"
+race = "human"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 7
+ap = 9
+dp = 2
+ability_text = "Terrorize : On deploy: Opponent must discard 1 card from his hand.
+
+Vision : Look at top 3 cards of your deck."
+lore_text = "Do not ask whether the spell is forbidden. Ask whether your children will live to condemn me for casting it."
+card_art = ExtResource("1_2b2ca")
+metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -23,3 +23,11 @@ offset_bottom = 11.5
 grow_horizontal = 2
 grow_vertical = 2
 text = "Card A"
+
+[node name="CardImage" type="TextureRect" parent="." unique_id=782059287]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6

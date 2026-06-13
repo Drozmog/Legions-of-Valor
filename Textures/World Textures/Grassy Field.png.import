@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dlcuxga8mdox5"
-path.s3tc="res://.godot/imported/Snowy Path.png-521b56550f2506e57cdc8baa8b37a45c.s3tc.ctex"
+uid="uid://dnwcw2smdpix6"
+path.s3tc="res://.godot/imported/Grassy Field.png-bc220633c613e4a0d2d630038720e32d.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -11,8 +11,8 @@ metadata={
 
 [deps]
 
-source_file="res://Textures/Snowy Path.png"
-dest_files=["res://.godot/imported/Snowy Path.png-521b56550f2506e57cdc8baa8b37a45c.s3tc.ctex"]
+source_file="res://Textures/World Textures/Grassy Field.png"
+dest_files=["res://.godot/imported/Grassy Field.png-bc220633c613e4a0d2d630038720e32d.s3tc.ctex"]
 
 [params]
 

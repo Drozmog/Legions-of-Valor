@@ -1,16 +1,16 @@
-[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cc8bxdp2ornko"]
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b7ytlxkly84yi"]
 
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="1_8ly4a"]
 
 [resource]
 script = ExtResource("1_8ly4a")
-card_id = "Test_Equipment"
+card_id = "test_equipment"
 card_name = "Test Equipment"
 race = "neutral"
-card_type = "trap"
+card_type = "equipment"
 rarity = "common"
 tribute_cost = 1
-dp = 1
-ability_text = "Triggers when attacked."
-lore_text = "Seedhi Ungli"
+ability_text = "Test equipment card. When offered to Tribute, gives +1 permanent TP."
+lore_text = "A placeholder equipment card used for testing permanent tribute.
+card_art: empty for now"
 metadata/_custom_type_script = "uid://20ngslec6o41"

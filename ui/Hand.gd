@@ -8,6 +8,7 @@ signal card_drag_released(card: CardUI, screen_position: Vector2)
 
 signal card_preview_requested(card_data: CardData)
 signal card_preview_cleared()
+signal card_inspect_requested(card_data: CardData)
 
 @warning_ignore("unused_signal")
 signal card_selected(card: Control)
@@ -55,6 +56,7 @@ func connect_hand_card_signals(card: CardUI) -> void:
 
 	card.drag_started.connect(_on_card_drag_started)
 	card.drag_released.connect(_on_card_drag_released)
+	card.clicked.connect(_on_card_clicked)
 
 
 func toggle_hand() -> void:
@@ -175,15 +177,11 @@ func _on_card_hovered(card: CardUI) -> void:
 	if home_position == null:
 		return
 
-	if card.card_data != null:
-		card_preview_requested.emit(card.card_data)
-
 	card.move_to_front()
 	_move_card_to(card, home_position + Vector2(0, -hover_lift))
 
 
 func _on_card_unhovered(card: CardUI) -> void:
-	card_preview_cleared.emit()
 	
 	if card == selected_card:
 		return
@@ -217,6 +215,16 @@ func _on_card_drag_started(card: CardUI) -> void:
 
 func _on_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
 	card_drag_released.emit(card, screen_position)
+
+
+func _on_card_clicked(card: CardUI, _screen_position: Vector2) -> void:
+	if card == null:
+		return
+
+	if card.card_data == null:
+		return
+
+	card_inspect_requested.emit(card.card_data)
 
 
 func return_dragged_card_to_hand(card: CardUI) -> void:

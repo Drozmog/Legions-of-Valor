@@ -2,11 +2,11 @@ extends Node3D
 
 const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
 
-const DWARF_AXE_GUARD: CardData = preload("res://cards/definitions/Dwarf_Axe_Guard.tres")
-const ELF_CANOPY_ARCHER: CardData = preload("res://cards/definitions/Elf_Canopy_Archer.tres")
-const ORC_BLOOD_RAIDER: CardData = preload("res://cards/definitions/Orc_Blood_Raider.tres")
-const TEST_SPELL: CardData = preload("res://cards/definitions/Test_Spell.tres")
-const TEST_EQUIPMENT: CardData = preload("res://cards/definitions/Test_Equipment.tres")
+const ARCH_WIZARD_MAELCOR: CardData = preload("res://cards/definitions/Arch_Wizard_Maelcor.tres")
+const IMPERIAL_ARCHIVE_MASTER: CardData = preload("res://cards/definitions/Imperial_Archive_Master.tres")
+const JENA_OF_YEL: CardData = preload("res://cards/definitions/Jena_of_Yel.tres")
+const IVAAN_BONE_CRUSHER: CardData = preload("res://cards/definitions/Ivaan_Bone_Crusher.tres")
+const UPPER_HALL_PROSPECTOR: CardData = preload("res://cards/definitions/Upper_Hall_Prospector.tres")
 
 @onready var board_slots: Node3D = $BoardSlots
 @onready var game_log = $GameLog
@@ -220,19 +220,19 @@ func _on_tribute_pile_clicked() -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_1:
-			select_card(DWARF_AXE_GUARD)
+			select_card(ARCH_WIZARD_MAELCOR)
 
 		if event.keycode == KEY_2:
-			select_card(TEST_SPELL)
+			select_card(IMPERIAL_ARCHIVE_MASTER)
 
 		if event.keycode == KEY_3:
-			select_card(TEST_EQUIPMENT)
+			select_card(JENA_OF_YEL)
 
 		if event.keycode == KEY_4:
-			select_card(ELF_CANOPY_ARCHER)
+			select_card(IVAAN_BONE_CRUSHER)
 
 		if event.keycode == KEY_5:
-			select_card(ORC_BLOOD_RAIDER)
+			select_card(UPPER_HALL_PROSPECTOR)
 
 		if event.keycode == KEY_ESCAPE:
 			cancel_selected_card()
@@ -267,7 +267,10 @@ func _input(event: InputEvent) -> void:
 				return
 
 			hand.add_card_to_hand(drawn_card)
-			draw_pile.consume_top_card()
+
+			if draw_pile != null:
+				draw_pile.consume_top_card()
+
 			log_msg("Debug drew card. Deck remaining: " + str(player_deck.cards_remaining()))
 
 

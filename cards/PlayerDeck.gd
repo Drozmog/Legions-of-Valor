@@ -6,11 +6,11 @@ signal deck_changed(cards_remaining: int)
 var deck: Array[CardData] = []
 
 const SAMPLE_CARDS: Array[CardData] = [
-	preload("res://cards/definitions/Dwarf_Axe_Guard.tres"),
-	preload("res://cards/definitions/Elf_Canopy_Archer.tres"),
-	preload("res://cards/definitions/Orc_Blood_Raider.tres"),
-	preload("res://cards/definitions/Test_Spell.tres"),
-	preload("res://cards/definitions/Test_Equipment.tres"),
+	preload("res://cards/definitions/Arch_Wizard_Maelcor.tres"),
+	preload("res://cards/definitions/Imperial_Archive_Master.tres"),
+	preload("res://cards/definitions/Jena_of_Yel.tres"),
+	preload("res://cards/definitions/Ivaan_Bone_Crusher.tres"),
+	preload("res://cards/definitions/Upper_Hall_Prospector.tres"),
 ]
 
 

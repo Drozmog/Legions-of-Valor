@@ -1,16 +1,16 @@
-[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cfbnmmx05pk75"]
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://caq7u4lmy0rbh"]
 
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="1_ym8ql"]
 
 [resource]
 script = ExtResource("1_ym8ql")
-card_id = "Test_Spell"
+card_id = "test_spell"
 card_name = "Test Spell"
-race = "netural"
+race = "neutral"
 card_type = "spell"
 rarity = "common"
 tribute_cost = 1
-dp = 1
-ability_text = "Returns to hand if exposed by a cautious strike."
-lore_text = "Ungli"
+ability_text = "Test spell card. When offered to Tribute, gives +2 temporary TP."
+lore_text = "A placeholder spell used for testing temporary tribute.
+card_art: empty for now"
 metadata/_custom_type_script = "uid://20ngslec6o41"
