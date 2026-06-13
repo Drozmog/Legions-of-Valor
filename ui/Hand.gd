@@ -3,13 +3,25 @@ extends Control
 
 const CARD_UI_SCENE: PackedScene = preload("res://cards/CardUI.tscn")
 
-@export var fan_radius: float = 500.0          # bigger = flatter fan, smaller = more curved
-@export var fan_spread_degrees: float = 50.0 # total fan rotation
-@export var hover_lift: float = 40.0
+@export var card_scale: float = 0.70
+
+@export var raised_anchor_from_bottom: float = 120.0
+@export var lowered_anchor_below_screen: float = 160.0
+
+@export var min_spacing: float = 75.0
+@export var max_spacing: float = 150.0
+@export var max_fan_width: float = 1050.0
+
+@export var max_rotation_degrees: float = 16.0
+@export var fan_curve_drop: float = 45.0
+@export var hover_lift: float = 55.0
+@export var tween_time: float = 0.22
 
 var cards: Array[Control] = []
 var selected_card: Control = null
 var deck: Array[CardData] = []
+var hand_is_raised: bool = false
+
 signal card_selected(card: Control)
 signal card_cleared()
 
@@ -21,73 +33,150 @@ const SAMPLE_CARDS: Array[CardData] = [
 	preload("res://cards/definitions/Test_Trap.tres"),
 ]
 
+
 func _ready() -> void:
 	build_deck()
+
 	for i in range(5):
 		draw_card()
 
+	arrange_fan(false)
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_SPACE:
+			toggle_hand()
+
+
 func build_deck() -> void:
 	deck.clear()
+
 	for n in range(4):
 		deck.append_array(SAMPLE_CARDS)
+
 	deck.shuffle()
-	
-func draw_card():
+
+
+func draw_card() -> void:
 	if deck.is_empty():
 		return
-	var data : CardData = deck.pop_back()
+
+	var data: CardData = deck.pop_back()
 	var card: CardUI = CARD_UI_SCENE.instantiate()
+
 	add_child(card)
 	cards.append(card)
+
 	card.setup(data)
+
 	card.mouse_entered.connect(_on_card_hovered.bind(card))
 	card.mouse_exited.connect(_on_card_unhovered.bind(card))
 	card.gui_input.connect(_on_card_gui_input.bind(card))
+
 	arrange_fan()
 
-func arrange_fan() -> void:
+
+func toggle_hand() -> void:
+	hand_is_raised = !hand_is_raised
+	arrange_fan()
+
+
+func raise_hand() -> void:
+	hand_is_raised = true
+	arrange_fan()
+
+
+func lower_hand() -> void:
+	hand_is_raised = false
+	arrange_fan()
+
+
+func arrange_fan(animated: bool = true) -> void:
 	var count := cards.size()
-	var center_x := size.x/2.0
-	var bottom_y := size.y - 50.0	#40px margin off from bottom
-	var mid := (count-1)/2.0 	#middle index of fan
-	
-#	Center of imaginary circle
-	var circle_center := Vector2(center_x, bottom_y + fan_radius)
-	
-	var step_deg := 0.0
+
+	if count == 0:
+		return
+
+	var area_size := get_hand_area_size()
+	var center_x := area_size.x / 2.0
+
+	var anchor_y: float
+
+	if hand_is_raised:
+		anchor_y = area_size.y - raised_anchor_from_bottom
+	else:
+		anchor_y = area_size.y + lowered_anchor_below_screen
+
+	var spacing := 0.0
+
 	if count > 1:
-		step_deg = fan_spread_degrees / (count-1) #Angle between cards
-	 
+		spacing = max_fan_width / float(count - 1)
+		spacing = clamp(spacing, min_spacing, max_spacing)
+
+	var total_width := spacing * float(count - 1)
+	var start_x := center_x - total_width / 2.0
+
 	for i in range(count):
-		var card = cards[i]
-		var offset := i-mid
-		var angle_deg := offset * step_deg
-		var angle_rad := deg_to_rad(angle_deg)
-		
-		var point := circle_center + Vector2(sin(angle_rad), -cos(angle_rad)) * fan_radius
-		
-		card.pivot_offset = Vector2(card.size.x/2.0, card.size.y) #Bottom center pivot
-		card.position = point - card.pivot_offset
-		card.rotation_degrees = angle_deg
-		
-		card.set_meta("home_position", card.position)
+		var card := cards[i]
+
+		var normalized := 0.0
+
+		if count > 1:
+			normalized = (float(i) / float(count - 1)) * 2.0 - 1.0
+
+		var target_x := start_x + spacing * float(i)
+		var target_y := anchor_y + absf(normalized) * fan_curve_drop
+		var target_rotation := normalized * max_rotation_degrees
+
+		card.pivot_offset = Vector2(card.size.x / 2.0, card.size.y)
+
+		var target_position := Vector2(target_x, target_y) - card.pivot_offset
+
+		card.set_meta("home_position", target_position)
+		card.set_meta("home_rotation", target_rotation)
+
+		if animated:
+			_move_card_to_layout(card, target_position, target_rotation)
+		else:
+			card.position = target_position
+			card.rotation_degrees = target_rotation
+			card.scale = Vector2(card_scale, card_scale)
+
+
+func get_hand_area_size() -> Vector2:
+	if size.x > 0.0 and size.y > 0.0:
+		return size
+
+	return get_viewport_rect().size
 
 
 func _on_card_hovered(card: Control) -> void:
+	if not hand_is_raised:
+		return
+
 	if card == selected_card:
-		return            
+		return
+
 	card.move_to_front()
 	_move_card_to(card, card.get_meta("home_position") + Vector2(0, -hover_lift))
+
 
 func _on_card_unhovered(card: Control) -> void:
 	if card == selected_card:
 		return
+
 	_move_card_to(card, card.get_meta("home_position"))
-			
+
 
 func _on_card_gui_input(event: InputEvent, card: Control) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if not hand_is_raised:
+			raise_hand()
+			return
+
 		select_card(card)
+
 
 func select_card(card: Control) -> void:
 	if selected_card == card:
@@ -95,22 +184,39 @@ func select_card(card: Control) -> void:
 		selected_card = null
 		card_cleared.emit()
 		return
-	if selected_card != null:        # something else was selected: drop it back down
+
+	if selected_card != null:
 		_move_card_to(selected_card, selected_card.get_meta("home_position"))
-	selected_card = card             # remember the new choice
+
+	selected_card = card
 	card.move_to_front()
-	_move_card_to(card, card.get_meta("home_position") + Vector2(0, -hover_lift))  # raise it
+
+	_move_card_to(card, card.get_meta("home_position") + Vector2(0, -hover_lift))
+
 	card_selected.emit(card)
+
 
 func _move_card_to(card: Control, target: Vector2) -> void:
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.tween_property(card, "position", target, 0.12)
+	tween.tween_property(card, "position", target, tween_time)
+
+
+func _move_card_to_layout(card: Control, target_position: Vector2, target_rotation: float) -> void:
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	tween.tween_property(card, "position", target_position, tween_time)
+	tween.parallel().tween_property(card, "rotation_degrees", target_rotation, tween_time)
+	tween.parallel().tween_property(card, "scale", Vector2(card_scale, card_scale), tween_time)
+
 
 func remove_selected_card() -> void:
 	if selected_card == null:
 		return
-	cards.erase(selected_card)      # take it out of the hand's list
-	selected_card.queue_free()      # delete the card node
-	selected_card = null            # nothing selected anymore
-	arrange_fan()                   # re-fan the cards that remain
+
+	cards.erase(selected_card)
+	selected_card.queue_free()
+	selected_card = null
+
+	arrange_fan()
