@@ -6,6 +6,7 @@ signal tribute_pile_clicked
 @export var card_thickness: float = 0.02
 
 @export var counter_height: float = 0.75
+@export var counter_forward_offset: float = -1.15
 @export var counter_pixel_size: float = 0.008
 
 var card_count: int = 0
@@ -47,7 +48,7 @@ func create_base() -> void:
 func create_status_label() -> void:
 	status_label = Label3D.new()
 	status_label.text = "TP 0/0"
-	status_label.position = Vector3(0, counter_height, 0)
+	status_label.position = Vector3(0, counter_height, counter_forward_offset)
 	status_label.pixel_size = counter_pixel_size
 	status_label.font_size = 42
 	status_label.outline_size = 8

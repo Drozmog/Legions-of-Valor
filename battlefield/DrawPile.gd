@@ -5,12 +5,13 @@ signal draw_drag_started(screen_position: Vector2)
 signal draw_drag_moved(screen_position: Vector2)
 signal draw_drag_released(screen_position: Vector2)
 
-@export var card_count: int = 15
+@export var card_count: int = 40
 @export var card_thickness: float = 0.005
 
 @onready var click_area: Area3D = $ClickArea
 
 var is_dragging_from_pile: bool = false
+var stacked_cards: Array[MeshInstance3D] = []
 
 
 func _ready() -> void:
@@ -22,7 +23,14 @@ func _ready() -> void:
 	set_process(false)
 
 
+func set_card_count(new_count: int) -> void:
+	card_count = max(new_count, 0)
+	build_stack()
+
+
 func build_stack() -> void:
+	clear_stack()
+
 	var card_mesh := BoxMesh.new()
 	card_mesh.size = Vector3(1.0, card_thickness, 1.4)
 
@@ -35,6 +43,15 @@ func build_stack() -> void:
 		card.material_override = mat
 		card.position = Vector3(0, i * card_thickness + 0.004, 0)
 		add_child(card)
+		stacked_cards.append(card)
+
+
+func clear_stack() -> void:
+	for card in stacked_cards:
+		if is_instance_valid(card):
+			card.queue_free()
+
+	stacked_cards.clear()
 
 
 func _on_click_area_input_event(
@@ -75,9 +92,10 @@ func consume_top_card() -> void:
 
 	card_count -= 1
 
-	for i in range(get_child_count() - 1, -1, -1):
-		var child := get_child(i)
+	if stacked_cards.is_empty():
+		return
 
-		if child is MeshInstance3D:
-			child.queue_free()
-			return
+	var top_card: MeshInstance3D = stacked_cards.pop_back() as MeshInstance3D
+
+	if is_instance_valid(top_card):
+		top_card.queue_free()

@@ -118,6 +118,9 @@ func deal_starting_hand() -> void:
 
 		hand.add_card_to_hand(drawn_card, false)
 
+	if draw_pile != null:
+		draw_pile.set_card_count(player_deck.cards_remaining())
+
 	log_msg("Starting hand dealt. Deck remaining: " + str(player_deck.cards_remaining()))
 
 
