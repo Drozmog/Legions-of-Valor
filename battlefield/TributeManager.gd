@@ -11,24 +11,41 @@ var current_permanent_tp: int = 0
 var temporary_tp: int = 0
 var current_tribute_points: int = 0
 
+var tribute_card_used_this_turn: bool = false
+
 
 func offer_card_to_tribute(card_data: CardData) -> bool:
 	if card_data == null:
+		return false
+
+	if tribute_card_used_this_turn:
 		return false
 
 	var type := card_data.card_type.to_lower()
 
 	if type == "spell":
 		add_temporary_tribute(card_data)
+		tribute_card_used_this_turn = true
 		return true
 
-	if type == "unit" or type == "equipment":
+	if type == "unit" or type == "equipment" or type == "ruse" or type == "trap":
 		add_permanent_tribute(card_data)
+		tribute_card_used_this_turn = true
 		return true
 
 	push_warning("Unknown card_type offered to Tribute: " + card_data.card_type + ". Treating as permanent for now.")
 	add_permanent_tribute(card_data)
+	tribute_card_used_this_turn = true
 	return true
+
+
+func can_offer_card_this_turn() -> bool:
+	return not tribute_card_used_this_turn
+
+
+func reset_tribute_card_limit() -> void:
+	tribute_card_used_this_turn = false
+	refresh_tribute_points()
 
 
 func add_permanent_tribute(card_data: CardData) -> void:
@@ -109,6 +126,7 @@ func start_new_turn_refresh() -> void:
 	current_permanent_tp = permanent_tp
 	temporary_tp = 0
 	temporary_tribute_cards.clear()
+	tribute_card_used_this_turn = false
 
 	refresh_tribute_points()
 
@@ -118,10 +136,19 @@ func get_status_text() -> String:
 
 
 func get_counter_text() -> String:
-	if temporary_tp > 0:
-		return "TP " + str(current_tribute_points) + "/" + str(permanent_tp) + "\nTemp +" + str(temporary_tp)
+	var text := ""
 
-	return "TP " + str(current_tribute_points) + "/" + str(permanent_tp)
+	if temporary_tp > 0:
+		text = "TP " + str(current_tribute_points) + "/" + str(permanent_tp) + "\nTemp +" + str(temporary_tp)
+	else:
+		text = "TP " + str(current_tribute_points) + "/" + str(permanent_tp)
+
+	if tribute_card_used_this_turn:
+		text += "\nTribute used"
+	else:
+		text += "\nTribute ready"
+
+	return text
 
 
 func get_unlocked_factions() -> Array[String]:
