@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://ebgcigmaimxx"]
 
+[ext_resource type="Script" uid="uid://dxrwax3f3miyk" path="res://cards/Card3D_Test.gd" id="1_fb2ln"]
+
 [sub_resource type="BoxMesh" id="BoxMesh_13m0g"]
 size = Vector3(1.02, 0.02, 1.34)
 
@@ -9,6 +11,7 @@ metallic = 0.48
 roughness = 0.46
 
 [node name="Card3D_Test" type="Node3D" unique_id=708655845]
+script = ExtResource("1_fb2ln")
 
 [node name="CardBody" type="MeshInstance3D" parent="." unique_id=1559280475]
 mesh = SubResource("BoxMesh_13m0g")

@@ -6,6 +6,15 @@ signal drag_released(card: CardUI, screen_position: Vector2)
 signal clicked(card: CardUI, screen_position: Vector2)
 
 @onready var name_label: Label = get_node_or_null("NameLabel") as Label
+const ABILITY_ICON_PATHS := {
+	"assault": "res://ui/ability_icons/assault.png",
+	"control": "res://ui/ability_icons/control.png",
+	"attrition": "res://ui/ability_icons/attrition.png",
+	"economy": "res://ui/ability_icons/economy.png",
+	"protection": "res://ui/ability_icons/protection.png",
+	"insight": "res://ui/ability_icons/insight.png",
+	"mobility": "res://ui/ability_icons/mobility.png",
+}
 
 const CARD_BACK_TEXTURE: Texture2D = preload("res://cards/card_back.png")
 
@@ -20,6 +29,15 @@ var drag_offset: Vector2 = Vector2.ZERO
 var press_mouse_position: Vector2 = Vector2.ZERO
 
 @export var drag_start_distance: float = 12.0
+@export var ability_icon_size: float = 105.0
+@export var ability_icon_spacing: float = 112.0
+@export var ability_icon_hidden_y: float = -20.0
+@export var ability_icon_shown_y: float = -120.0
+@export var ability_icon_tween_time: float = 0.18
+
+var ability_icon_root: Control = null
+var ability_icons_are_visible: bool = false
+var ability_icon_tween: Tween = null
 
 
 func _ready() -> void:
@@ -28,6 +46,7 @@ func _ready() -> void:
 
 	make_panel_background_transparent()
 	setup_card_image()
+	setup_ability_icon_root()
 
 
 func setup_card_image() -> void:
@@ -59,6 +78,7 @@ func setup_card_image() -> void:
 func setup(data: CardData) -> void:
 	card_data = data
 	show_front()
+	rebuild_ability_icons()
 
 
 func show_front() -> void:
@@ -99,6 +119,8 @@ func show_back() -> void:
 		name_label.visible = false
 
 	self_modulate = Color(1.0, 1.0, 1.0, 1.0)
+	
+	set_ability_icons_visible(false, true)
 	
 	
 
@@ -142,6 +164,157 @@ func make_panel_background_transparent() -> void:
 	style.border_width_top = 0
 	style.border_width_bottom = 0
 	add_theme_stylebox_override("panel", style)
+
+func setup_ability_icon_root() -> void:
+	ability_icon_root = get_node_or_null("AbilityIconRoot") as Control
+
+	if ability_icon_root == null:
+		ability_icon_root = Control.new()
+		ability_icon_root.name = "AbilityIconRoot"
+		add_child(ability_icon_root)
+
+	ability_icon_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ability_icon_root.z_index = 100
+	ability_icon_root.visible = false
+	ability_icon_root.modulate.a = 0.0
+
+	position_ability_icon_root(false)
+
+
+func position_ability_icon_root(shown: bool) -> void:
+	if ability_icon_root == null:
+		return
+
+	var card_width := size.x
+
+	if card_width <= 1.0:
+		card_width = custom_minimum_size.x
+
+	var target_y := ability_icon_hidden_y
+
+	if shown:
+		target_y = ability_icon_shown_y
+
+	ability_icon_root.position = Vector2(card_width / 2.0, target_y)
+
+
+func rebuild_ability_icons() -> void:
+	if ability_icon_root == null:
+		return
+
+	for child in ability_icon_root.get_children():
+		child.queue_free()
+
+	if card_data == null:
+		return
+
+	if card_data.ability_types.is_empty():
+		return
+
+	var icon_count := card_data.ability_types.size()
+	var total_width := ability_icon_spacing * float(icon_count - 1)
+	var start_x := -total_width / 2.0
+
+	for i in range(icon_count):
+		var ability_type := card_data.ability_types[i].to_lower()
+		var icon := create_ability_icon(ability_type)
+
+		icon.position = Vector2(
+			start_x + ability_icon_spacing * float(i) - ability_icon_size / 2.0,
+			-ability_icon_size / 2.0
+		)
+
+		ability_icon_root.add_child(icon)
+
+
+func create_ability_icon(ability_type: String) -> Control:
+	var icon_path: String = ABILITY_ICON_PATHS.get(ability_type, "")
+
+	var icon := TextureRect.new()
+	icon.name = ability_type.capitalize() + "Icon"
+	icon.custom_minimum_size = Vector2(ability_icon_size, ability_icon_size)
+	icon.size = Vector2(ability_icon_size, ability_icon_size)
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		icon.texture = load(icon_path) as Texture2D
+	else:
+		icon.texture = null
+
+		var fallback := Label.new()
+		fallback.text = ability_type.substr(0, 1).to_upper()
+		fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		fallback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		fallback.add_theme_font_size_override("font_size", 46)
+		fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		fallback.anchor_right = 1.0
+		fallback.anchor_bottom = 1.0
+		icon.add_child(fallback)
+
+	return icon
+
+
+func set_ability_icons_visible(show_icons: bool, instant: bool = false) -> void:
+	if ability_icon_root == null:
+		return
+
+	if card_data == null:
+		return
+
+	if card_data.ability_types.is_empty():
+		return
+
+	if is_face_down:
+		show_icons = false
+
+	if ability_icons_are_visible == show_icons and not instant:
+		return
+
+	ability_icons_are_visible = show_icons
+
+	if ability_icon_tween != null:
+		ability_icon_tween.kill()
+
+	var card_width := size.x
+
+	if card_width <= 1.0:
+		card_width = custom_minimum_size.x
+
+	var target_y := ability_icon_hidden_y
+	var target_alpha := 0.0
+
+	if show_icons:
+		target_y = ability_icon_shown_y
+		target_alpha = 1.0
+		ability_icon_root.visible = true
+
+	if instant:
+		ability_icon_root.position = Vector2(card_width / 2.0, target_y)
+		ability_icon_root.modulate.a = target_alpha
+		ability_icon_root.visible = show_icons
+		return
+
+	ability_icon_tween = create_tween()
+	ability_icon_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	ability_icon_tween.tween_property(
+		ability_icon_root,
+		"position",
+		Vector2(card_width / 2.0, target_y),
+		ability_icon_tween_time
+	)
+
+	ability_icon_tween.parallel().tween_property(
+		ability_icon_root,
+		"modulate:a",
+		target_alpha,
+		ability_icon_tween_time
+	)
+
+	if not show_icons:
+		ability_icon_tween.tween_callback(func(): ability_icon_root.visible = false)
 
 
 func _gui_input(event: InputEvent) -> void:

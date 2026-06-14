@@ -13,14 +13,15 @@ signal card_selected(card: Control)
 @warning_ignore("unused_signal")
 signal card_cleared()
 
-@export var card_scale: float = 0.62
+@export var card_scale: float = 0.80
+@export var max_hand_size: int = 7
 
-@export var raised_anchor_from_bottom: float = 85.0
-@export var lowered_anchor_below_screen: float = 180.0
+@export var raised_anchor_from_bottom: float = 120.0
+@export var lowered_anchor_below_screen: float = 260.0
 
-@export var min_spacing: float = 75.0
-@export var max_spacing: float = 145.0
-@export var max_fan_width: float = 1050.0
+@export var min_spacing: float = 95.0
+@export var max_spacing: float = 165.0
+@export var max_fan_width: float = 1250.0
 
 @export var max_rotation_degrees: float = 7.0
 @export var fan_curve_drop: float = 35.0
@@ -37,15 +38,38 @@ var hand_is_raised: bool = false
 
 var draw_drag_card: CardUI = null
 var pending_draw_data: CardData = null
-
+var showing_ability_icons: bool = false
 
 func _ready() -> void:
+	hand_is_raised = false
 	arrange_fan(false)
+	set_process(true)
 
-func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_SPACE:
-			toggle_hand()
+func _input(_event: InputEvent) -> void:
+	pass
+	
+
+func _process(_delta: float) -> void:
+	var space_is_down := Input.is_key_pressed(KEY_SPACE)
+
+	if space_is_down != hand_is_raised:
+		hand_is_raised = space_is_down
+		arrange_fan()
+
+	var shift_is_down := Input.is_key_pressed(KEY_SHIFT) and hand_is_raised
+
+	if shift_is_down == showing_ability_icons:
+		return
+
+	showing_ability_icons = shift_is_down
+
+	for card in cards:
+		if card == null:
+			continue
+
+		if card.has_method("set_ability_icons_visible"):
+			card.set_ability_icons_visible(showing_ability_icons)
+
 
 
 func connect_hand_card_signals(card: CardUI) -> void:
@@ -71,10 +95,20 @@ func lower_hand() -> void:
 	hand_is_raised = false
 	arrange_fan()
 
+func set_max_hand_size(new_limit: int) -> void:
+	max_hand_size = max(new_limit, 0)
 
-func add_card_to_hand(card_data: CardData, animated: bool = true) -> void:
+
+func can_accept_card() -> bool:
+	return cards.size() < max_hand_size
+
+
+func add_card_to_hand(card_data: CardData, animated: bool = true) -> bool:
 	if card_data == null:
-		return
+		return false
+
+	if not can_accept_card():
+		return false
 
 	var card := CARD_UI_SCENE.instantiate() as CardUI
 
@@ -87,6 +121,8 @@ func add_card_to_hand(card_data: CardData, animated: bool = true) -> void:
 	connect_hand_card_signals(card)
 
 	arrange_fan(animated)
+
+	return true
 
 
 func arrange_fan(animated: bool = true) -> void:
@@ -205,7 +241,9 @@ func _on_card_drag_started(card: CardUI) -> void:
 	dragged_card = card
 	selected_card = card
 
-	lower_hand()
+	for hand_card in cards:
+		if hand_card != null and hand_card.has_method("set_ability_icons_visible"):
+			hand_card.set_ability_icons_visible(false)
 
 	card.move_to_front()
 	card_drag_started.emit(card)
@@ -232,7 +270,6 @@ func return_dragged_card_to_hand(card: CardUI) -> void:
 	if card != null and not cards.has(card):
 		cards.append(card)
 
-	raise_hand()
 	arrange_fan()
 
 
@@ -244,7 +281,6 @@ func consume_dragged_card(card: CardUI) -> void:
 	dragged_card = null
 	selected_card = null
 
-	lower_hand()
 	arrange_fan()
 
 
@@ -280,6 +316,9 @@ func remove_selected_card() -> void:
 # ------------------------------------------------------------
 
 func start_draw_pile_drag(screen_position: Vector2, preview_card_data: CardData) -> bool:
+	if not can_accept_card():
+		return false
+	
 	if preview_card_data == null:
 		return false
 
@@ -317,6 +356,12 @@ func finish_draw_pile_drag(screen_position: Vector2, drawn_card_data: CardData) 
 		return false
 
 	if drawn_card_data == null:
+		draw_drag_card.queue_free()
+		draw_drag_card = null
+		pending_draw_data = null
+		return false
+
+	if not can_accept_card():
 		draw_drag_card.queue_free()
 		draw_drag_card = null
 		pending_draw_data = null

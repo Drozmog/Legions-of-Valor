@@ -16,4 +16,5 @@ dp = 1
 ability_text = "Challenger : Gains +2 AP when attacking."
 lore_text = "\"Overwhelming force is the only language the civilized races respect when the veins dry up.\""
 card_art = ExtResource("1_b7022")
+ability_types = Array[String](["assault"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

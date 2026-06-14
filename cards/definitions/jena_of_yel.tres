@@ -18,4 +18,5 @@ ability_text = "Pierce : If unit destroys an enemy, gain +1 Aurion.
 Shockwave : When deployed remove all equipment from 1 lane."
 lore_text = "“The gold flows through my veins without the delirium. I am the ultimate Conduit”"
 card_art = ExtResource("1_yfvwf")
+ability_types = Array[String](["assault", "attrition"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

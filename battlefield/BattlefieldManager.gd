@@ -14,6 +14,12 @@ const TEST_SPELL: CardData = preload("res://cards/definitions/Test_Spell.tres")
 @onready var game_log = $GameLog
 @onready var tribute_manager = $TributeManager
 
+@onready var battle_plan_manager: BattlePlanManager = $BattlePlanManager
+@onready var battle_plan_panel: BattlePlanPanel = $UI/BattlePlanPanel
+@onready var battle_plan_selection_screen: BattlePlanSelectionScreen = $UI/BattlePlanSelectionScreen
+@onready var discard_pile: DiscardPile = get_node_or_null("DiscardPile") as DiscardPile
+
+
 @export var hand: HandUI
 @export var draw_pile: DrawPile
 @export var tribute_pile: TributePile
@@ -22,6 +28,9 @@ const TEST_SPELL: CardData = preload("res://cards/definitions/Test_Spell.tres")
 var selected_card_scene: PackedScene = null
 var selected_card_data: CardData = null
 var has_selected_card: bool = false
+
+var game_has_started: bool = false
+var waiting_for_battle_plan: bool = true
 
 
 func _ready() -> void:
@@ -42,12 +51,76 @@ func _ready() -> void:
 	if tribute_manager != null:
 		tribute_manager.tribute_changed.connect(_on_tribute_changed)
 
+	setup_battle_plan_flow()
+	create_debug_tp_button()
+
+
+func setup_battle_plan_flow() -> void:
+	waiting_for_battle_plan = true
+
+	if battle_plan_panel != null:
+		battle_plan_panel.clear_battle_plan()
+
+	if battle_plan_selection_screen != null:
+		if not battle_plan_selection_screen.battle_plan_selected.is_connected(_on_battle_plan_selected):
+			battle_plan_selection_screen.battle_plan_selected.connect(_on_battle_plan_selected)
+
+	open_battle_plan_selection()
+
+
+func open_battle_plan_selection() -> void:
+	waiting_for_battle_plan = true
+
+	if battle_plan_manager == null:
+		log_msg("BattlePlanManager is missing.")
+		begin_game_after_battle_plan_selection()
+		return
+
+	if battle_plan_selection_screen == null:
+		log_msg("BattlePlanSelectionScreen is missing.")
+		begin_game_after_battle_plan_selection()
+		return
+
+	var choices := battle_plan_manager.get_random_battle_plan_choices(3)
+	battle_plan_selection_screen.show_selection(choices)
+
+
+func _on_battle_plan_selected(plan: Dictionary) -> void:
+	waiting_for_battle_plan = false
+
+	if battle_plan_manager != null:
+		battle_plan_manager.select_battle_plan(plan)
+
+	if battle_plan_panel != null:
+		battle_plan_panel.set_battle_plan(plan)
+		apply_battle_plan_rules(plan)
+
+	log_msg("Selected Battle Plan: " + str(plan.get("name", "Unknown Battle Plan")))
+
+	if not game_has_started:
+		begin_game_after_battle_plan_selection()
+
+func apply_battle_plan_rules(plan: Dictionary) -> void:
+	if hand == null:
+		return
+
+	var max_hand_size := int(plan.get("max_hand_size", 7))
+	hand.set_max_hand_size(max_hand_size)
+
+	log_msg("Max hand size set to " + str(max_hand_size) + " by " + str(plan.get("name", "Battle Plan")))
+
+
+func begin_game_after_battle_plan_selection() -> void:
+	if game_has_started:
+		return
+
+	game_has_started = true
+
 	update_tribute_counter()
 	deal_starting_hand()
 
-	log_msg("Starting Tribute: " + tribute_manager.get_status_text())
-
-
+	if tribute_manager != null:
+		log_msg("Starting Tribute: " + tribute_manager.get_status_text())
 
 
 func connect_all_slots() -> void:
@@ -64,6 +137,9 @@ func connect_all_slots() -> void:
 # ------------------------------------------------------------
 
 func _on_hand_card_drag_started(card: CardUI) -> void:
+	if waiting_for_battle_plan:
+		return
+
 	if card == null:
 		return
 
@@ -131,11 +207,18 @@ func deal_starting_hand() -> void:
 # ------------------------------------------------------------
 
 func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
+	if waiting_for_battle_plan:
+		return
+	
 	if hand == null:
 		return
 
 	if player_deck == null:
 		log_msg("PlayerDeck is missing.")
+		return
+		
+	if not hand.can_accept_card():
+		log_msg("Hand is full. Max hand size: " + str(hand.max_hand_size))
 		return
 
 	var preview_card: CardData = player_deck.peek_top_card()
@@ -170,7 +253,12 @@ func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
 			log_msg("Draw cancelled.")
 
 		return
-
+	
+	if not hand.can_accept_card():
+		hand.finish_draw_pile_drag(screen_position, null)
+		log_msg("Draw cancelled. Hand is full. Max hand size: " + str(hand.max_hand_size))
+		return
+	
 	var drawn_card: CardData = player_deck.draw_top_card()
 	var accepted: bool = hand.finish_draw_pile_drag(screen_position, drawn_card)
 
@@ -198,14 +286,25 @@ func _on_slot_clicked(slot: Node) -> void:
 func _on_slot_right_clicked(slot: Node) -> void:
 	var slot_id: String = slot.get_meta("slot_id", "")
 
+	var discarded_card_data: CardData = null
+
+	if slot.has_method("get_placed_card_data"):
+		discarded_card_data = slot.get_placed_card_data()
+
+	if discard_pile != null and discarded_card_data != null:
+		discard_pile.add_card(discarded_card_data)
+		log_msg("Sent " + discarded_card_data.card_name + " to discard pile.")
+
 	slot.clear_slot()
 
 	log_msg("Cleared slot: " + str(slot_id))
 
 	update_slot_highlights()
 
-
 func _on_tribute_pile_clicked() -> void:
+	if waiting_for_battle_plan:
+		return
+	
 	if not has_selected_card:
 		log_msg("Drag a card from your hand to the Tribute Pile.")
 		return
@@ -220,6 +319,9 @@ func _on_tribute_pile_clicked() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if waiting_for_battle_plan:
+		return
+	
 	if event is InputEventKey and event.pressed:
 		if event.keycode == KEY_1:
 			select_card(ARCH_WIZARD_MAELCOR)
@@ -249,6 +351,10 @@ func _input(event: InputEvent) -> void:
 			tribute_manager.cleanup_temporary_tribute()
 			log_msg("End Turn cleanup: temporary TP removed. " + tribute_manager.get_status_text())
 			update_tribute_counter()
+			if battle_plan_manager != null:
+				battle_plan_manager.advance_round()
+
+				open_battle_plan_selection()
 
 		if event.keycode == KEY_T:
 			if selected_card_data == null:
@@ -267,7 +373,11 @@ func _input(event: InputEvent) -> void:
 			if player_deck == null:
 				log_msg("PlayerDeck is missing.")
 				return
-
+		
+		if not hand.can_accept_card():
+			log_msg("Debug draw blocked. Hand is full. Max hand size: " + str(hand.max_hand_size))
+			return
+		
 			var drawn_card: CardData = player_deck.draw_top_card()
 
 			if drawn_card == null:
@@ -336,7 +446,10 @@ func try_place_selected_card_on_slot(slot: Node) -> bool:
 
 	log_msg("Trying to place: " + selected_card_data.card_name)
 
-	var placed_successfully: bool = slot.place_card(selected_card_scene, selected_card_data)
+	var slot_row: String = slot.get_meta("row", "")
+	var place_face_down: bool = slot_row == "back"
+
+	var placed_successfully: bool = slot.place_card(selected_card_scene, selected_card_data, place_face_down)
 
 	if placed_successfully:
 		tribute_manager.spend_tribute(selected_card_data.tribute_cost)
@@ -380,7 +493,6 @@ func try_sacrifice_selected_card_to_tribute() -> bool:
 
 func is_valid_slot_for_selected_card(slot: Node) -> bool:
 	var slot_owner: String = slot.get_meta("owner", "")
-	var slot_row: String = slot.get_meta("row", "")
 
 	if not has_selected_card:
 		return false
@@ -394,13 +506,7 @@ func is_valid_slot_for_selected_card(slot: Node) -> bool:
 	if slot.occupied:
 		return false
 
-	if selected_card_data.card_type == "unit":
-		return slot_row == "front"
-
-	if selected_card_data.card_type == "ruse" or selected_card_data.card_type == "trap":
-		return slot_row == "back"
-
-	return false
+	return true
 
 
 func update_slot_highlights() -> void:
@@ -489,6 +595,41 @@ func update_tribute_counter() -> void:
 
 	if tribute_pile.has_method("set_status_text"):
 		tribute_pile.set_status_text(tribute_manager.get_counter_text())
+
+
+func create_debug_tp_button() -> void:
+	if get_node_or_null("UI/DebugAddTPButton") != null:
+		return
+
+	var button := Button.new()
+	button.name = "DebugAddTPButton"
+	button.text = "+1 TP"
+	button.custom_minimum_size = Vector2(120, 44)
+
+	button.anchor_left = 1.0
+	button.anchor_right = 1.0
+	button.anchor_top = 0.0
+	button.anchor_bottom = 0.0
+
+	button.offset_left = -150.0
+	button.offset_right = -20.0
+	button.offset_top = 180.0
+	button.offset_bottom = 224.0
+
+	button.pressed.connect(_on_debug_add_tp_pressed)
+
+	$UI.add_child(button)
+
+
+func _on_debug_add_tp_pressed() -> void:
+	if tribute_manager == null:
+		return
+
+	tribute_manager.add_debug_tribute_points(1)
+	update_tribute_counter()
+
+	log_msg("Debug added +1 TP. " + tribute_manager.get_status_text())
+
 
 
 # ------------------------------------------------------------

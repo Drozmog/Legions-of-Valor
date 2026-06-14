@@ -18,4 +18,5 @@ ability_text = "Terrorize : On deploy: Opponent must discard 1 card from his han
 Vision : Look at top 3 cards of your deck."
 lore_text = "Do not ask whether the spell is forbidden. Ask whether your children will live to condemn me for casting it."
 card_art = ExtResource("1_2b2ca")
+ability_types = Array[String](["attrition", "insight"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

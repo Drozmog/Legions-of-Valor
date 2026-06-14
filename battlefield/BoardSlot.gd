@@ -89,7 +89,7 @@ func _on_click_area_input_event(
 			slot_right_clicked.emit(self)
 
 
-func place_card(card_scene: PackedScene, card_data: CardData) -> bool:
+func place_card(card_scene: PackedScene, card_data: CardData, place_face_down: bool = false) -> bool:
 	if occupied:
 		print(get_meta("slot_id"), " is already occupied.")
 		return false
@@ -101,10 +101,11 @@ func place_card(card_scene: PackedScene, card_data: CardData) -> bool:
 	placed_card.rotation = Vector3.ZERO
 
 	if placed_card.has_method("assign_card_data"):
-		placed_card.assign_card_data(card_data)
+		placed_card.assign_card_data(card_data, place_face_down)
 
 	occupied = true
 	set_meta("occupied", true)
+	set_meta("face_down", place_face_down)
 
 	print("Placed card on: ", get_meta("slot_id"))
 	return true
@@ -121,6 +122,28 @@ func clear_slot() -> void:
 	set_meta("occupied", false)
 
 	print("Cleared slot: ", get_meta("slot_id"))
+	
+
+func get_placed_card_data() -> CardData:
+	if placed_card == null:
+		return null
+
+	if placed_card.has_method("get_card_data"):
+		return placed_card.get_card_data()
+
+	return null
+	
+	
+	
+func reveal_card() -> void:
+	if placed_card == null:
+		return
+
+	if placed_card.has_method("reveal_card"):
+		placed_card.reveal_card()
+
+	set_meta("face_down", false)
+	
 
 func setup_slot_material() -> void:
 	var existing_material := get_active_material(0) as StandardMaterial3D

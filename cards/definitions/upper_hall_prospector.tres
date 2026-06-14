@@ -15,4 +15,5 @@ ap = 1
 ability_text = "Excavate : On deploy → Return the top card of the discard pile to your hand."
 lore_text = "\"The Elves think we always get the good deals. Maybe they should start keeping quarter traders as well\"- High Priest Dalmir"
 card_art = ExtResource("1_pscwf")
+ability_types = Array[String](["economy"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

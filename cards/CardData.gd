@@ -16,3 +16,4 @@ class_name CardData
 @export_multiline var lore_text: String = ""
 
 @export var card_art: Texture2D
+@export var ability_types: Array[String] = []

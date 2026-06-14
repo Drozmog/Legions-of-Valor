@@ -162,6 +162,7 @@ func update_status() -> void:
 
 	var deck_count: int = 0
 	var hand_count: int = 0
+	var hand_limit: int = 0
 	var tp_text: String = "TP 0/0"
 	var temp_text: String = "Temp +0"
 	var factions_text: String = "None"
@@ -171,6 +172,7 @@ func update_status() -> void:
 
 	if hand != null:
 		hand_count = hand.cards.size()
+		hand_limit = hand.max_hand_size
 
 	if tribute_manager != null:
 		tp_text = "TP " + str(tribute_manager.current_tribute_points) + "/" + str(tribute_manager.permanent_tp)
@@ -179,7 +181,7 @@ func update_status() -> void:
 
 	status_label.text = (
 		"Deck: " + str(deck_count) + "\n" +
-		"Hand: " + str(hand_count) + "\n" +
+		"Hand: " + str(hand_count) + "/" + str(hand_limit) + "\n" +
 		tp_text + "\n" +
 		temp_text + "\n" +
 		"Factions: " + factions_text

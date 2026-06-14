@@ -75,6 +75,15 @@ func spend_tribute(cost: int) -> bool:
 	refresh_tribute_points()
 	return true
 	
+	
+func add_debug_tribute_points(amount: int = 1) -> void:
+	var safe_amount: int = max(amount, 0)
+
+	permanent_tp += safe_amount
+	current_permanent_tp += safe_amount
+
+	refresh_tribute_points()
+
 
 func has_faction_access(faction: String) -> bool:
 	var clean_faction := faction.to_lower()
