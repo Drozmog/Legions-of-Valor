@@ -7,6 +7,8 @@ signal clicked(card: CardUI, screen_position: Vector2)
 
 @onready var name_label: Label = get_node_or_null("NameLabel") as Label
 
+const CARD_BACK_TEXTURE: Texture2D = preload("res://cards/card_back.png")
+
 var card_image: TextureRect = null
 
 var card_data: CardData = null
@@ -62,6 +64,8 @@ func setup(data: CardData) -> void:
 func show_front() -> void:
 	is_face_down = false
 
+	make_panel_background_transparent()
+
 	if card_image != null:
 		card_image.visible = true
 
@@ -85,13 +89,18 @@ func show_front() -> void:
 func show_back() -> void:
 	is_face_down = true
 
+	make_panel_background_transparent()
+
 	if card_image != null:
-		card_image.visible = false
+		card_image.visible = true
+		card_image.texture = CARD_BACK_TEXTURE
 
 	if name_label != null:
 		name_label.visible = false
 
-	self_modulate = Color(0.08, 0.08, 0.08, 0.95)
+	self_modulate = Color(1.0, 1.0, 1.0, 1.0)
+	
+	
 
 func create_rounded_card_material() -> ShaderMaterial:
 	var shader: Shader = Shader.new()
