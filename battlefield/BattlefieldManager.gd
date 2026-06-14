@@ -2,11 +2,13 @@ extends Node3D
 
 const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
 
-const ARCH_WIZARD_MAELCOR: CardData = preload("res://cards/definitions/Arch_Wizard_Maelcor.tres")
-const IMPERIAL_ARCHIVE_MASTER: CardData = preload("res://cards/definitions/Imperial_Archive_Master.tres")
-const JENA_OF_YEL: CardData = preload("res://cards/definitions/Jena_of_Yel.tres")
-const IVAAN_BONE_CRUSHER: CardData = preload("res://cards/definitions/Ivaan_Bone_Crusher.tres")
-const UPPER_HALL_PROSPECTOR: CardData = preload("res://cards/definitions/Upper_Hall_Prospector.tres")
+const ARCH_WIZARD_MAELCOR: CardData = preload("res://cards/definitions/arch_wizard_maelcor.tres")
+const IMPERIAL_ARCHIVE_MASTER: CardData = preload("res://cards/definitions/imperial_archive_master.tres")
+const JENA_OF_YEL: CardData = preload("res://cards/definitions/jena_of_yel.tres")
+const IVAAN_BONE_CRUSHER: CardData = preload("res://cards/definitions/ivaan_bone_crusher.tres")
+const UPPER_HALL_PROSPECTOR: CardData = preload("res://cards/definitions/upper_hall_prospector.tres")
+const TEST_EQUIPMENT: CardData = preload("res://cards/definitions/Test_Equipment.tres")
+const TEST_SPELL: CardData = preload("res://cards/definitions/Test_Spell.tres")
 
 @onready var board_slots: Node3D = $BoardSlots
 @onready var game_log = $GameLog
@@ -234,6 +236,12 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_5:
 			select_card(UPPER_HALL_PROSPECTOR)
 
+		if event.keycode == KEY_6:
+			select_card(TEST_EQUIPMENT)
+
+		if event.keycode == KEY_7:
+			select_card(TEST_SPELL)
+
 		if event.keycode == KEY_ESCAPE:
 			cancel_selected_card()
 
@@ -347,16 +355,24 @@ func try_sacrifice_selected_card_to_tribute() -> bool:
 		log_msg("Selected card data is missing.")
 		return false
 
+	var sacrificed_card_name := selected_card_data.card_name
+	var sacrificed_card_type := selected_card_data.card_type.to_lower()
 	var tribute_success: bool = tribute_manager.offer_card_to_tribute(selected_card_data)
 
 	if not tribute_success:
-		log_msg("Could not sacrifice " + selected_card_data.card_name + ". Invalid card type.")
+		log_msg("Could not sacrifice " + sacrificed_card_name + ". Invalid card type.")
 		return false
 
 	if tribute_pile != null:
 		tribute_pile.add_card()
 
-	log_msg("Sacrificed " + selected_card_data.card_name + " for Tribute. " + tribute_manager.get_status_text())
+	if sacrificed_card_type == "spell":
+		log_msg("Sacrificed " + sacrificed_card_name + " for temporary Tribute. +2 TP this turn. " + tribute_manager.get_status_text())
+	elif sacrificed_card_type == "equipment":
+		log_msg("Sacrificed " + sacrificed_card_name + " for permanent Tribute. +1 permanent TP. " + tribute_manager.get_status_text())
+	else:
+		log_msg("Sacrificed " + sacrificed_card_name + " for Tribute. " + tribute_manager.get_status_text())
+
 	log_msg("Unlocked factions: " + str(tribute_manager.get_unlocked_factions()))
 
 	return true
