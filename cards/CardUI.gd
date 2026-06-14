@@ -24,6 +24,7 @@ func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	set_process(false)
 
+	make_panel_background_transparent()
 	setup_card_image()
 
 
@@ -50,6 +51,7 @@ func setup_card_image() -> void:
 
 	card_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	card_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	card_image.material = create_rounded_card_material()
 
 
 func setup(data: CardData) -> void:
@@ -90,6 +92,47 @@ func show_back() -> void:
 		name_label.visible = false
 
 	self_modulate = Color(0.08, 0.08, 0.08, 0.95)
+
+func create_rounded_card_material() -> ShaderMaterial:
+	var shader: Shader = Shader.new()
+
+	shader.code = """
+shader_type canvas_item;
+
+uniform float radius = 0.035;
+
+void fragment() {
+	vec2 uv = UV;
+	vec2 corner_uv = min(uv, vec2(1.0) - uv);
+
+	if (corner_uv.x < radius && corner_uv.y < radius) {
+		vec2 corner_center = vec2(radius, radius);
+		vec2 local = corner_uv - corner_center;
+
+		if (length(local) > radius) {
+			discard;
+		}
+	}
+
+	COLOR = texture(TEXTURE, uv);
+}
+"""
+
+	var rounded_material: ShaderMaterial = ShaderMaterial.new()
+	rounded_material.shader = shader
+	rounded_material.set_shader_parameter("radius", 0.045)
+
+	return rounded_material
+	
+	
+func make_panel_background_transparent() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.border_width_left = 0
+	style.border_width_right = 0
+	style.border_width_top = 0
+	style.border_width_bottom = 0
+	add_theme_stylebox_override("panel", style)
 
 
 func _gui_input(event: InputEvent) -> void:
