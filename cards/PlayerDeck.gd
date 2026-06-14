@@ -5,12 +5,17 @@ signal deck_changed(cards_remaining: int)
 
 var deck: Array[CardData] = []
 
-const SAMPLE_CARDS: Array[CardData] = [
-	preload("res://cards/definitions/Arch_Wizard_Maelcor.tres"),
-	preload("res://cards/definitions/Imperial_Archive_Master.tres"),
-	preload("res://cards/definitions/Jena_of_Yel.tres"),
-	preload("res://cards/definitions/Ivaan_Bone_Crusher.tres"),
-	preload("res://cards/definitions/Upper_Hall_Prospector.tres"),
+const SAMPLE_UNIT_CARDS: Array[CardData] = [
+	preload("res://cards/definitions/arch_wizard_maelcor.tres"),
+	preload("res://cards/definitions/imperial_archive_master.tres"),
+	preload("res://cards/definitions/jena_of_yel.tres"),
+	preload("res://cards/definitions/ivaan_bone_crusher.tres"),
+	preload("res://cards/definitions/upper_hall_prospector.tres"),
+]
+
+const SAMPLE_TRIBUTE_TEST_CARDS: Array[CardData] = [
+	preload("res://cards/definitions/Test_Equipment.tres"),
+	preload("res://cards/definitions/Test_Spell.tres"),
 ]
 
 
@@ -21,8 +26,15 @@ func _ready() -> void:
 func build_test_deck() -> void:
 	deck.clear()
 
-	for n in range(8):
-		deck.append_array(SAMPLE_CARDS)
+	# 30 unit cards.
+	for n in range(6):
+		deck.append_array(SAMPLE_UNIT_CARDS)
+
+	# 10 tribute test cards.
+	# Test Equipment = permanent tribute test.
+	# Test Spell = temporary tribute test.
+	for n in range(5):
+		deck.append_array(SAMPLE_TRIBUTE_TEST_CARDS)
 
 	deck.shuffle()
 	deck_changed.emit(deck.size())
