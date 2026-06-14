@@ -17,7 +17,7 @@ signal card_cleared()
 @export var max_hand_size: int = 7
 
 @export var raised_anchor_from_bottom: float = 120.0
-@export var lowered_anchor_below_screen: float = 260.0
+@export var lowered_anchor_below_screen: float = 140.0
 
 @export var min_spacing: float = 95.0
 @export var max_spacing: float = 165.0
@@ -45,17 +45,13 @@ func _ready() -> void:
 	arrange_fan(false)
 	set_process(true)
 
-func _input(_event: InputEvent) -> void:
-	pass
-	
+func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_SPACE:
+			toggle_hand()
+
 
 func _process(_delta: float) -> void:
-	var space_is_down := Input.is_key_pressed(KEY_SPACE)
-
-	if space_is_down != hand_is_raised:
-		hand_is_raised = space_is_down
-		arrange_fan()
-
 	var shift_is_down := Input.is_key_pressed(KEY_SHIFT) and hand_is_raised
 
 	if shift_is_down == showing_ability_icons:
@@ -69,7 +65,6 @@ func _process(_delta: float) -> void:
 
 		if card.has_method("set_ability_icons_visible"):
 			card.set_ability_icons_visible(showing_ability_icons)
-
 
 
 func connect_hand_card_signals(card: CardUI) -> void:
