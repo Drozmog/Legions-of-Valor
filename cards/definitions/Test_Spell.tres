@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://caq7u4lmy0rbh"]
 
-[ext_resource type="Texture2D" uid="uid://bcteiogmtfr3c" path="res://cards/card_back.png" id="1_uavlk"]
+[ext_resource type="Texture2D" uid="uid://bkogd4bkr82l7" path="res://cards/images/withering_of_the_veil.png" id="1_uavlk"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="1_ym8ql"]
 
 [resource]
