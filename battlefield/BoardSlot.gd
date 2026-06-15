@@ -8,6 +8,8 @@ signal slot_right_clicked(slot)
 
 var occupied: bool = false
 var placed_card: Node3D = null
+var equipment_cards: Array[CardData] = []
+var equipment_nodes: Array[Node3D] = []
 var slot_material: StandardMaterial3D
 
 var default_color: Color = Color(1.0, 1.0, 1.0, 1.0)
@@ -22,6 +24,7 @@ var glow_material: StandardMaterial3D
 
 const SLOT_WIDTH: float = 1.02
 const SLOT_HEIGHT: float = 1.34
+const MAX_EQUIPMENT_PER_UNIT: int = 2
 
 const OUTLINE_THICKNESS: float = 0.016
 const GLOW_THICKNESS: float = 0.085
@@ -111,8 +114,49 @@ func place_card(card_scene: PackedScene, card_data: CardData, place_face_down: b
 	return true
 
 
+func can_attach_equipment() -> bool:
+	return occupied and placed_card != null and equipment_cards.size() < MAX_EQUIPMENT_PER_UNIT
+
+
+func attach_equipment(card_scene: PackedScene, card_data: CardData) -> bool:
+	if not can_attach_equipment():
+		return false
+
+	var equipment_node := card_scene.instantiate() as Node3D
+	card_point.add_child(equipment_node)
+	equipment_cards.append(card_data)
+	equipment_nodes.append(equipment_node)
+
+	var index := equipment_nodes.size() - 1
+	equipment_node.position = Vector3(-0.23 + float(index) * 0.46, 0.055 + float(index) * 0.004, 0.36)
+	equipment_node.rotation_degrees = Vector3(0, 0, -6 + 12 * index)
+	equipment_node.scale = Vector3(0.46, 0.46, 0.46)
+
+	if equipment_node.has_method("assign_card_data"):
+		equipment_node.assign_card_data(card_data, false)
+
+	return true
+
+
+func get_equipment_count() -> int:
+	return equipment_cards.size()
+
+
+func get_equipment_cards() -> Array[CardData]:
+	return equipment_cards.duplicate()
+
+
 func clear_slot() -> void:
+	for equipment_node in equipment_nodes:
+		if is_instance_valid(equipment_node):
+			equipment_node.queue_free()
+
+	equipment_nodes.clear()
+	equipment_cards.clear()
+
 	if placed_card == null:
+		occupied = false
+		set_meta("occupied", false)
 		return
 
 	placed_card.queue_free()
@@ -120,6 +164,7 @@ func clear_slot() -> void:
 
 	occupied = false
 	set_meta("occupied", false)
+	set_meta("face_down", false)
 
 	print("Cleared slot: ", get_meta("slot_id"))
 	
@@ -132,7 +177,6 @@ func get_placed_card_data() -> CardData:
 		return placed_card.get_card_data()
 
 	return null
-	
 	
 	
 func reveal_card() -> void:
