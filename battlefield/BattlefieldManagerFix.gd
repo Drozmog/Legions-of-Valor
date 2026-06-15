@@ -3,10 +3,112 @@ extends "res://battlefield/BattlefieldManagerModeAI.gd"
 var draw_temp_old_hand_limit: int = -1
 
 
+func _ready() -> void:
+	super._ready()
+	resolve_runtime_references()
+	force_mode_ui_state()
+
+
+func resolve_runtime_references() -> void:
+	if hand == null:
+		hand = get_node_or_null("UI/Hand") as HandUI
+	if draw_pile == null:
+		draw_pile = get_node_or_null("DrawPile") as DrawPile
+	if tribute_pile == null:
+		tribute_pile = get_node_or_null("TributePile") as TributePile
+	if player_deck == null:
+		player_deck = get_node_or_null("PlayerDeck") as PlayerDeck
+	if battle_plan_manager == null:
+		battle_plan_manager = get_node_or_null("BattlePlanManager") as BattlePlanManager
+		if battle_plan_manager == null:
+			battle_plan_manager = get_node_or_null("battlePlanManager") as BattlePlanManager
+	if battle_plan_panel == null:
+		battle_plan_panel = get_node_or_null("UI/BattlePlanPanel") as BattlePlanPanel
+	if battle_plan_selection_screen == null:
+		battle_plan_selection_screen = get_node_or_null("UI/BattlePlanSelectionScreen") as BattlePlanSelectionScreen
+	if discard_pile == null:
+		discard_pile = get_node_or_null("DiscardPile") as DiscardPile
+
+
+func force_mode_ui_state() -> void:
+	if ai_panel != null:
+		ai_panel.visible = game_mode == "ai"
+	if spell_panel != null:
+		spell_panel.hide()
+	if parry_panel != null:
+		parry_panel.hide()
+
+
+func _on_mode_chosen(selected_mode: String) -> void:
+	resolve_runtime_references()
+	game_mode = selected_mode
+	mode_selected = true
+	waiting_for_battle_plan = true
+
+	if mode_panel != null:
+		mode_panel.hide()
+
+	if game_mode == "ai":
+		setup_ai_match()
+		log_msg("Mode selected: Battle Against AI.")
+	else:
+		clear_ai_match_state()
+		log_msg("Mode selected: Practice Mode.")
+
+	force_mode_ui_state()
+	setup_battle_plan_flow()
+
+
+func clear_ai_match_state() -> void:
+	ai_deck.clear()
+	ai_hand.clear()
+	ai_discard.clear()
+	ai_tribute.clear()
+	ai_perm_tp = 0
+	ai_current_perm_tp = 0
+	ai_temp_tp = 0
+	ai_current_tp = 0
+	ai_tribute_used = false
+	ai_starting_hand_done = false
+	if ai_panel != null:
+		ai_panel.hide()
+
+
+func _on_battle_plan_selected(plan: Dictionary) -> void:
+	resolve_runtime_references()
+	waiting_for_battle_plan = false
+
+	if battle_plan_selection_screen != null:
+		battle_plan_selection_screen.hide_selection()
+		battle_plan_selection_screen.hide()
+
+	if battle_plan_manager != null:
+		battle_plan_manager.select_battle_plan(plan)
+
+	if battle_plan_panel != null:
+		battle_plan_panel.set_battle_plan(plan)
+
+	choose_opponent_battle_plan()
+	apply_battle_plan_rules(plan)
+	apply_initiative_rules(plan)
+
+	log_msg("Selected Battle Plan: " + str(plan.get("name", "Unknown Battle Plan")))
+	log_msg("Opponent Battle Plan: " + str(opponent_battle_plan.get("name", "Unknown Battle Plan")))
+
+	if not game_has_started:
+		begin_game_after_battle_plan_selection()
+
+	draw_battleplan_cards(plan)
+	force_player_hand_visible()
+	force_mode_ui_state()
+	set_phase(BattlePhase.TRIBUTE)
+
+
 func begin_game_after_battle_plan_selection() -> void:
 	if game_has_started:
 		return
 
+	resolve_runtime_references()
 	game_has_started = true
 	ensure_player_deck_ready()
 	update_tribute_counter()
@@ -21,10 +123,14 @@ func begin_game_after_battle_plan_selection() -> void:
 	if tribute_manager != null:
 		log_msg("Starting Tribute: " + tribute_manager.get_status_text())
 
+	force_mode_ui_state()
+
 
 func ensure_player_deck_ready() -> void:
+	resolve_runtime_references()
+
 	if player_deck == null:
-		log_msg("PlayerDeck is missing.")
+		log_msg("PlayerDeck is missing. Check that the scene still has a node named PlayerDeck at the Battlefield3D root.")
 		return
 
 	if player_deck.cards_remaining() <= 0 and player_deck.has_method("build_test_deck"):
@@ -36,20 +142,24 @@ func ensure_player_deck_ready() -> void:
 
 
 func deal_visible_opening_hand() -> void:
+	resolve_runtime_references()
+
 	if hand == null:
-		log_msg("Hand is missing.")
+		log_msg("Hand is missing. Check that the scene still has UI/Hand.")
 		return
 
 	if player_deck == null:
-		log_msg("PlayerDeck is missing.")
+		log_msg("PlayerDeck is missing. Cannot deal opening hand.")
 		return
+
+	hand.visible = true
+	hand.show()
 
 	if not hand.cards.is_empty():
-		hand.raise_hand()
-		hand.arrange_fan(false)
+		force_player_hand_visible()
 		return
 
-	var target_opening_size: int = mini(5, hand.max_hand_size)
+	var target_opening_size: int = mini(5, max(hand.max_hand_size, 5))
 	var drawn_count: int = 0
 
 	for i in range(target_opening_size):
@@ -62,18 +172,30 @@ func deal_visible_opening_hand() -> void:
 	if draw_pile != null:
 		draw_pile.set_card_count(player_deck.cards_remaining())
 
-	hand.raise_hand()
-	hand.arrange_fan(false)
+	force_player_hand_visible()
 	log_msg("Opening hand dealt: " + str(drawn_count) + " cards. Deck remaining: " + str(player_deck.cards_remaining()))
 
 
+func force_player_hand_visible() -> void:
+	if hand == null:
+		return
+	hand.visible = true
+	hand.show()
+	hand.raise_hand()
+	hand.move_to_front()
+	hand.arrange_fan(false)
+
+
 func draw_battleplan_cards(plan: Dictionary) -> void:
+	resolve_runtime_references()
 	ensure_player_deck_ready()
 
 	var draw_amount: int = int(plan.get("draw_amount", 0))
 	var drawn_count: int = 0
 
 	if draw_amount > 0 and player_deck != null and hand != null:
+		hand.visible = true
+		hand.show()
 		for i in range(draw_amount):
 			if not hand.can_accept_card():
 				break
@@ -86,8 +208,7 @@ func draw_battleplan_cards(plan: Dictionary) -> void:
 		if draw_pile != null:
 			draw_pile.set_card_count(player_deck.cards_remaining())
 
-		hand.raise_hand()
-		hand.arrange_fan()
+		force_player_hand_visible()
 		log_msg("Battleplan draw: player drew " + str(drawn_count) + "/" + str(draw_amount) + " cards.")
 
 	if game_mode == "ai":
@@ -98,8 +219,12 @@ func draw_battleplan_cards(plan: Dictionary) -> void:
 	else:
 		log_msg("Opponent draws " + str(draw_amount) + " cards. Opponent hand is simulated for now.")
 
+	force_mode_ui_state()
+
 
 func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
+	resolve_runtime_references()
+
 	if not mode_selected:
 		log_msg("Choose a game mode before drawing cards.")
 		return
@@ -127,15 +252,13 @@ func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
 		log_msg("Draw Pile is empty.")
 		return
 
-	# Manual draw-pile dragging is an admin/test action. If the hand is already at
-	# the battleplan cap, temporarily open one slot so the drag preview can finish.
 	draw_temp_old_hand_limit = -1
 	if not hand.can_accept_card():
 		draw_temp_old_hand_limit = hand.max_hand_size
 		hand.max_hand_size = hand.cards.size() + 1
 		log_msg("Admin draw: temporarily allowing 1 card over hand limit for testing.")
 
-	hand.raise_hand()
+	force_player_hand_visible()
 	var started: bool = hand.start_draw_pile_drag(screen_position, preview_card)
 
 	if started:
@@ -153,6 +276,8 @@ func _on_draw_pile_drag_moved(screen_position: Vector2) -> void:
 
 
 func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
+	resolve_runtime_references()
+
 	if hand == null:
 		restore_draw_temp_hand_limit()
 		return
@@ -198,8 +323,7 @@ func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
 			log_msg("Draw failed: card could not be added to hand.")
 
 	restore_draw_temp_hand_limit()
-	hand.raise_hand()
-	hand.arrange_fan()
+	force_player_hand_visible()
 
 
 func restore_draw_temp_hand_limit() -> void:
