@@ -79,7 +79,7 @@ func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
 	# Force the preview card to resolve into the hand even if the mouse is released
 	# slightly outside the hand drop zone. This makes draw-pile dragging reliable
 	# in both Practice Mode and AI Mode.
-	var viewport_size: Vector2 = get_viewport_rect().size
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	var forced_hand_position := Vector2(screen_position.x, viewport_size.y - 1.0)
 	var accepted: bool = hand.finish_draw_pile_drag(forced_hand_position, drawn_card)
 
