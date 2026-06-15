@@ -17,12 +17,10 @@ func setup_screen() -> void:
 	anchor_right = 1.0
 	anchor_top = 0.0
 	anchor_bottom = 1.0
-
 	offset_left = 0.0
 	offset_right = 0.0
 	offset_top = 0.0
 	offset_bottom = 0.0
-
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	z_index = 100
 
@@ -40,7 +38,7 @@ func build_base_ui() -> void:
 	add_child(center)
 
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(1000, 520)
+	panel.custom_minimum_size = Vector2(1080, 580)
 	center.add_child(panel)
 
 	var style := StyleBoxFlat.new()
@@ -104,7 +102,7 @@ func hide_selection() -> void:
 
 func create_plan_card(plan: Dictionary) -> Control:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(290, 330)
+	panel.custom_minimum_size = Vector2(320, 390)
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.08, 0.065, 0.04, 1.0)
@@ -127,7 +125,7 @@ func create_plan_card(plan: Dictionary) -> Control:
 	panel.add_child(margin)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 14)
+	vbox.add_theme_constant_override("separation", 10)
 	margin.add_child(vbox)
 
 	var name := Label.new()
@@ -137,11 +135,18 @@ func create_plan_card(plan: Dictionary) -> Control:
 	name.add_theme_font_size_override("font_size", 21)
 	vbox.add_child(name)
 
+	var stats := Label.new()
+	stats.text = "Initiative: " + str(plan.get("initiative_mark", 0)) + "   Draw: " + str(plan.get("draw_amount", 0)) + "   Max Hand: " + str(plan.get("max_hand_size", 0)) + "\nAurion Reward: +" + str(plan.get("aurion_reward", 0))
+	stats.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stats.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	stats.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(stats)
+
 	var desc := Label.new()
-	desc.text = str(plan.get("description", ""))
+	desc.text = get_plan_description(plan)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.custom_minimum_size = Vector2(0, 160)
-	desc.add_theme_font_size_override("font_size", 15)
+	desc.custom_minimum_size = Vector2(0, 190)
+	desc.add_theme_font_size_override("font_size", 14)
 	vbox.add_child(desc)
 
 	var button := Button.new()
@@ -151,6 +156,14 @@ func create_plan_card(plan: Dictionary) -> Control:
 	vbox.add_child(button)
 
 	return panel
+
+
+func get_plan_description(plan: Dictionary) -> String:
+	var description: String = str(plan.get("description", ""))
+	if description.strip_edges() != "":
+		return description
+
+	return str(plan.get("objective", "No objective text found for this battle plan."))
 
 
 func _on_select_pressed(plan: Dictionary) -> void:
