@@ -222,6 +222,115 @@ func draw_battleplan_cards(plan: Dictionary) -> void:
 	force_mode_ui_state()
 
 
+func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
+	resolve_runtime_references()
+
+	if card == null:
+		cancel_selected_card()
+		return
+
+	if selected_card_data == null and card.card_data != null:
+		select_card(card.card_data)
+
+	var target_node: Node = get_3d_node_under_screen_position(screen_position)
+	var dropped_on_tribute: bool = is_tribute_drop_target(target_node, screen_position)
+
+	# Tribute Phase is only for feeding the Tribute Pile. This prevents cards from
+	# being left floating over board slots when the player releases them on the board.
+	if current_phase == BattlePhase.TRIBUTE:
+		if dropped_on_tribute:
+			sacrifice_dragged_card_to_tribute(card)
+			return
+
+		safe_return_card_to_hand(card)
+		cancel_selected_card()
+		log_msg("Tribute Phase: drop a card onto the Tribute Pile, not the battlefield.")
+		return
+
+	var target_slot: Node = find_board_slot_from_node(target_node)
+
+	if target_slot == null and selected_card_data != null and get_clean_card_type(selected_card_data) == "equipment":
+		target_slot = find_equipment_target_slot_from_screen_position(screen_position)
+
+	if target_slot != null:
+		if current_phase != BattlePhase.DEPLOYMENT:
+			log_msg("Cards can only be deployed during the Deployment Phase.")
+			safe_return_card_to_hand(card)
+			cancel_selected_card()
+			return
+
+		if should_prompt_spell_visibility(target_slot):
+			show_spell_choice(card, target_slot, false)
+			return
+
+		var placed: bool = try_place_selected_card_on_slot(target_slot)
+		if placed:
+			hand.consume_dragged_card(card)
+		else:
+			safe_return_card_to_hand(card)
+		cancel_selected_card()
+		return
+
+	if dropped_on_tribute:
+		log_msg("Cards can only be sent to Tribute during the Tribute Phase.")
+		safe_return_card_to_hand(card)
+		cancel_selected_card()
+		return
+
+	log_msg("Card dropped nowhere valid.")
+	safe_return_card_to_hand(card)
+	cancel_selected_card()
+
+
+func sacrifice_dragged_card_to_tribute(card: CardUI) -> void:
+	if hand == null:
+		return
+
+	if selected_card_data == null and card != null and card.card_data != null:
+		select_card(card.card_data)
+
+	var sacrificed: bool = try_sacrifice_selected_card_to_tribute()
+
+	if sacrificed:
+		hand.consume_dragged_card(card)
+		log_msg("Tribute accepted.")
+	else:
+		safe_return_card_to_hand(card)
+
+	cancel_selected_card()
+	force_player_hand_visible()
+
+
+func safe_return_card_to_hand(card: CardUI) -> void:
+	if hand == null:
+		return
+
+	if card != null:
+		card.mouse_is_pressed = false
+		card.is_dragging = false
+		card.set_process(false)
+
+	hand.return_dragged_card_to_hand(card)
+	force_player_hand_visible()
+
+
+func is_tribute_drop_target(target_node: Node, screen_position: Vector2) -> bool:
+	if tribute_pile == null:
+		return false
+
+	if is_node_inside_target(target_node, tribute_pile):
+		return true
+
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	if camera == null:
+		return false
+
+	var tribute_screen_position: Vector2 = camera.unproject_position(tribute_pile.global_position)
+	var tribute_radius_pixels: float = 230.0
+
+	return tribute_screen_position.distance_to(screen_position) <= tribute_radius_pixels
+
+
 func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
 	resolve_runtime_references()
 
