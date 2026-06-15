@@ -27,7 +27,7 @@ func setup_screen() -> void:
 
 func build_base_ui() -> void:
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.72)
+	dim.color = Color(0, 0, 0, 0.35)
 	dim.anchor_right = 1.0
 	dim.anchor_bottom = 1.0
 	add_child(dim)
