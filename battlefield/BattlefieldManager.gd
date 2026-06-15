@@ -1,1 +1,1 @@
-extends "res://battlefield/BattlefieldManagerPhase2.gd"
+extends BattlefieldManagerPhase3
