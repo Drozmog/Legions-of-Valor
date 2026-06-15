@@ -54,22 +54,21 @@ func _input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	update_live_hand_reorder()
-
-	var shift_is_down: bool = Input.is_key_pressed(KEY_SHIFT) and hand_is_raised
-
-	if shift_is_down == showing_ability_icons:
-		return
-
-	showing_ability_icons = shift_is_down
+	
+func set_all_ability_icons_visible(show_icons: bool) -> void:
+	showing_ability_icons = show_icons
 
 	for card in cards:
 		if card == null:
 			continue
 
+		if not is_instance_valid(card):
+			continue
+
 		if card.has_method("set_ability_icons_visible"):
-			card.set_ability_icons_visible(showing_ability_icons)
-			
-			
+			card.set_ability_icons_visible(show_icons)
+
+
 func update_live_hand_reorder() -> void:
 	if dragged_card == null:
 		live_reorder_index = -1

@@ -5,19 +5,41 @@ const CARD_WIDTH: float = 1.02
 const CARD_HEIGHT: float = 1.34
 const CARD_BACK_PATH: String = "res://cards/card_back.png"
 
+const ABILITY_ICON_PATHS := {
+	"assault": "res://ui/ability_icons/assault.png",
+	"control": "res://ui/ability_icons/control.png",
+	"attrition": "res://ui/ability_icons/attrition.png",
+	"economy": "res://ui/ability_icons/economy.png",
+	"protection": "res://ui/ability_icons/protection.png",
+	"insight": "res://ui/ability_icons/insight.png",
+	"mobility": "res://ui/ability_icons/mobility.png",
+}
+
 @onready var card_body: MeshInstance3D = get_node_or_null("CardBody") as MeshInstance3D
 
 var assigned_card_data: CardData = null
 var is_face_down: bool = false
 var fallback_label: Label3D = null
+@export var ability_icon_pixel_size: float = 0.0028
+@export var ability_icon_spacing: float = 0.22
+@export var ability_icon_hidden_z: float = -0.52
+@export var ability_icon_shown_z: float = -0.82
+@export var ability_icon_y: float = 0.095
+@export var ability_icon_tween_time: float = 0.18
+
+var ability_icon_root: Node3D = null
+var ability_icons_are_visible: bool = false
+var ability_icon_tween: Tween = null
 
 
 func _ready() -> void:
 	setup_card_body()
 	setup_fallback_label()
+	setup_ability_icon_root()
 
 	if assigned_card_data != null:
 		apply_card_visual()
+		rebuild_ability_icons()
 
 
 func assign_card_data(card_data: CardData, place_face_down: bool = false) -> void:
@@ -26,6 +48,7 @@ func assign_card_data(card_data: CardData, place_face_down: bool = false) -> voi
 
 	if is_inside_tree():
 		apply_card_visual()
+		rebuild_ability_icons()
 
 
 func get_card_data() -> CardData:
@@ -118,6 +141,162 @@ func show_back() -> void:
 
 	if fallback_label != null:
 		fallback_label.visible = false
+
+	set_ability_icons_visible(false, true)
+	
+func setup_ability_icon_root() -> void:
+	ability_icon_root = get_node_or_null("AbilityIconRoot") as Node3D
+
+	if ability_icon_root == null:
+		ability_icon_root = Node3D.new()
+		ability_icon_root.name = "AbilityIconRoot"
+		add_child(ability_icon_root)
+
+	ability_icon_root.visible = false
+	ability_icon_root.position = Vector3(0, ability_icon_y, ability_icon_hidden_z)
+	
+func rebuild_ability_icons() -> void:
+	if ability_icon_root == null:
+		return
+
+	for child in ability_icon_root.get_children():
+		child.queue_free()
+
+	if assigned_card_data == null:
+		return
+
+	if assigned_card_data.ability_types.is_empty():
+		return
+
+	var icon_count: int = assigned_card_data.ability_types.size()
+	var total_width: float = ability_icon_spacing * float(icon_count - 1)
+	var start_x: float = -total_width / 2.0
+
+	for i in range(icon_count):
+		var ability_type: String = String(assigned_card_data.ability_types[i]).to_lower().strip_edges()
+		var icon := create_ability_icon_3d(ability_type)
+
+		icon.position = Vector3(
+			start_x + ability_icon_spacing * float(i),
+			0.0,
+			0.0
+		)
+
+		ability_icon_root.add_child(icon)
+		
+		
+func create_ability_icon_3d(ability_type: String) -> Node3D:
+	var icon_path: String = ABILITY_ICON_PATHS.get(ability_type, "")
+
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		var sprite := Sprite3D.new()
+		sprite.name = ability_type.capitalize() + "Icon"
+		sprite.texture = load(icon_path) as Texture2D
+		sprite.pixel_size = ability_icon_pixel_size
+		sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		sprite.no_depth_test = true
+		sprite.modulate = Color(1.0, 1.0, 1.0, 1.0)
+		return sprite
+
+	var label := Label3D.new()
+	label.name = ability_type.capitalize() + "IconFallback"
+	label.text = ability_type.substr(0, 1).to_upper()
+	label.pixel_size = 0.004
+	label.font_size = 34
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.modulate = Color(1.0, 0.92, 0.55, 1.0)
+	label.outline_size = 8
+	label.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
+	return label
+	
+
+func set_ability_icons_visible(show_icons: bool, instant: bool = false) -> void:
+	if ability_icon_root == null:
+		return
+
+	if assigned_card_data == null:
+		return
+
+	if assigned_card_data.ability_types.is_empty():
+		return
+
+	if is_face_down:
+		show_icons = false
+
+	if ability_icons_are_visible == show_icons and not instant:
+		return
+
+	ability_icons_are_visible = show_icons
+
+	if ability_icon_tween != null:
+		ability_icon_tween.kill()
+
+	var target_z: float = ability_icon_hidden_z
+	var target_alpha: float = 0.0
+
+	if show_icons:
+		target_z = ability_icon_shown_z
+		target_alpha = 1.0
+		ability_icon_root.visible = true
+
+	if instant:
+		ability_icon_root.position = Vector3(0, ability_icon_y, target_z)
+		set_ability_icon_root_alpha(target_alpha)
+		ability_icon_root.visible = show_icons
+		return
+
+	ability_icon_tween = create_tween()
+	ability_icon_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+	ability_icon_tween.tween_property(
+		ability_icon_root,
+		"position",
+		Vector3(0, ability_icon_y, target_z),
+		ability_icon_tween_time
+	)
+
+	ability_icon_tween.parallel().tween_method(
+		set_ability_icon_root_alpha,
+		get_ability_icon_root_alpha(),
+		target_alpha,
+		ability_icon_tween_time
+	)
+
+	if not show_icons:
+		ability_icon_tween.tween_callback(func(): ability_icon_root.visible = false)
+		
+		
+func set_ability_icon_root_alpha(alpha: float) -> void:
+	if ability_icon_root == null:
+		return
+
+	for child in ability_icon_root.get_children():
+		if child is Sprite3D:
+			var sprite := child as Sprite3D
+			var color := sprite.modulate
+			color.a = alpha
+			sprite.modulate = color
+
+		if child is Label3D:
+			var label := child as Label3D
+			var label_color := label.modulate
+			label_color.a = alpha
+			label.modulate = label_color
+
+
+func get_ability_icon_root_alpha() -> float:
+	if ability_icon_root == null:
+		return 0.0
+
+	for child in ability_icon_root.get_children():
+		if child is Sprite3D:
+			return (child as Sprite3D).modulate.a
+
+		if child is Label3D:
+			return (child as Label3D).modulate.a
+
+	return 0.0
 
 
 func reveal_card() -> void:

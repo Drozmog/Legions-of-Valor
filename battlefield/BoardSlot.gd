@@ -189,6 +189,22 @@ func reveal_card() -> void:
 	set_meta("face_down", false)
 	
 
+func set_slot_ability_icons_visible(show_icons: bool) -> void:
+	if placed_card != null and is_instance_valid(placed_card):
+		if placed_card.has_method("set_ability_icons_visible"):
+			placed_card.set_ability_icons_visible(show_icons)
+
+	for equipment_node in equipment_nodes:
+		if equipment_node == null:
+			continue
+
+		if not is_instance_valid(equipment_node):
+			continue
+
+		if equipment_node.has_method("set_ability_icons_visible"):
+			equipment_node.set_ability_icons_visible(show_icons)
+
+
 func setup_slot_material() -> void:
 	var existing_material := get_active_material(0) as StandardMaterial3D
 
