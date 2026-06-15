@@ -151,6 +151,7 @@ func create_plan_card(plan: Dictionary) -> Control:
 
 	var button := Button.new()
 	button.text = "Select"
+	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(0, 44)
 	button.pressed.connect(_on_select_pressed.bind(plan))
 	vbox.add_child(button)

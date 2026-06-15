@@ -39,6 +39,7 @@ var hand_is_raised: bool = false
 var draw_drag_card: CardUI = null
 var pending_draw_data: CardData = null
 var showing_ability_icons: bool = false
+var live_reorder_index: int = -1
 
 func _ready() -> void:
 	hand_is_raised = false
@@ -52,7 +53,9 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
-	var shift_is_down := Input.is_key_pressed(KEY_SHIFT) and hand_is_raised
+	update_live_hand_reorder()
+
+	var shift_is_down: bool = Input.is_key_pressed(KEY_SHIFT) and hand_is_raised
 
 	if shift_is_down == showing_ability_icons:
 		return
@@ -65,6 +68,39 @@ func _process(_delta: float) -> void:
 
 		if card.has_method("set_ability_icons_visible"):
 			card.set_ability_icons_visible(showing_ability_icons)
+			
+			
+func update_live_hand_reorder() -> void:
+	if dragged_card == null:
+		live_reorder_index = -1
+		return
+
+	if not is_instance_valid(dragged_card):
+		live_reorder_index = -1
+		return
+
+	if not cards.has(dragged_card):
+		live_reorder_index = -1
+		return
+
+	var mouse_position: Vector2 = get_global_mouse_position()
+
+	if not is_screen_position_in_hand_reorder_zone(mouse_position):
+		live_reorder_index = -1
+		return
+
+	var final_count: int = cards.size()
+	var target_index: int = get_reorder_insert_index(mouse_position.x, final_count)
+
+	if target_index == live_reorder_index:
+		return
+
+	live_reorder_index = target_index
+
+	cards.erase(dragged_card)
+	cards.insert(clampi(target_index, 0, cards.size()), dragged_card)
+
+	arrange_fan(true)
 
 
 func connect_hand_card_signals(card: CardUI) -> void:
@@ -235,6 +271,7 @@ func _on_card_unhovered(card: CardUI) -> void:
 func _on_card_drag_started(card: CardUI) -> void:
 	dragged_card = card
 	selected_card = card
+	live_reorder_index = -1
 
 	for hand_card in cards:
 		if hand_card != null and hand_card.has_method("set_ability_icons_visible"):
@@ -251,11 +288,10 @@ func _on_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
 	if not is_instance_valid(card):
 		return
 
+	live_reorder_index = -1
+
 	card_drag_released.emit(card, screen_position)
 
-	# Safety fallback:
-	# Wait one frame. If the battlefield manager did not consume/place/tribute/reorder it,
-	# smoothly return it to the hand.
 	call_deferred("_deferred_return_if_card_still_in_hand", card)
 	
 
@@ -290,13 +326,19 @@ func _deferred_return_if_card_still_in_hand(card: CardUI) -> void:
 func is_screen_position_in_hand_reorder_zone(screen_position: Vector2) -> bool:
 	var viewport_size: Vector2 = get_viewport_rect().size
 
-	# Whole bottom hand area.
-	# Do NOT cut off the right half anymore.
-	return screen_position.y >= viewport_size.y - 300.0
+	# Reorder only in the lower hand area.
+	# Keep this wide enough so left-to-right and right-to-left movement both work.
+	var hand_top: float = viewport_size.y - 390.0
+	var hand_bottom: float = viewport_size.y
+
+	return screen_position.y >= hand_top and screen_position.y <= hand_bottom
 	
 
 func reorder_card_in_hand(card: CardUI, screen_x: float) -> void:
 	if card == null:
+		return
+
+	if not is_instance_valid(card):
 		return
 
 	if not cards.has(card):
@@ -304,28 +346,43 @@ func reorder_card_in_hand(card: CardUI, screen_x: float) -> void:
 
 	cards.erase(card)
 
-	var insert_index: int = cards.size()
-
-	for i in range(cards.size()):
-		var other_card: CardUI = cards[i]
-
-		if other_card == null:
-			continue
-
-		var other_center_x: float = other_card.global_position.x + (other_card.size.x * other_card.scale.x * 0.5)
-
-		if screen_x < other_center_x:
-			insert_index = i
-			break
-
-	cards.insert(insert_index, card)
+	var insert_index: int = get_reorder_insert_index(screen_x, cards.size() + 1)
+	cards.insert(clampi(insert_index, 0, cards.size()), card)
 	
+
+func get_reorder_insert_index(screen_x: float, final_count: int) -> int:
+	if final_count <= 1:
+		return 0
+
+	var area_size: Vector2 = get_hand_area_size()
+	var center_x: float = area_size.x / 2.0
+
+	var spacing: float = max_fan_width / float(final_count - 1)
+	spacing = clamp(spacing, min_spacing, max_spacing)
+
+	var total_width: float = spacing * float(final_count - 1)
+	var start_x: float = center_x - total_width / 2.0
+
+	var relative_x: float = screen_x - start_x
+	var raw_index: float = round(relative_x / spacing)
+	var index: int = int(raw_index)
+
+	return clampi(index, 0, final_count - 1)
+
 
 
 func force_return_card_to_hand(card: CardUI) -> void:
 	if card == null:
 		dragged_card = null
 		selected_card = null
+		live_reorder_index = -1
+		arrange_fan()
+		return
+
+	if not is_instance_valid(card):
+		dragged_card = null
+		selected_card = null
+		live_reorder_index = -1
 		arrange_fan()
 		return
 
@@ -347,12 +404,11 @@ func force_return_card_to_hand(card: CardUI) -> void:
 
 	dragged_card = null
 	selected_card = null
+	live_reorder_index = -1
 
-	card.rotation_degrees = 0
 	card.scale = Vector2(card_scale, card_scale)
 	card.move_to_front()
 
-	# Smooth glide back instead of teleport.
 	arrange_fan(true)
 
 

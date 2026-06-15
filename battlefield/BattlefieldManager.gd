@@ -52,6 +52,7 @@ func create_phase_ui() -> void:
 	vbox.add_child(phase_label)
 
 	next_phase_button = Button.new()
+	next_phase_button.focus_mode = Control.FOCUS_NONE
 	next_phase_button.pressed.connect(_on_next_phase_pressed)
 	vbox.add_child(next_phase_button)
 
@@ -79,6 +80,88 @@ func begin_game_after_battle_plan_selection() -> void:
 		log_msg("Starting Tribute: " + tribute_manager.get_status_text())
 
 	log_msg("AI starting hand dealt. AI hand: " + str(ai_hand.size()) + " | AI deck: " + str(ai_deck.size()))
+
+
+func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
+	if card == null:
+		cancel_selected_card()
+		return
+
+	if not is_instance_valid(card):
+		cancel_selected_card()
+		return
+
+	if selected_card_data == null and card.card_data != null:
+		select_card(card.card_data)
+
+	var target_node: Node = get_3d_node_under_screen_position(screen_position)
+	var target_slot: Node = find_board_slot_from_node(target_node)
+
+	# 1. Tribute pile has priority during Tribute Phase.
+	if is_node_inside_target(target_node, tribute_pile):
+		if current_phase != BattlePhase.TRIBUTE:
+			log_msg("Cards can only be sent to Tribute during the Tribute Phase.")
+			return_card_to_hand_safely(card)
+			cancel_selected_card()
+			return
+
+		var sacrificed: bool = try_sacrifice_selected_card_to_tribute()
+
+		if sacrificed:
+			if hand != null:
+				hand.consume_dragged_card(card)
+		else:
+			return_card_to_hand_safely(card)
+
+		cancel_selected_card()
+		return
+
+	# 2. Board slot placement has priority during Deployment Phase.
+	if target_slot != null:
+		if current_phase != BattlePhase.DEPLOYMENT:
+			log_msg("Cards can only be deployed during the Deployment Phase.")
+			return_card_to_hand_safely(card)
+			cancel_selected_card()
+			return
+
+		var placed: bool = try_place_selected_card_on_slot(target_slot)
+
+		if placed:
+			if hand != null:
+				hand.consume_dragged_card(card)
+		else:
+			return_card_to_hand_safely(card)
+
+		cancel_selected_card()
+		return
+
+	# 3. If released back inside the hand area, reorder the hand.
+	if hand != null and hand.has_method("is_screen_position_in_hand_reorder_zone"):
+		if hand.is_screen_position_in_hand_reorder_zone(screen_position):
+			if hand.has_method("reorder_card_in_hand"):
+				hand.reorder_card_in_hand(card, screen_position.x)
+
+			return_card_to_hand_safely(card)
+			cancel_selected_card()
+			return
+
+	# 4. Anything else returns to hand.
+	log_msg("Card dropped nowhere valid.")
+	return_card_to_hand_safely(card)
+	cancel_selected_card()
+
+
+func return_card_to_hand_safely(card: CardUI) -> void:
+	if hand == null:
+		return
+
+	if card != null and is_instance_valid(card):
+		card.mouse_is_pressed = false
+		card.is_dragging = false
+		card.set_process(false)
+
+	if hand.has_method("return_dragged_card_to_hand"):
+		hand.return_dragged_card_to_hand(card)
 
 
 func draw_battleplan_cards(plan: Dictionary) -> void:
