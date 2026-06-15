@@ -56,8 +56,12 @@ size = Vector3(1.02, 0.5, 1.4)
 [sub_resource type="BoxShape3D" id="BoxShape3D_1fhha"]
 size = Vector3(1.02, 0.5, 1.4)
 
-[node name="Battlefield3D" type="Node3D" unique_id=1594429578]
+[node name="Battlefield3D" type="Node3D" unique_id=1594429578 node_paths=PackedStringArray("hand", "draw_pile", "tribute_pile", "player_deck")]
 script = ExtResource("1_a265j")
+hand = NodePath("UI/Hand")
+draw_pile = NodePath("DrawPile")
+tribute_pile = NodePath("TributePile")
+player_deck = NodePath("PlayerDeck")
 
 [node name="BoardPlaneGrass" type="MeshInstance3D" parent="." unique_id=1652894338]
 mesh = SubResource("PlaneMesh_lmsbs")
