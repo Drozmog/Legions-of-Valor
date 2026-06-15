@@ -1,3 +1,4 @@
+class_name BattlefieldManagerPhase
 extends Node3D
 
 const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
@@ -394,16 +395,7 @@ func _on_slot_clicked(slot: Node) -> void:
 		cancel_selected_card()
 
 func _on_slot_right_clicked(slot: Node) -> void:
-	var slot_id: String = slot.get_meta("slot_id", "")
-	var discarded_card_data: CardData = null
-	if slot.has_method("get_placed_card_data"):
-		discarded_card_data = slot.get_placed_card_data()
-	if discard_pile != null and discarded_card_data != null:
-		discard_pile.add_card(discarded_card_data)
-		log_msg("Sent " + discarded_card_data.card_name + " to discard pile.")
-	slot.clear_slot()
-	log_msg("Cleared slot: " + str(slot_id))
-	update_slot_highlights()
+	log_msg("Manual battlefield clearing is disabled. Cards leave the board only through combat, cleanup, or abilities.")
 
 func _on_tribute_pile_clicked() -> void:
 	if waiting_for_battle_plan:
