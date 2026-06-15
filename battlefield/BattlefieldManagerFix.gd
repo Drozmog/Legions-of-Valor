@@ -232,26 +232,33 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 	if selected_card_data == null and card.card_data != null:
 		select_card(card.card_data)
 
-	var target_node: Node = get_3d_node_under_screen_position(screen_position)
-	var dropped_on_tribute: bool = is_tribute_drop_target(target_node, screen_position)
-
-	# Tribute Phase is only for feeding the Tribute Pile. This prevents cards from
-	# being left floating over board slots when the player releases them on the board.
+	# 1) Tribute Phase: tribute pile gets first priority.
 	if current_phase == BattlePhase.TRIBUTE:
-		if dropped_on_tribute:
-			sacrifice_dragged_card_to_tribute(card)
+		if is_card_over_tribute_drop_zone(card, screen_position):
+			sacrifice_card_ui_directly_to_tribute(card)
 			return
 
+		# Reorder hand if dropped back into hand area.
+		if hand != null and hand.has_method("is_screen_position_in_hand_reorder_zone"):
+			if hand.is_screen_position_in_hand_reorder_zone(screen_position):
+				if hand.has_method("reorder_card_in_hand"):
+					hand.reorder_card_in_hand(card, screen_position.x)
+				safe_return_card_to_hand(card)
+				cancel_selected_card()
+				return
+
+		log_msg("Tribute Phase: drop the card onto the Tribute Pile to pay tribute.")
 		safe_return_card_to_hand(card)
 		cancel_selected_card()
-		log_msg("Tribute Phase: drop a card onto the Tribute Pile, not the battlefield.")
 		return
 
+	var target_node: Node = get_3d_node_under_screen_position(screen_position)
 	var target_slot: Node = find_board_slot_from_node(target_node)
 
 	if target_slot == null and selected_card_data != null and get_clean_card_type(selected_card_data) == "equipment":
 		target_slot = find_equipment_target_slot_from_screen_position(screen_position)
 
+	# 2) Deployment slot placement.
 	if target_slot != null:
 		if current_phase != BattlePhase.DEPLOYMENT:
 			log_msg("Cards can only be deployed during the Deployment Phase.")
@@ -264,44 +271,118 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 			return
 
 		var placed: bool = try_place_selected_card_on_slot(target_slot)
+
 		if placed:
 			hand.consume_dragged_card(card)
 		else:
 			safe_return_card_to_hand(card)
+
 		cancel_selected_card()
 		return
 
-	if dropped_on_tribute:
-		log_msg("Cards can only be sent to Tribute during the Tribute Phase.")
-		safe_return_card_to_hand(card)
-		cancel_selected_card()
-		return
+	# 3) Hand reorder in non-tribute phases too.
+	if hand != null and hand.has_method("is_screen_position_in_hand_reorder_zone"):
+		if hand.is_screen_position_in_hand_reorder_zone(screen_position):
+			if hand.has_method("reorder_card_in_hand"):
+				hand.reorder_card_in_hand(card, screen_position.x)
+			safe_return_card_to_hand(card)
+			cancel_selected_card()
+			return
 
+	# 4) Anything else returns.
 	log_msg("Card dropped nowhere valid.")
 	safe_return_card_to_hand(card)
 	cancel_selected_card()
+	
 
 
-func sacrifice_dragged_card_to_tribute(card: CardUI) -> void:
+func is_card_over_tribute_drop_zone(card: CardUI, screen_position: Vector2) -> bool:
+	var tribute_rect: Rect2 = get_tribute_drop_screen_rect()
+
+	# Mouse point check.
+	if tribute_rect.has_point(screen_position):
+		return true
+
+	# Card center check.
+	if card != null and is_instance_valid(card):
+		var card_rect: Rect2 = card.get_global_rect()
+		var card_center: Vector2 = card_rect.position + card_rect.size * 0.5
+
+		if tribute_rect.has_point(card_center):
+			return true
+
+		if card_rect.intersects(tribute_rect):
+			return true
+
+	return false
+	
+	
+func get_tribute_drop_screen_rect() -> Rect2:
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+
+	# Very generous right-side tribute zone.
+	# Your Tribute Pile is on the right, under "Tribute ready".
+	var left: float = viewport_size.x * 0.56
+	var top: float = viewport_size.y * 0.22
+	var width: float = viewport_size.x * 0.42
+	var height: float = viewport_size.y * 0.72
+
+	return Rect2(Vector2(left, top), Vector2(width, height))
+
+
+
+func sacrifice_card_ui_directly_to_tribute(card: CardUI) -> void:
+	resolve_runtime_references()
+
 	if hand == null:
 		return
 
-	if selected_card_data == null and card != null and card.card_data != null:
-		select_card(card.card_data)
-
-	var sacrificed: bool = try_sacrifice_selected_card_to_tribute()
-
-	if sacrificed:
-		hand.consume_dragged_card(card)
-		log_msg("Tribute accepted.")
-	else:
+	if card == null or card.card_data == null:
 		safe_return_card_to_hand(card)
+		cancel_selected_card()
+		return
 
+	if tribute_manager == null:
+		log_msg("TributeManager is missing.")
+		safe_return_card_to_hand(card)
+		cancel_selected_card()
+		return
+
+	if not tribute_manager.can_offer_card_this_turn():
+		log_msg("Tribute already used this turn. Only 1 card can be used as Tribute per turn.")
+		safe_return_card_to_hand(card)
+		cancel_selected_card()
+		return
+
+	var tribute_card: CardData = card.card_data
+	var tribute_card_name: String = tribute_card.card_name
+	var tribute_card_type: String = tribute_card.card_type.to_lower().strip_edges()
+
+	var tribute_success: bool = tribute_manager.offer_card_to_tribute(tribute_card)
+
+	if not tribute_success:
+		log_msg("Tribute failed for " + tribute_card_name + ".")
+		safe_return_card_to_hand(card)
+		cancel_selected_card()
+		return
+
+	if tribute_pile != null:
+		tribute_pile.add_card()
+
+	if tribute_card_type == "spell":
+		log_msg("Sacrificed " + tribute_card_name + " for temporary Tribute. +2 TP this turn.")
+	else:
+		log_msg("Sacrificed " + tribute_card_name + " for permanent Tribute. +1 permanent TP.")
+
+	hand.consume_dragged_card(card)
 	cancel_selected_card()
 	force_player_hand_visible()
-
+	update_tribute_counter()
+	
 
 func safe_return_card_to_hand(card: CardUI) -> void:
+	resolve_runtime_references()
+
 	if hand == null:
 		return
 
@@ -310,23 +391,45 @@ func safe_return_card_to_hand(card: CardUI) -> void:
 		card.is_dragging = false
 		card.set_process(false)
 
-	hand.return_dragged_card_to_hand(card)
+	if hand.has_method("force_return_card_to_hand"):
+		hand.force_return_card_to_hand(card)
+	else:
+		hand.return_dragged_card_to_hand(card)
+
 	force_player_hand_visible()
+	
 
 
 func is_tribute_drop_target(target_node: Node, screen_position: Vector2) -> bool:
+	resolve_runtime_references()
+
 	if tribute_pile == null:
 		return false
 
+	# First try direct node detection.
 	if is_node_inside_target(target_node, tribute_pile):
 		return true
 
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+
+	# Reliable screen-space fallback for the visible Tribute Pile area.
+	# This is intentionally a box because the Tribute Pile is a large 3D slab
+	# while the dragged card is 2D UI.
+	var tribute_rect := Rect2(
+		Vector2(viewport_size.x * 0.68, viewport_size.y * 0.40),
+		Vector2(viewport_size.x * 0.25, viewport_size.y * 0.42)
+	)
+
+	if tribute_rect.has_point(screen_position):
+		return true
+
+	# Extra fallback around the actual 3D pile origin, in case the camera changes.
 	var camera: Camera3D = get_viewport().get_camera_3d()
 	if camera == null:
 		return false
 
 	var tribute_screen_position: Vector2 = camera.unproject_position(tribute_pile.global_position)
-	var tribute_radius_pixels: float = 230.0
+	var tribute_radius_pixels: float = 260.0
 
 	return tribute_screen_position.distance_to(screen_position) <= tribute_radius_pixels
 

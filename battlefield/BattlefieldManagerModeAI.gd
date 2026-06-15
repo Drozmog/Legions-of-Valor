@@ -177,14 +177,21 @@ func create_ai_panel() -> void:
 func update_ai_panel() -> void:
 	if ai_panel == null or ai_label == null:
 		return
+
 	ai_panel.visible = game_mode == "ai"
+
 	var names: Array[String] = []
-	for card_data: CardData in ai_hand:
-		if card_data != null:
-			names.append(card_data.card_name)
+
+	for card_data in ai_hand:
+		var typed_card: CardData = card_data as CardData
+		if typed_card != null:
+			names.append(typed_card.card_name)
+
 	var hand_text: String = ", ".join(names)
+
 	if hand_text == "":
 		hand_text = "Empty"
+
 	ai_label.text = "AI STATUS\nDeck: " + str(ai_deck.size()) + "\nHand: " + str(ai_hand.size()) + "\nTP: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + "  Temp +" + str(ai_temp_tp) + "\nTribute: " + str(ai_tribute.size()) + "\nDiscard: " + str(ai_discard.size()) + "\nVisible Hand:\n" + hand_text
 
 
@@ -767,6 +774,7 @@ func clear_attack_guides() -> void:
 func draw_guides_for_unit(source_slot: Node, owner: String, lane: String, card_data: CardData) -> void:
 	var target_owner: String = "enemy" if owner == "player" else "player"
 	var lanes: Array[String] = [lane]
+
 	if card_has_volley(card_data):
 		if lane == "left":
 			lanes.append("middle")
@@ -775,12 +783,21 @@ func draw_guides_for_unit(source_slot: Node, owner: String, lane: String, card_d
 			lanes.append("right")
 		elif lane == "right":
 			lanes.append("middle")
-	for target_lane: String in lanes:
-		var target_slot: Node = find_slot_by_owner_row_lane(target_owner, "front", target_lane)
+
+	for target_lane in lanes:
+		var typed_target_lane: String = str(target_lane)
+		var target_slot: Node = find_slot_by_owner_row_lane(target_owner, "front", typed_target_lane)
+
 		if target_slot == null:
 			continue
-		var diagonal: bool = target_lane != lane
-		draw_attack_arrow(source_slot.global_position + Vector3(0, 0.20, 0), target_slot.global_position + Vector3(0, 0.20, 0), diagonal)
+
+		var diagonal: bool = typed_target_lane != lane
+
+		draw_attack_arrow(
+			source_slot.global_position + Vector3(0, 0.20, 0),
+			target_slot.global_position + Vector3(0, 0.20, 0),
+			diagonal
+		)
 
 
 func draw_attack_arrow(from_pos: Vector3, to_pos: Vector3, diagonal: bool) -> void:
@@ -837,19 +854,27 @@ func resolve_directed_clash(lane: String, attacker_slot: Node, attacker_card: Ca
 
 
 func ai_resolve_combat() -> void:
-	for lane: String in combat_lane_order:
+	for lane_value in combat_lane_order:
+		var lane: String = str(lane_value)
+
 		var ai_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
 		var player_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+
 		var ai_card: CardData = get_slot_card_data(ai_slot)
 		var player_card: CardData = get_slot_card_data(player_slot)
+
 		if ai_card == null:
 			log_msg("AI has no attacker in the " + lane.capitalize() + " lane.")
 			continue
+
 		if player_card == null:
 			log_msg("AI lands a Monarch Strike in the " + lane.capitalize() + " lane. Aurion scoring placeholder.")
 			continue
+
 		resolve_directed_clash(lane, ai_slot, ai_card, player_slot, player_card, false)
+
 	log_msg("AI combat complete. End Combat / Next Round when ready.")
+	
 
 
 func ai_try_parry(required_dp: int) -> bool:
@@ -1005,34 +1030,55 @@ func clear_parry_state() -> void:
 func discard_player_hand_cards(cards_to_discard: Array[CardData]) -> void:
 	if hand == null:
 		return
-	for card_data: CardData in cards_to_discard:
+
+	for card_data in cards_to_discard:
+		var typed_card_data: CardData = card_data as CardData
+
+		if typed_card_data == null:
+			continue
+
 		for card_ui in hand.cards:
-			if card_ui != null and card_ui.card_data == card_data:
+			if card_ui != null and card_ui.card_data == typed_card_data:
 				hand.cards.erase(card_ui)
 				card_ui.queue_free()
+
 				if discard_pile != null:
-					discard_pile.add_card(card_data)
+					discard_pile.add_card(typed_card_data)
+
 				break
+
 	hand.arrange_fan()
 
 
 func send_slot_card_to_discard(slot: Node) -> void:
 	if slot == null:
 		return
+
 	var card_data: CardData = get_slot_card_data(slot)
+
 	if card_data != null:
 		if String(slot.get_meta("owner", "")) == "enemy" and game_mode == "ai":
 			ai_discard.append(card_data)
 		elif discard_pile != null:
 			discard_pile.add_card(card_data)
+
 	if slot.has_method("get_equipment_cards"):
-		for equipment_card: CardData in slot.get_equipment_cards():
+		var equipment_cards: Array[CardData] = slot.get_equipment_cards()
+
+		for equipment_card in equipment_cards:
+			var typed_equipment_card: CardData = equipment_card as CardData
+
+			if typed_equipment_card == null:
+				continue
+
 			if String(slot.get_meta("owner", "")) == "enemy" and game_mode == "ai":
-				ai_discard.append(equipment_card)
+				ai_discard.append(typed_equipment_card)
 			elif discard_pile != null:
-				discard_pile.add_card(equipment_card)
+				discard_pile.add_card(typed_equipment_card)
+
 	if slot.has_method("clear_slot"):
 		slot.clear_slot()
+
 	update_ai_panel()
 	show_attack_guides()
 

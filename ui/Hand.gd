@@ -245,7 +245,19 @@ func _on_card_drag_started(card: CardUI) -> void:
 
 
 func _on_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
+	if card == null:
+		return
+
+	if not is_instance_valid(card):
+		return
+
 	card_drag_released.emit(card, screen_position)
+
+	# Safety fallback:
+	# Wait one frame. If the battlefield manager did not consume/place/tribute/reorder it,
+	# smoothly return it to the hand.
+	call_deferred("_deferred_return_if_card_still_in_hand", card)
+	
 
 
 func _on_card_clicked(card: CardUI, _screen_position: Vector2) -> void:
@@ -259,13 +271,90 @@ func _on_card_clicked(card: CardUI, _screen_position: Vector2) -> void:
 
 
 func return_dragged_card_to_hand(card: CardUI) -> void:
+	force_return_card_to_hand(card)
+
+
+func _deferred_return_if_card_still_in_hand(card: CardUI) -> void:
+	if card == null:
+		return
+
+	if not is_instance_valid(card):
+		return
+
+	if not cards.has(card):
+		return
+
+	force_return_card_to_hand(card)
+	
+
+func is_screen_position_in_hand_reorder_zone(screen_position: Vector2) -> bool:
+	var viewport_size: Vector2 = get_viewport_rect().size
+
+	# Whole bottom hand area.
+	# Do NOT cut off the right half anymore.
+	return screen_position.y >= viewport_size.y - 300.0
+	
+
+func reorder_card_in_hand(card: CardUI, screen_x: float) -> void:
+	if card == null:
+		return
+
+	if not cards.has(card):
+		cards.append(card)
+
+	cards.erase(card)
+
+	var insert_index: int = cards.size()
+
+	for i in range(cards.size()):
+		var other_card: CardUI = cards[i]
+
+		if other_card == null:
+			continue
+
+		var other_center_x: float = other_card.global_position.x + (other_card.size.x * other_card.scale.x * 0.5)
+
+		if screen_x < other_center_x:
+			insert_index = i
+			break
+
+	cards.insert(insert_index, card)
+	
+
+
+func force_return_card_to_hand(card: CardUI) -> void:
+	if card == null:
+		dragged_card = null
+		selected_card = null
+		arrange_fan()
+		return
+
+	var old_global_position: Vector2 = card.global_position
+
+	card.mouse_is_pressed = false
+	card.is_dragging = false
+	card.set_process(false)
+
+	if card.get_parent() != self:
+		if card.get_parent() != null:
+			card.get_parent().remove_child(card)
+
+		add_child(card)
+		card.global_position = old_global_position
+
+	if not cards.has(card):
+		cards.append(card)
+
 	dragged_card = null
 	selected_card = null
 
-	if card != null and not cards.has(card):
-		cards.append(card)
+	card.rotation_degrees = 0
+	card.scale = Vector2(card_scale, card_scale)
+	card.move_to_front()
 
-	arrange_fan()
+	# Smooth glide back instead of teleport.
+	arrange_fan(true)
+
 
 
 func consume_dragged_card(card: CardUI) -> void:

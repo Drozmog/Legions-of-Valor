@@ -29,10 +29,10 @@ var drag_offset: Vector2 = Vector2.ZERO
 var press_mouse_position: Vector2 = Vector2.ZERO
 
 @export var drag_start_distance: float = 12.0
-@export var ability_icon_size: float = 105.0
-@export var ability_icon_spacing: float = 112.0
-@export var ability_icon_hidden_y: float = -20.0
-@export var ability_icon_shown_y: float = -120.0
+@export var ability_icon_size: float = 64.0
+@export var ability_icon_spacing: float = 72.0
+@export var ability_icon_hidden_y: float = -10.0
+@export var ability_icon_shown_y: float = -62.0
 @export var ability_icon_tween_time: float = 0.18
 
 var ability_icon_root: Control = null
@@ -247,7 +247,7 @@ func create_ability_icon(ability_type: String) -> Control:
 		fallback.text = ability_type.substr(0, 1).to_upper()
 		fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		fallback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		fallback.add_theme_font_size_override("font_size", 46)
+		fallback.add_theme_font_size_override("font_size", 28)
 		fallback.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		fallback.anchor_right = 1.0
 		fallback.anchor_bottom = 1.0
