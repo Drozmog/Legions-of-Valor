@@ -1,0 +1,4 @@
+[gd_scene format=3]
+
+[node name="Battlefield3D" type="Node3D"]
+script = ExtResource("1")
