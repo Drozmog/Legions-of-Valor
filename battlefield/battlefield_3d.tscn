@@ -442,7 +442,6 @@ mesh = SubResource("CylinderMesh_daqav")
 surface_material_override/0 = SubResource("StandardMaterial3D_moveh")
 
 [node name="ParryDPCounter" type="Label3D" parent="ParryPit" unique_id=903500747]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 45, 0)
 text = "0/0 DP"
 
 [node name="ParryPitDropArea" type="Area3D" parent="ParryPit" unique_id=1833703348]

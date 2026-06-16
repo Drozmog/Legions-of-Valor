@@ -5,6 +5,7 @@ var ai_deck: Array[CardData] = []
 var ai_hand: Array[CardData] = []
 var ai_discard: Array[CardData] = []
 var ai_tribute: Array[CardData] = []
+@export var ai_max_deployments_per_phase: int = 2
 
 var ai_perm_tp: int = 0
 var ai_current_perm_tp: int = 0
@@ -30,14 +31,15 @@ var parry_required_dp: int = 0
 var parry_gathered_dp: int = 0
 
 var parry_pit_root: Node3D = null
-var parry_pit_area: Area3D = null
-var parry_counter_label: Label3D = null
+var parry_pit_glow: Node3D = null
+var parry_dp_counter: Node = null
+var parry_pit_drop_area: Area3D = null
+var parry_sacrifice_stack_root: Node3D = null
+var parry_sacrifice_nodes: Array[Node3D] = []
 
 var parry_prompt_panel: PanelContainer = null
 var parry_prompt_label: Label = null
 var parry_let_die_button: Button = null
-var parry_sacrifice_stack_root: Node3D = null
-var parry_sacrifice_nodes: Array[Node3D] = []
 
 
 
@@ -75,12 +77,12 @@ func create_parry_prompt_ui() -> void:
 	parry_prompt_panel.visible = false
 	parry_prompt_panel.anchor_left = 0.5
 	parry_prompt_panel.anchor_right = 0.5
-	parry_prompt_panel.anchor_top = 1.0
-	parry_prompt_panel.anchor_bottom = 1.0
+	parry_prompt_panel.anchor_top = 0.5
+	parry_prompt_panel.anchor_bottom = 0.5
 	parry_prompt_panel.offset_left = -260.0
 	parry_prompt_panel.offset_right = 260.0
-	parry_prompt_panel.offset_top = -240.0
-	parry_prompt_panel.offset_bottom = -90.0
+	parry_prompt_panel.offset_top = -75.0
+	parry_prompt_panel.offset_bottom = 75.0
 	parry_prompt_panel.z_index = 90
 
 	var style := StyleBoxFlat.new()
@@ -120,30 +122,103 @@ func create_parry_prompt_ui() -> void:
 	
 	
 func create_parry_pit() -> void:
-	parry_pit_root = get_node_or_null("ParryPit") as Node3D
+	parry_pit_root = get_node_or_null("ParryPit")
 
 	if parry_pit_root == null:
-		log_msg("ParryPit node is missing. Add a Node3D named ParryPit under Battlefield3D.")
+		parry_pit_root = get_node_or_null("Battlefield3D/ParryPit")
+
+	if parry_pit_root == null and get_tree().current_scene != null:
+		parry_pit_root = get_tree().current_scene.get_node_or_null("Battlefield3D/ParryPit")
+
+	if parry_pit_root == null:
+		push_error("ParryPit not found. Expected node path: Battlefield3D/ParryPit")
 		return
 
-	parry_pit_area = parry_pit_root.get_node_or_null("ParryPitDropArea") as Area3D
-	parry_counter_label = parry_pit_root.get_node_or_null("ParryDPCounter") as Label3D
+	parry_pit_glow = parry_pit_root.get_node_or_null("ParryPitGlow")
+	parry_dp_counter = parry_pit_root.get_node_or_null("ParryDPCounter")
+	parry_pit_drop_area = parry_pit_root.get_node_or_null("ParryPitDropArea")
+	parry_sacrifice_stack_root = parry_pit_root.get_node_or_null("ParrySacrificeStack")
 
-	if parry_pit_area == null:
-		log_msg("ParryPitDropArea is missing under ParryPit.")
+	if parry_dp_counter == null:
+		push_warning("ParryDPCounter not found under ParryPit. Creating fallback Label3D.")
+		parry_dp_counter = Label3D.new()
+		parry_dp_counter.name = "ParryDPCounter"
+		parry_pit_root.add_child(parry_dp_counter)
 
-	if parry_counter_label == null:
-		log_msg("ParryDPCounter is missing under ParryPit.")
+	if parry_dp_counter is Label3D:
+		parry_dp_counter.position = Vector3(-0.60, 0.85, -0.30)
+		parry_dp_counter.text = "0/0 DP"
+		parry_dp_counter.font_size = 48
+		parry_dp_counter.modulate = Color(1.0, 0.92, 0.35, 1.0)
+		parry_dp_counter.outline_size = 8
+		parry_dp_counter.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
+		parry_dp_counter.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		parry_dp_counter.no_depth_test = true
+		parry_dp_counter.visible = false
 
-	parry_sacrifice_stack_root = parry_pit_root.get_node_or_null("ParrySacrificeStack") as Node3D
+	if parry_dp_counter == null:
+		push_warning("ParryDPCounter not found under ParryPit.")
+
+	if parry_pit_drop_area == null:
+		push_warning("ParryPitDropArea not found under ParryPit.")
 
 	if parry_sacrifice_stack_root == null:
 		parry_sacrifice_stack_root = Node3D.new()
 		parry_sacrifice_stack_root.name = "ParrySacrificeStack"
-		parry_sacrifice_stack_root.position = Vector3(0, 0.08, 0)
 		parry_pit_root.add_child(parry_sacrifice_stack_root)
+		parry_sacrifice_stack_root.position = Vector3.ZERO
 
 	parry_pit_root.visible = false
+	update_parry_counter_visual(0, 0)
+	
+	
+func show_parry_pit(required_dp: int) -> void:
+	parry_required_dp = required_dp
+
+	if parry_pit_root == null:
+		create_parry_pit()
+
+	if parry_pit_root == null:
+		return
+
+	parry_pit_root.visible = true
+
+	if parry_pit_glow != null:
+		parry_pit_glow.visible = true
+
+	if parry_dp_counter != null:
+		parry_dp_counter.visible = true
+
+	update_parry_counter_visual(parry_gathered_dp, parry_required_dp)
+
+
+func hide_parry_pit() -> void:
+	if parry_pit_root == null:
+		return
+
+	if parry_pit_glow != null:
+		parry_pit_glow.visible = false
+
+	if parry_dp_counter != null:
+		parry_dp_counter.visible = false
+
+	parry_pit_root.visible = false
+
+	update_parry_counter_visual(0, 0)
+
+
+func update_parry_counter_visual(current_dp: int, required_dp: int) -> void:
+	if parry_dp_counter == null:
+		return
+
+	var counter_text := "%d/%d DP" % [current_dp, required_dp]
+
+	if parry_dp_counter is Label3D:
+		parry_dp_counter.text = counter_text
+	elif parry_dp_counter is Label:
+		parry_dp_counter.text = counter_text
+	else:
+		parry_dp_counter.set("text", counter_text)
 	
 	
 func add_visible_parry_sacrifice_card(card_data: CardData) -> void:
@@ -189,6 +264,9 @@ func begin_parry_prompt(
 	defender_slot: Node,
 	defender_card: CardData
 ) -> void:
+	if attacker_card == null or defender_card == null:
+		return
+
 	parry_active = true
 	parry_lane = lane
 	parry_attacker_slot = attacker_slot
@@ -198,8 +276,7 @@ func begin_parry_prompt(
 	parry_required_dp = max(1, attacker_card.ap)
 	parry_gathered_dp = 0
 
-	if parry_pit_root != null:
-		parry_pit_root.visible = true
+	show_parry_pit(parry_required_dp)
 
 	if parry_prompt_panel != null:
 		parry_prompt_panel.visible = true
@@ -211,11 +288,14 @@ func begin_parry_prompt(
 			+ " is being attacked by "
 			+ attacker_card.card_name
 			+ ".\nDrop hand cards into the glowing pit to gather DP."
+			+ "\nRequired DP: "
+			+ str(parry_required_dp)
 		)
 
 	update_parry_counter_label()
 
 	log_msg("Parry prompt: sacrifice hand cards into the pit. Required DP: " + str(parry_required_dp))
+	
 	
 	
 func disable_keyboard_focus_for_all_buttons(root: Node) -> void:
@@ -232,15 +312,7 @@ func disable_keyboard_focus_for_all_buttons(root: Node) -> void:
 	
 	
 func update_parry_counter_label() -> void:
-	if parry_counter_label == null:
-		return
-
-	parry_counter_label.text = str(parry_gathered_dp) + "/" + str(parry_required_dp) + " DP"
-
-	if parry_gathered_dp >= parry_required_dp:
-		parry_counter_label.modulate = Color(0.45, 1.0, 0.45, 1.0)
-	else:
-		parry_counter_label.modulate = Color(1.0, 0.88, 0.45, 1.0)
+	update_parry_counter_visual(parry_gathered_dp, parry_required_dp)
 		
 		
 func sacrifice_card_to_parry(card_ui: CardUI) -> void:
@@ -296,6 +368,11 @@ func complete_parry_success() -> void:
 
 	end_parry_prompt()
 	advance_combat_lane_after_resolution()
+
+	if not player_has_initiative:
+		ai_resolve_combat_sequence()
+		
+
 	
 func _on_parry_let_die_pressed() -> void:
 	if not parry_active:
@@ -309,6 +386,9 @@ func _on_parry_let_die_pressed() -> void:
 
 	end_parry_prompt()
 	advance_combat_lane_after_resolution()
+
+	if not player_has_initiative:
+		ai_resolve_combat_sequence()
 	
 	
 func end_parry_prompt() -> void:
@@ -322,9 +402,7 @@ func end_parry_prompt() -> void:
 	parry_gathered_dp = 0
 
 	clear_visible_parry_sacrifice_cards()
-
-	if parry_pit_root != null:
-		parry_pit_root.visible = false
+	hide_parry_pit()
 
 	if parry_prompt_panel != null:
 		parry_prompt_panel.visible = false
@@ -426,9 +504,11 @@ func begin_combat_phase() -> void:
 	reset_combat_state()
 
 	if player_has_initiative:
-		log_msg("Phase: Combat. Player attacks first. Click the leftmost or rightmost lane to choose combat direction.")
+		log_msg("Phase: Combat. Player has initiative. Click the leftmost or rightmost lane to choose combat direction.")
 	else:
-		log_msg("Phase: Combat. Opponent attacks first. Click the leftmost or rightmost lane to choose combat direction.")
+		log_msg("Phase: Combat. AI has initiative and will decide whether to attack.")
+		ai_take_combat_initiative()
+	
 		
 func reset_combat_state() -> void:
 	combat_direction_selected = false
@@ -439,6 +519,10 @@ func handle_combat_lane_click(slot: Node) -> void:
 	if slot == null:
 		return
 
+	if not player_has_initiative:
+		log_msg("AI has initiative this combat. You cannot choose the attack lane.")
+		return
+		
 	var lane: String = get_slot_lane(slot)
 
 	if lane == "":
@@ -670,8 +754,17 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 	var target_slot: Node = find_board_slot_from_node(target_node)
 
 	# 0. Parry pit has highest priority during parry prompt.
+	# 0. Parry pit has highest priority during parry prompt.
+	# 0. Parry pit has highest priority during parry prompt.
 	if parry_active:
-		if is_node_inside_target(target_node, parry_pit_root):
+		var dropped_on_parry_pit := false
+
+		if parry_pit_drop_area != null and is_node_inside_target(target_node, parry_pit_drop_area):
+			dropped_on_parry_pit = true
+		elif parry_pit_root != null and is_node_inside_target(target_node, parry_pit_root):
+			dropped_on_parry_pit = true
+
+		if dropped_on_parry_pit:
 			sacrifice_card_to_parry(card)
 			return
 
@@ -801,6 +894,21 @@ func is_spell_like_card(card_data: CardData) -> bool:
 func is_equipment_card(card_data: CardData) -> bool:
 	return get_clean_card_type(card_data) == "equipment"
 
+func is_trap_card(card_data: CardData) -> bool:
+	return get_clean_card_type(card_data) == "trap"
+
+
+func is_ruse_card(card_data: CardData) -> bool:
+	return get_clean_card_type(card_data) == "ruse"
+
+
+func is_event_card(card_data: CardData) -> bool:
+	return get_clean_card_type(card_data) == "event"
+
+
+func is_spell_card(card_data: CardData) -> bool:
+	return get_clean_card_type(card_data) == "spell"
+	
 
 func get_slot_card_data(slot: Node) -> CardData:
 	if slot == null:
@@ -963,6 +1071,10 @@ func try_attach_selected_equipment_to_slot(slot: Node) -> bool:
 		log_msg("Equipment cannot be placed alone. Attach it to an existing unit.")
 		return false
 
+	if bool(slot.get_meta("face_down", false)):
+		log_msg("Equipment cannot be attached to a face-down card.")
+		return false
+	
 	var existing_card: CardData = get_slot_card_data(slot)
 
 	if not is_unit_card(existing_card):
@@ -1188,7 +1300,7 @@ func begin_deployment_phase() -> void:
 		log_msg("Player has initiative and deploys first. AI will deploy after you press Go to Combat.")
 	else:
 		log_msg("AI has initiative and deploys first.")
-		ai_deploy_one_card()
+		ai_take_deployment_turn()
 
 
 func _on_next_phase_pressed() -> void:
@@ -1201,7 +1313,7 @@ func _on_next_phase_pressed() -> void:
 
 		BattlePhase.DEPLOYMENT:
 			if player_has_initiative:
-				ai_deploy_one_card()
+				ai_take_deployment_turn()
 			set_phase(BattlePhase.COMBAT)
 
 		BattlePhase.COMBAT:
@@ -1313,41 +1425,711 @@ func ai_choose_tribute_card_index() -> int:
 	return -1
 
 
+func ai_take_combat_initiative() -> void:
+	if not ai_should_attack_this_combat():
+		log_msg("AI chooses not to attack this combat.")
+		combat_direction_selected = true
+		combat_lane_order.clear()
+		combat_next_lane_index = 0
+		return
+
+	var start_lane: String = ai_choose_combat_start_lane()
+
+	if start_lane == "right":
+		set_combat_lane_order_from_right()
+	else:
+		set_combat_lane_order_from_left()
+
+	log_msg("AI chooses to attack from the " + start_lane + " lane.")
+	ai_resolve_combat_sequence()
+
+
+func ai_should_attack_this_combat() -> bool:
+	var ai_units: int = ai_count_front_units("enemy")
+	var player_units: int = ai_count_front_units("player")
+
+	if ai_units <= 0:
+		return false
+
+	if player_units <= 0:
+		return true
+
+	var ai_total_ap: int = ai_get_total_front_ap("enemy")
+	var player_total_ap: int = ai_get_total_front_ap("player")
+
+	# If AI is clearly stronger, attack.
+	if ai_total_ap >= player_total_ap:
+		return true
+
+	# If AI is weaker, it can still attack sometimes.
+	return (randi() % 100) < 35
+
+
+func ai_choose_combat_start_lane() -> String:
+	var left_score: int = ai_score_combat_direction(["left", "middle", "right"])
+	var right_score: int = ai_score_combat_direction(["right", "middle", "left"])
+
+	if left_score > right_score:
+		return "left"
+
+	if right_score > left_score:
+		return "right"
+
+	if (randi() % 2) == 0:
+		return "left"
+
+	return "right"
+
+
+func ai_score_combat_direction(lanes: Array[String]) -> int:
+	var score: int = 0
+	var weight: int = 3
+
+	for lane in lanes:
+		var ai_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+		var player_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+
+		var ai_card: CardData = get_slot_card_data(ai_slot)
+		var player_card: CardData = get_slot_card_data(player_slot)
+
+		if is_unit_card(ai_card):
+			score += ai_card.ap * weight
+
+			if is_unit_card(player_card):
+				if ai_card.ap >= player_card.ap:
+					score += 20 * weight
+				else:
+					score -= 10 * weight
+			else:
+				score += 12 * weight
+
+		weight -= 1
+
+	score += randi() % 10
+	return score
+
+
+func ai_resolve_combat_sequence() -> void:
+	while current_phase == BattlePhase.COMBAT and not parry_active and combat_next_lane_index < combat_lane_order.size():
+		var next_lane: String = combat_lane_order[combat_next_lane_index]
+		resolve_next_combat_lane(next_lane)
+
+
+func ai_count_front_units(owner: String) -> int:
+	var count: int = 0
+	var lanes: Array[String] = ["left", "middle", "right"]
+
+	for lane in lanes:
+		var slot: Node = find_slot_by_owner_row_lane(owner, "front", lane)
+		var card_data: CardData = get_slot_card_data(slot)
+
+		if is_unit_card(card_data):
+			count += 1
+
+	return count
+
+
+func ai_get_total_front_ap(owner: String) -> int:
+	var total_ap: int = 0
+	var lanes: Array[String] = ["left", "middle", "right"]
+
+	for lane in lanes:
+		var slot: Node = find_slot_by_owner_row_lane(owner, "front", lane)
+		var card_data: CardData = get_slot_card_data(slot)
+
+		if is_unit_card(card_data):
+			total_ap += card_data.ap
+
+	return total_ap
+
+
+
 func ai_deploy_one_card() -> void:
+	# Legacy wrapper. Other code can still call this safely.
+	ai_take_deployment_turn()
+	
+func ai_take_deployment_turn() -> void:
 	if ai_hand.is_empty():
 		log_msg("AI has no hand cards to deploy.")
 		return
 
-	var target_slot: Node = ai_find_empty_front_slot()
+	var plays_made: int = 0
+	var max_plays: int = max(1, ai_max_deployments_per_phase)
+
+	for i in range(max_plays):
+		var played: bool = ai_try_deploy_one_card()
+
+		if not played:
+			break
+
+		plays_made += 1
+
+		if ai_current_tp <= 0:
+			break
+
+	if plays_made == 0:
+		log_msg("AI passes deployment. No legal affordable play.")
+	else:
+		log_msg("AI completed deployment with " + str(plays_made) + " play(s).")
+		
+		
+func ai_try_deploy_one_card() -> bool:
+	var action: Dictionary = ai_choose_deployment_action()
+
+	if action.is_empty():
+		return false
+
+	var card_index: int = int(action.get("card_index", -1))
+	var target_slot: Node = action.get("slot", null) as Node
+	var action_type: String = String(action.get("action_type", ""))
+	var face_down: bool = bool(action.get("face_down", false))
+
+	if card_index < 0 or card_index >= ai_hand.size():
+		return false
 
 	if target_slot == null:
-		log_msg("AI has no empty front slot.")
-		return
+		return false
 
-	var deploy_index: int = ai_choose_deploy_card_index()
+	var card_data: CardData = ai_hand[card_index]
 
-	if deploy_index < 0:
-		log_msg("AI passes deployment. No affordable unit in hand.")
-		return
+	if card_data == null:
+		return false
 
-	var deploy_card: CardData = ai_hand.pop_at(deploy_index)
+	if card_data.tribute_cost > ai_current_tp:
+		return false
 
-	if deploy_card == null:
-		return
+	var success: bool = false
 
-	if not ai_spend_tp(deploy_card.tribute_cost):
-		ai_hand.append(deploy_card)
-		log_msg("AI could not afford " + deploy_card.card_name + ".")
-		return
+	if action_type == "equipment":
+		if target_slot.has_method("attach_equipment"):
+			success = target_slot.attach_equipment(TEST_CARD_SCENE, card_data)
 
-	var placed: bool = target_slot.place_card(TEST_CARD_SCENE, deploy_card, false)
+		if success:
+			ai_hand.pop_at(card_index)
+			ai_spend_tp(card_data.tribute_cost)
 
-	if placed:
-		log_msg("AI deployed " + deploy_card.card_name + " for " + str(deploy_card.tribute_cost) + " TP.")
-		log_msg("AI TP after deployment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
+			var equipped_unit: CardData = get_slot_card_data(target_slot)
+			var equipped_unit_name: String = "unit"
+
+			if equipped_unit != null:
+				equipped_unit_name = equipped_unit.card_name
+
+			log_msg("AI attached " + card_data.card_name + " to " + equipped_unit_name + ".")
+			log_msg("AI TP after equipment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
+			return true
+
+		return false
+
+	if action_type == "unit" or action_type == "spell":
+		if target_slot.has_method("place_card"):
+			success = target_slot.place_card(TEST_CARD_SCENE, card_data, face_down)
+
+		if success:
+			ai_hand.pop_at(card_index)
+			ai_spend_tp(card_data.tribute_cost)
+
+			var visibility_text: String = "face down" if face_down else "face up"
+			var row_text: String = String(target_slot.get_meta("row", "unknown row"))
+
+			log_msg("AI placed " + card_data.card_name + " " + visibility_text + " in enemy " + row_text + " row.")
+			log_msg("AI TP after deployment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
+			return true
+
+	return false
+	
+	
+func ai_choose_deployment_action() -> Dictionary:
+	var equipment_action: Dictionary = ai_find_equipment_action()
+	var spell_action: Dictionary = ai_find_spell_action()
+	var unit_action: Dictionary = ai_find_unit_action()
+
+	# Testing behavior:
+	# Sometimes choose spell/equipment even before full effects exist,
+	# so we can verify the board rules.
+	var roll: int = randi() % 100
+
+	if roll < 25 and not equipment_action.is_empty():
+		return equipment_action
+
+	if roll < 55 and not spell_action.is_empty():
+		return spell_action
+
+	if not unit_action.is_empty():
+		return unit_action
+
+	if not spell_action.is_empty():
+		return spell_action
+
+	if not equipment_action.is_empty():
+		return equipment_action
+
+	return {}
+	
+	
+func ai_make_deployment_action(card_index: int, slot: Node, action_type: String, face_down: bool) -> Dictionary:
+	return {
+		"card_index": card_index,
+		"slot": slot,
+		"action_type": action_type,
+		"face_down": face_down
+	}
+	
+func ai_find_unit_action() -> Dictionary:
+	var unit_index: int = ai_find_best_affordable_unit_index()
+
+	if unit_index < 0:
+		return {}
+
+	var front_slot: Node = ai_find_empty_enemy_slot("front")
+	var back_slot: Node = ai_find_empty_enemy_slot("back")
+
+	if front_slot == null and back_slot == null:
+		return {}
+
+	var chosen_slot: Node = null
+	var face_down: bool = false
+
+	if front_slot != null and back_slot != null:
+		# Mostly prefer front row, but sometimes use back row face-down.
+		if randi() % 100 < 65:
+			chosen_slot = front_slot
+			face_down = false
+		else:
+			chosen_slot = back_slot
+			face_down = true
+	elif front_slot != null:
+		chosen_slot = front_slot
+		face_down = false
 	else:
-		ai_hand.append(deploy_card)
-		log_msg("AI failed to deploy " + deploy_card.card_name + ".")
+		chosen_slot = back_slot
+		face_down = true
+
+	return ai_make_deployment_action(unit_index, chosen_slot, "unit", face_down)
+	
+	
+func ai_find_best_affordable_unit_index() -> int:
+	var best_index: int = -1
+	var best_ap: int = -999
+
+	for i in range(ai_hand.size()):
+		var card_data: CardData = ai_hand[i]
+
+		if card_data == null:
+			continue
+
+		if not is_unit_card(card_data):
+			continue
+
+		if card_data.tribute_cost > ai_current_tp:
+			continue
+
+		if card_data.ap > best_ap:
+			best_ap = card_data.ap
+			best_index = i
+
+	return best_index
+	
+	
+func ai_find_spell_action() -> Dictionary:
+	var spell_index: int = ai_find_affordable_spell_index()
+
+	if spell_index < 0:
+		return {}
+
+	var front_slot: Node = ai_find_empty_enemy_slot("front")
+	var back_slot: Node = ai_find_empty_enemy_slot("back")
+
+	if front_slot == null and back_slot == null:
+		return {}
+
+	var chosen_slot: Node = null
+	var face_down: bool = false
+
+	if front_slot != null and back_slot != null:
+		# Spells can go front or back.
+		# Front is always face up.
+		# Back can be face up or face down.
+		if randi() % 100 < 45:
+			chosen_slot = front_slot
+			face_down = false
+		else:
+			chosen_slot = back_slot
+			face_down = randi() % 100 < 50
+	elif front_slot != null:
+		chosen_slot = front_slot
+		face_down = false
+	else:
+		chosen_slot = back_slot
+		face_down = randi() % 100 < 50
+
+	return ai_make_deployment_action(spell_index, chosen_slot, "spell", face_down)
+	
+	
+func ai_find_affordable_spell_index() -> int:
+	for i in range(ai_hand.size()):
+		var card_data: CardData = ai_hand[i]
+
+		if card_data == null:
+			continue
+
+		if not is_spell_like_card(card_data):
+			continue
+
+		if card_data.tribute_cost > ai_current_tp:
+			continue
+
+		return i
+
+	return -1
+	
+	
+func ai_find_equipment_action() -> Dictionary:
+	var target_slot: Node = ai_find_enemy_unit_slot_that_can_take_equipment()
+
+	if target_slot == null:
+		return {}
+
+	for i in range(ai_hand.size()):
+		var card_data: CardData = ai_hand[i]
+
+		if card_data == null:
+			continue
+
+		if not is_equipment_card(card_data):
+			continue
+
+		if card_data.tribute_cost > ai_current_tp:
+			continue
+
+		return ai_make_deployment_action(i, target_slot, "equipment", false)
+
+	return {}
+	
+	
+func ai_find_enemy_unit_slot_that_can_take_equipment() -> Node:
+	if board_slots == null:
+		return null
+
+	for slot in board_slots.get_children():
+		if String(slot.get_meta("owner", "")) != "enemy":
+			continue
+
+		if not bool(slot.get_meta("occupied", false)):
+			continue
+
+		if bool(slot.get_meta("face_down", false)):
+			continue
+
+		var existing_card: CardData = get_slot_card_data(slot)
+
+		if not is_unit_card(existing_card):
+			continue
+
+		if not slot.has_method("can_attach_equipment"):
+			continue
+
+		if not slot.can_attach_equipment():
+			continue
+
+		return slot
+
+	return null
+	
+	
+func ai_find_empty_enemy_slot(row: String) -> Node:
+	if board_slots == null:
+		return null
+
+	var empty_slots: Array[Node] = []
+
+	for slot in board_slots.get_children():
+		if String(slot.get_meta("owner", "")) != "enemy":
+			continue
+
+		if String(slot.get_meta("row", "")) != row:
+			continue
+
+		if bool(slot.get_meta("occupied", false)):
+			continue
+
+		empty_slots.append(slot)
+
+	if empty_slots.is_empty():
+		return null
+
+	empty_slots.shuffle()
+	return empty_slots[0]
+	
+		
+
+func ai_choose_slot_for_card(card_data: CardData) -> Node:
+	if card_data == null:
+		return null
+
+	if is_unit_card(card_data):
+		return ai_choose_front_slot_for_card(card_data)
+
+	if is_equipment_card(card_data):
+		return ai_choose_equipment_target_slot(card_data)
+
+	if is_trap_card(card_data) or is_ruse_card(card_data):
+		return ai_choose_empty_back_slot_for_tactic(card_data)
+
+	if is_spell_card(card_data) or is_event_card(card_data):
+		return ai_choose_spell_like_slot(card_data)
+
+	return null
+
+
+func ai_should_place_card_face_down(card_data: CardData, target_slot: Node) -> bool:
+	if card_data == null or target_slot == null:
+		return false
+
+	var row: String = String(target_slot.get_meta("row", ""))
+
+	# Front row is always face-up.
+	if row == "front":
+		return false
+
+	# Back row cards should be hidden.
+	if row == "back":
+		if is_unit_card(card_data):
+			return true
+
+		if is_trap_card(card_data):
+			return true
+
+		if is_ruse_card(card_data):
+			return true
+
+		if is_spell_card(card_data):
+			return true
+
+		if is_event_card(card_data):
+			return true
+
+	return false
+
+
+func ai_choose_empty_back_slot_for_tactic(card_data: CardData) -> Node:
+	var candidate_slots: Array[Node] = []
+	var lanes: Array[String] = ["left", "middle", "right"]
+
+	for lane in lanes:
+		var slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
+
+		if slot == null:
+			continue
+
+		if get_slot_card_data(slot) == null:
+			candidate_slots.append(slot)
+
+	if candidate_slots.is_empty():
+		return null
+
+	# Prefer back-row tactics behind an AI front unit.
+	var protected_slots: Array[Node] = []
+
+	for slot in candidate_slots:
+		var lane: String = get_slot_lane(slot)
+		var front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+		var front_card: CardData = get_slot_card_data(front_slot)
+
+		if is_unit_card(front_card):
+			protected_slots.append(slot)
+
+	if not protected_slots.is_empty():
+		return protected_slots.pick_random()
+
+	return candidate_slots.pick_random()
+
+
+func ai_choose_spell_like_slot(card_data: CardData) -> Node:
+	var front_slots: Array[Node] = []
+	var back_slots: Array[Node] = []
+	var lanes: Array[String] = ["left", "middle", "right"]
+
+	for lane in lanes:
+		var front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+
+		if front_slot != null and get_slot_card_data(front_slot) == null:
+			front_slots.append(front_slot)
+
+		var back_slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
+
+		if back_slot != null and get_slot_card_data(back_slot) == null:
+			back_slots.append(back_slot)
+
+	if front_slots.is_empty() and back_slots.is_empty():
+		return null
+
+	# Traps and ruses prefer the back row.
+	if is_trap_card(card_data) or is_ruse_card(card_data):
+		if not back_slots.is_empty():
+			return back_slots.pick_random()
+
+		return front_slots.pick_random()
+
+	# Spells and events can go front or back.
+	if is_spell_card(card_data) or is_event_card(card_data):
+		if not front_slots.is_empty() and not back_slots.is_empty():
+			if (randi() % 100) < 60:
+				return front_slots.pick_random()
+
+			return back_slots.pick_random()
+
+		if not front_slots.is_empty():
+			return front_slots.pick_random()
+
+		return back_slots.pick_random()
+
+	var all_slots: Array[Node] = []
+	all_slots.append_array(front_slots)
+	all_slots.append_array(back_slots)
+	return all_slots.pick_random()
+	
+
+
+func ai_choose_equipment_target_slot(card_data: CardData) -> Node:
+	var candidate_slots: Array[Node] = []
+	var lanes: Array[String] = ["left", "middle", "right"]
+
+	for lane in lanes:
+		var slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+
+		if slot == null:
+			continue
+
+		var slot_card: CardData = get_slot_card_data(slot)
+
+		if not is_unit_card(slot_card):
+			continue
+
+		if slot.has_method("can_attach_equipment") and not slot.can_attach_equipment():
+			continue
+
+		candidate_slots.append(slot)
+
+	if candidate_slots.is_empty():
+		return null
+
+	var best_score: int = -999999
+	var best_slots: Array[Node] = []
+
+	for slot in candidate_slots:
+		var unit_card: CardData = get_slot_card_data(slot)
+		var score: int = 0
+
+		if unit_card != null:
+			score += unit_card.ap
+			score += unit_card.dp
+
+		score += randi() % 10
+
+		if score > best_score:
+			best_score = score
+			best_slots.clear()
+			best_slots.append(slot)
+		elif score == best_score:
+			best_slots.append(slot)
+
+	return best_slots.pick_random()
+
+
+func ai_attach_equipment_to_slot(equipment_card: CardData, target_slot: Node) -> bool:
+	if equipment_card == null or target_slot == null:
+		return false
+
+	if not target_slot.has_method("attach_equipment"):
+		log_msg("AI could not attach equipment because target slot has no attach_equipment method.")
+		return false
+
+	return target_slot.attach_equipment(TEST_CARD_SCENE, equipment_card)
+	
+	
+		
+		
+func ai_choose_front_slot_for_card(card_data: CardData) -> Node:
+	var candidate_slots: Array[Node] = ai_get_empty_front_slots()
+
+	if candidate_slots.is_empty():
+		return null
+
+	var best_score: int = -999999
+	var best_slots: Array[Node] = []
+
+	for slot in candidate_slots:
+		var lane: String = get_slot_lane(slot)
+		var score: int = ai_score_front_slot_for_card(card_data, lane)
+
+		if score > best_score:
+			best_score = score
+			best_slots.clear()
+			best_slots.append(slot)
+		elif score == best_score:
+			best_slots.append(slot)
+
+	if best_slots.is_empty():
+		return candidate_slots.pick_random()
+
+	return best_slots.pick_random()
+
+
+func ai_get_empty_front_slots() -> Array[Node]:
+	var empty_slots: Array[Node] = []
+	var lanes: Array[String] = ["left", "middle", "right"]
+
+	for lane in lanes:
+		var slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+
+		if slot == null:
+			continue
+
+		if get_slot_card_data(slot) == null:
+			empty_slots.append(slot)
+
+	return empty_slots
+
+
+func ai_score_front_slot_for_card(card_data: CardData, lane: String) -> int:
+	var score: int = 0
+
+	if card_data == null:
+		return score
+
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+
+	var player_front_card: CardData = get_slot_card_data(player_front_slot)
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+
+	# If the player has a front unit in this lane, AI likes contesting/blocking it.
+	if is_unit_card(player_front_card):
+		score += 35
+
+		# If AI can beat or match it by AP, this lane becomes very attractive.
+		if card_data.ap >= player_front_card.ap:
+			score += 35
+		else:
+			score += 15
+
+		# Strong enemy targets attract AI attention.
+		score += min(player_front_card.ap, 10)
+
+	# If the player has no front unit, AI may still choose the open lane.
+	else:
+		score += 18
+
+	# If the player has something hidden/backline in this lane, AI slightly cares.
+	if player_back_card != null:
+		score += 8
+
+	# Add randomness so AI does not feel scripted.
+	score += randi() % 25
+
+	return score
+	
+	
 
 
 func ai_find_empty_front_slot() -> Node:
@@ -1363,7 +2145,7 @@ func ai_find_empty_front_slot() -> Node:
 
 func ai_choose_deploy_card_index() -> int:
 	var best_index: int = -1
-	var best_ap: int = -999
+	var best_score: int = -999999
 
 	for i in range(ai_hand.size()):
 		var card_data: CardData = ai_hand[i]
@@ -1371,19 +2153,64 @@ func ai_choose_deploy_card_index() -> int:
 		if card_data == null:
 			continue
 
-		var card_type: String = card_data.card_type.to_lower().strip_edges()
-
-		if card_type != "unit":
-			continue
-
 		if card_data.tribute_cost > ai_current_tp:
 			continue
 
-		if card_data.ap > best_ap:
-			best_ap = card_data.ap
+		# Do not choose cards that currently have nowhere legal/useful to go.
+		var possible_slot: Node = ai_choose_slot_for_card(card_data)
+
+		if possible_slot == null:
+			continue
+
+		var score: int = ai_score_deploy_card(card_data)
+
+		if score > best_score:
+			best_score = score
 			best_index = i
 
 	return best_index
+
+
+func ai_score_deploy_card(card_data: CardData) -> int:
+	if card_data == null:
+		return -999999
+
+	var score: int = 0
+	var card_type: String = get_clean_card_type(card_data)
+
+	match card_type:
+		"unit":
+			score += 70
+			score += card_data.ap * 4
+			score += card_data.dp * 2
+
+		"equipment":
+			score += 60
+			score += card_data.ap * 3
+			score += card_data.dp * 3
+
+		"trap":
+			score += 45
+
+		"ruse":
+			score += 45
+
+		"spell":
+			score += 25
+
+		"event":
+			score += 25
+
+		_:
+			score -= 100
+
+	# Prefer cheaper cards slightly so AI does not waste its full turn too easily.
+	score -= card_data.tribute_cost * 2
+
+	# Randomness so AI is not scripted.
+	score += randi() % 20
+
+	return score
 
 
 func ai_spend_tp(cost: int) -> bool:
@@ -1438,7 +2265,26 @@ func resolve_directed_clash(
 		+ str(defender_card.ap)
 	)
 
-	if attacker_card.ap >= defender_card.ap:
+	if attacker_card.ap == defender_card.ap:
+		send_slot_card_to_discard(defender_slot)
+		send_slot_card_to_discard(_attacker_slot)
+
+		log_msg(
+			lane.capitalize()
+			+ " lane kamikaze clash: "
+			+ attacker_label
+			+ " "
+			+ attacker_card.card_name
+			+ " and "
+			+ defender_label
+			+ " "
+			+ defender_card.card_name
+			+ " destroyed each other."
+		)
+
+		return
+
+	if attacker_card.ap > defender_card.ap:
 		if not player_is_attacker:
 			begin_parry_prompt(lane, _attacker_slot, attacker_card, defender_slot, defender_card)
 			return

@@ -115,7 +115,16 @@ func place_card(card_scene: PackedScene, card_data: CardData, place_face_down: b
 
 
 func can_attach_equipment() -> bool:
-	return occupied and placed_card != null and equipment_cards.size() < MAX_EQUIPMENT_PER_UNIT
+	if not occupied:
+		return false
+
+	if placed_card == null:
+		return false
+
+	if bool(get_meta("face_down", false)):
+		return false
+
+	return equipment_cards.size() < MAX_EQUIPMENT_PER_UNIT
 
 
 func attach_equipment(card_scene: PackedScene, card_data: CardData) -> bool:

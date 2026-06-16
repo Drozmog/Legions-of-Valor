@@ -347,7 +347,10 @@ func deal_starting_hand() -> void:
 	log_msg("Starting hand dealt. Deck remaining: " + str(player_deck.cards_remaining()))
 
 func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
-	if waiting_for_battle_plan or current_phase == BattlePhase.COMBAT:
+	if waiting_for_battle_plan:
+		return
+	if current_phase == BattlePhase.DEPLOYMENT or current_phase == BattlePhase.COMBAT:
+		log_msg("You cannot draw cards after Deployment has begun.")
 		return
 	if hand == null or player_deck == null:
 		return
@@ -442,7 +445,8 @@ func _input(event: InputEvent) -> void:
 			debug_draw_card()
 
 func debug_draw_card() -> void:
-	if current_phase == BattlePhase.COMBAT:
+	if current_phase == BattlePhase.DEPLOYMENT or current_phase == BattlePhase.COMBAT:
+		log_msg("You cannot draw cards after Deployment has begun.")
 		return
 	if player_deck == null or not hand.can_accept_card():
 		return
