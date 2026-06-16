@@ -1,4 +1,7 @@
-[gd_scene format=3]
+[gd_scene load_steps=3 format=3]
 
-[node name="Battlefield3D" type="Node3D"]
-script = ExtResource("1")
+[ext_resource type="PackedScene" path="res://battlefield/battlefield_3d.tscn" id="1"]
+[ext_resource type="Script" path="res://battlefield/BattlefieldManagerPhase4BluffCombatFinal.gd" id="2"]
+
+[node name="Battlefield3D" instance=ExtResource("1")]
+script = ExtResource("2")
