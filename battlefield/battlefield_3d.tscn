@@ -18,6 +18,7 @@
 [ext_resource type="Script" uid="uid://d4enyei8am72a" path="res://battle/BattlePlanManager.gd" id="14_vaox5"]
 [ext_resource type="Script" uid="uid://b620xjxapgjsm" path="res://battlefield/DiscardPile.gd" id="17_daqav"]
 [ext_resource type="Texture2D" uid="uid://bgjff8r7til78" path="res://Textures/World Textures/ParryTable.png" id="18_djscq"]
+[ext_resource type="Script" uid="uid://rpa2sw7oae1o" path="res://battlefield/OpponentVisuals.gd" id="19_moveh"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(17.135, 8.34)
@@ -65,12 +66,22 @@ height = 0.001
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_moveh"]
 albedo_texture = ExtResource("18_djscq")
 uv1_scale = Vector3(1.845, 1.845, 1.845)
-uv1_offset = Vector3(0.045, -0.895, -0.04)
+uv1_offset = Vector3(0.04, -0.895, 0)
 texture_repeat = false
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_djscq"]
 height = 0.45
 radius = 0.8
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_moveh"]
+top_radius = 0.57
+bottom_radius = 0.0
+height = 0.001
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xm46m"]
+albedo_texture = ExtResource("18_djscq")
+uv1_scale = Vector3(1.8, 1.8, 1.8)
+uv1_offset = Vector3(0.06, -0.865, -0.04)
 
 [node name="Battlefield3D" type="Node3D" unique_id=1594429578 node_paths=PackedStringArray("hand", "draw_pile", "tribute_pile", "player_deck")]
 script = ExtResource("1_a265j")
@@ -382,6 +393,7 @@ mouse_filter = 2
 script = ExtResource("5_yr2pt")
 
 [node name="PlayerStatusPanel" type="PanelContainer" parent="UI" unique_id=1604491341]
+visible = false
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("9_m3t58")
@@ -406,7 +418,7 @@ offset_bottom = 40.0
 script = ExtResource("12_fcsx3")
 
 [node name="DrawPile" type="Node3D" parent="." unique_id=2072337119]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.3937798, 0.1, 2.19526)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.7078722, 0.1, 2.19526)
 script = ExtResource("6_do6fa")
 
 [node name="ClickArea" type="Area3D" parent="DrawPile" unique_id=873756467]
@@ -416,7 +428,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.29577875)
 shape = SubResource("BoxShape3D_do6fa")
 
 [node name="TributePile" type="Node3D" parent="." unique_id=772323223]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.5991645, 0, 2.0764284)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.708, 0, 2.195)
 script = ExtResource("9_yr2pt")
 counter_side_offset = -0.65
 counter_forward_offset = -1.0
@@ -433,7 +445,7 @@ script = ExtResource("11_abnmj")
 script = ExtResource("14_vaox5")
 
 [node name="DiscardPile" type="Node3D" parent="." unique_id=1628121275]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.955, 0.1, 2.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.15666, 0.1, 2.2)
 script = ExtResource("17_daqav")
 
 [node name="ParryPit" type="Node3D" parent="." unique_id=2130131975]
@@ -444,6 +456,7 @@ mesh = SubResource("CylinderMesh_daqav")
 surface_material_override/0 = SubResource("StandardMaterial3D_moveh")
 
 [node name="ParryDPCounter" type="Label3D" parent="ParryPit" unique_id=903500747]
+visible = false
 text = "0/0 DP"
 
 [node name="ParryPitDropArea" type="Area3D" parent="ParryPit" unique_id=1833703348]
@@ -451,3 +464,25 @@ text = "0/0 DP"
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ParryPit/ParryPitDropArea" unique_id=604015528]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 shape = SubResource("CylinderShape3D_djscq")
+
+[node name="OpponentVisuals" type="Node3D" parent="." unique_id=881732061]
+script = ExtResource("19_moveh")
+
+[node name="EnemyHandFan" type="Node3D" parent="OpponentVisuals" unique_id=1712949409]
+transform = Transform3D(1, 0, 0, 0, -1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 1.2461718, -2.5026696)
+
+[node name="EnemyDrawPileVisual" type="Node3D" parent="OpponentVisuals" unique_id=384757661]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 4.39, 0.1, -2.195)
+
+[node name="EnemyTributePileVisual" type="Node3D" parent="OpponentVisuals" unique_id=1091892875]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -4.599, 0, -2.076)
+
+[node name="EnemyDiscardPileVisual" type="Node3D" parent="OpponentVisuals" unique_id=1566977570]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 5.955, 0.1, -2.2)
+
+[node name="EnemyParryPitVisual" type="Node3D" parent="OpponentVisuals" unique_id=347655592]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.19, 0.08, -0.09)
+
+[node name="EnemyParryPitGlow" type="MeshInstance3D" parent="OpponentVisuals/EnemyParryPitVisual" unique_id=1381109763]
+mesh = SubResource("CylinderMesh_moveh")
+surface_material_override/0 = SubResource("StandardMaterial3D_xm46m")

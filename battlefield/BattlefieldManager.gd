@@ -49,6 +49,7 @@ var parry_prompt_panel: PanelContainer = null
 var parry_prompt_label: Label = null
 var parry_let_die_button: Button = null
 
+@onready var opponent_visuals: OpponentVisuals = get_node_or_null("OpponentVisuals") as OpponentVisuals
 
 
 func _ready() -> void:
@@ -60,49 +61,24 @@ func _ready() -> void:
 	disable_keyboard_focus_for_all_buttons($UI)
 	
 
-func create_aurion_counter_ui() -> void:
-	if aurion_panel != null:
+func update_ai_visuals() -> void:
+	if opponent_visuals == null:
 		return
 
-	aurion_panel = PanelContainer.new()
-	aurion_panel.name = "AurionCounterPanel"
+	if opponent_visuals.has_method("set_all_card_data"):
+		opponent_visuals.set_all_card_data(
+			ai_deck.size(),
+			ai_hand.size(),
+			ai_tribute,
+			ai_discard
+		)
 
-	# Top-right area, between the center phase panel and the player status panel.
-	aurion_panel.anchor_left = 1.0
-	aurion_panel.anchor_right = 1.0
-	aurion_panel.anchor_top = 0.0
-	aurion_panel.anchor_bottom = 0.0
 
-	aurion_panel.offset_left = -690.0
-	aurion_panel.offset_right = -350.0
-	aurion_panel.offset_top = 34.0
-	aurion_panel.offset_bottom = 92.0
-	aurion_panel.z_index = 70
-
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.02, 0.015, 0.005, 0.72)
-	style.border_color = Color(1.0, 0.78, 0.22, 1.0)
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_width_top = 2
-	style.border_width_bottom = 2
-	aurion_panel.add_theme_stylebox_override("panel", style)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	aurion_panel.add_child(margin)
-
-	aurion_label = Label.new()
-	aurion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	aurion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	aurion_label.add_theme_font_size_override("font_size", 18)
-	margin.add_child(aurion_label)
-
-	$UI.add_child(aurion_panel)
-	update_aurion_counter_ui()
+func create_aurion_counter_ui() -> void:
+	# Aurion is now displayed inside the combined PhasePanel.
+	# Keep this function so _ready() can still call it safely.
+	if aurion_label != null:
+		update_aurion_counter_ui()
 	
 	
 func update_aurion_counter_ui() -> void:
@@ -110,8 +86,7 @@ func update_aurion_counter_ui() -> void:
 		return
 
 	aurion_label.text = (
-		"AURION POINTS\n"
-		+ "Player "
+		"Aurion  |  Player "
 		+ str(player_aurion_points)
 		+ "/"
 		+ str(AURION_WIN_TARGET)
@@ -776,18 +751,23 @@ func _on_spell_choice_cancel_pressed() -> void:
 func create_phase_ui() -> void:
 	phase_panel = PanelContainer.new()
 	phase_panel.name = "PhasePanel"
-	phase_panel.anchor_left = 0.5
-	phase_panel.anchor_right = 0.5
+
+	# One combined right-side command panel.
+	# Sits below enemy discard/deck visuals and above the player tribute pile.
+	phase_panel.anchor_left = 1.0
+	phase_panel.anchor_right = 1.0
 	phase_panel.anchor_top = 0.0
 	phase_panel.anchor_bottom = 0.0
-	phase_panel.offset_left = -190.0
-	phase_panel.offset_right = 190.0
-	phase_panel.offset_top = 20.0
-	phase_panel.offset_bottom = 145.0
+
+	phase_panel.offset_left = -250.0
+	phase_panel.offset_right = -20.0
+	phase_panel.offset_top = 320.0
+	phase_panel.offset_bottom = 300.0
+	phase_panel.z_index = 75
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0, 0, 0, 0.58)
-	style.border_color = Color(0.9, 0.75, 0.35, 0.95)
+	style.bg_color = Color(0.02, 0.015, 0.005, 0.74)
+	style.border_color = Color(1.0, 0.78, 0.22, 1.0)
 	style.border_width_left = 2
 	style.border_width_right = 2
 	style.border_width_top = 2
@@ -797,29 +777,38 @@ func create_phase_ui() -> void:
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 12)
 	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
 	phase_panel.add_child(margin)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", 6)
 	margin.add_child(vbox)
 
 	phase_label = Label.new()
 	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phase_label.add_theme_font_size_override("font_size", 18)
+	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	phase_label.add_theme_font_size_override("font_size", 17)
 	vbox.add_child(phase_label)
+
+	aurion_label = Label.new()
+	aurion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	aurion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	aurion_label.add_theme_font_size_override("font_size", 14)
+	vbox.add_child(aurion_label)
 
 	next_phase_button = Button.new()
 	next_phase_button.focus_mode = Control.FOCUS_NONE
+	next_phase_button.custom_minimum_size = Vector2(0, 32)
 	next_phase_button.pressed.connect(_on_next_phase_pressed)
 	vbox.add_child(next_phase_button)
 
-	# No more "Spawn Opponent Test Cards" button.
+	# No more separate opponent test button.
 	spawn_opponent_button = null
 
 	$UI.add_child(phase_panel)
 	update_phase_ui()
+	update_aurion_counter_ui()
 
 
 func begin_game_after_battle_plan_selection() -> void:
@@ -839,6 +828,7 @@ func begin_game_after_battle_plan_selection() -> void:
 		log_msg("Starting Tribute: " + tribute_manager.get_status_text())
 
 	log_msg("AI starting hand dealt. AI hand: " + str(ai_hand.size()) + " | AI deck: " + str(ai_deck.size()))
+	update_ai_visuals()
 
 
 func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
@@ -1343,7 +1333,11 @@ func cleanup_battlefield_spells() -> void:
 		if not is_spell_like_card(card_data):
 			continue
 
-		if discard_pile != null:
+		var slot_owner: String = String(slot.get_meta("owner", ""))
+
+		if slot_owner == "enemy":
+			ai_discard.append(card_data)
+		elif discard_pile != null:
 			discard_pile.add_card(card_data)
 
 		if slot.has_method("clear_slot"):
@@ -1354,25 +1348,38 @@ func cleanup_battlefield_spells() -> void:
 	if cleaned_count > 0:
 		log_msg("Cleaned up " + str(cleaned_count) + " spell card(s) from the battlefield.")
 
+	update_ai_visuals()
+
 
 func send_slot_card_to_discard(slot: Node) -> void:
 	if slot == null:
 		return
 
+	var slot_owner: String = String(slot.get_meta("owner", ""))
 	var card_data: CardData = get_slot_card_data(slot)
 
-	if card_data != null and discard_pile != null:
-		discard_pile.add_card(card_data)
+	if card_data != null:
+		if slot_owner == "enemy":
+			ai_discard.append(card_data)
+		elif discard_pile != null:
+			discard_pile.add_card(card_data)
 
-	if slot.has_method("get_equipment_cards") and discard_pile != null:
+	if slot.has_method("get_equipment_cards"):
 		var equipment_cards: Array = slot.get_equipment_cards()
 
 		for equipment_card in equipment_cards:
-			if equipment_card != null:
+			if equipment_card == null:
+				continue
+
+			if slot_owner == "enemy":
+				ai_discard.append(equipment_card)
+			elif discard_pile != null:
 				discard_pile.add_card(equipment_card)
 
 	if slot.has_method("clear_slot"):
 		slot.clear_slot()
+
+	update_ai_visuals()
 
 
 
@@ -1449,6 +1456,7 @@ func setup_ai_deck() -> void:
 		ai_deck.append(pool[i % pool.size()])
 
 	ai_deck.shuffle()
+	update_ai_visuals()
 
 
 func ai_draw_cards(amount: int) -> void:
@@ -1460,6 +1468,7 @@ func ai_draw_cards(amount: int) -> void:
 
 		if drawn_card != null:
 			ai_hand.append(drawn_card)
+		update_ai_visuals()
 
 
 func ai_start_tribute_phase() -> void:
@@ -1506,7 +1515,8 @@ func ai_offer_one_card_to_tribute() -> void:
 		log_msg("AI sacrificed " + tribute_card.card_name + " for +1 permanent TP.")
 
 	log_msg("AI TP: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
-
+	update_ai_visuals()
+	
 
 func ai_choose_tribute_card_index() -> int:
 	# Prefer a unit/equipment for permanent TP.
@@ -1719,6 +1729,7 @@ func ai_try_deploy_one_card() -> bool:
 
 			log_msg("AI attached " + card_data.card_name + " to " + equipped_unit_name + ".")
 			log_msg("AI TP after equipment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
+			update_ai_visuals()
 			return true
 
 		return false

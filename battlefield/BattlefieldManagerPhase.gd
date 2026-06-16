@@ -515,7 +515,7 @@ func try_sacrifice_selected_card_to_tribute() -> bool:
 	if not tribute_success:
 		return false
 	if tribute_pile != null:
-		tribute_pile.add_card()
+		tribute_pile.add_card(selected_card_data)
 	if sacrificed_card_type == "spell":
 		log_msg("Sacrificed " + sacrificed_card_name + " for temporary Tribute. +2 TP this turn.")
 	else:

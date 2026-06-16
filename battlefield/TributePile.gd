@@ -3,19 +3,24 @@ extends Node3D
 
 signal tribute_pile_clicked
 
-@export var card_thickness: float = 0.02
+@export var card_scale: float = 1.0
+@export var card_thickness: float = 0.012
+@export var max_visible_cards: int = 14
+@export var stack_gap: float = 0.008
 
 @export var counter_side_offset: float = 0.0
 @export var counter_height: float = 0.75
-@export var counter_forward_offset: float = -1.15
-@export var counter_pixel_size: float = 0.008
+@export var counter_forward_offset: float = -0.85
+@export var counter_pixel_size: float = 0.006
 
 var card_count: int = 0
-var stacked_cards: Array[MeshInstance3D] = []
+var tribute_cards: Array[CardData] = []
+var stacked_cards: Array[Node3D] = []
 
 var status_label: Label3D = null
+var base_node: MeshInstance3D = null
 
-@onready var click_area: Area3D = $ClickArea
+@onready var click_area: Area3D = get_node_or_null("ClickArea") as Area3D
 
 
 func _ready() -> void:
@@ -23,49 +28,32 @@ func _ready() -> void:
 	create_status_label()
 	build_stack()
 
-	click_area.input_ray_pickable = true
-	click_area.input_event.connect(_on_click_area_input_event)
+	if click_area != null:
+		click_area.input_ray_pickable = true
+		click_area.input_event.connect(_on_click_area_input_event)
 
 	set_status_text("TP 0/0")
 
 
 func create_base() -> void:
-	var base := MeshInstance3D.new()
+	if base_node != null:
+		return
 
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(1.1, 0.02, 1.5)
-
-	base.mesh = mesh
-
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.4, 0.32, 0.12)
-
-	base.material_override = mat
-	base.position = Vector3(0, 0.0, 0)
-
-	add_child(base)
+	base_node = CardPileVisual.create_pile_base("TributeBase")
+	add_child(base_node)
 
 
 func create_status_label() -> void:
 	if status_label != null:
 		return
 
-	status_label = Label3D.new()
-	status_label.name = "StatusLabel"
-	status_label.text = "TP 0/0"
-
-	# Keep the old working position system.
-	status_label.position = Vector3(counter_side_offset, counter_height, counter_forward_offset)
-	status_label.pixel_size = counter_pixel_size
-
-	# Smaller than before.
-	status_label.font_size = 32
-	status_label.outline_size = 6
-
-	status_label.modulate = Color(1.0, 0.92, 0.55, 1.0)
-	status_label.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
-	status_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	status_label.no_depth_test = true
+	status_label = CardPileVisual.create_counter_label(
+		"StatusLabel",
+		"TP 0/0",
+		Vector3(counter_side_offset, counter_height, counter_forward_offset),
+		counter_pixel_size,
+		20
+	)
 
 	add_child(status_label)
 
@@ -74,37 +62,53 @@ func set_status_text(text: String) -> void:
 	if status_label == null:
 		create_status_label()
 
+	status_label.position = Vector3(counter_side_offset, counter_height, counter_forward_offset)
 	status_label.text = text
 
 
+func add_card(card_data: CardData = null) -> void:
+	if card_data != null:
+		tribute_cards.append(card_data)
+	else:
+		card_count += 1
+
+	build_stack()
+
+
+func cards_count() -> int:
+	if not tribute_cards.is_empty():
+		return tribute_cards.size()
+
+	return card_count
+
+
 func build_stack() -> void:
-	for c in stacked_cards:
-		c.queue_free()
+	for card_node in stacked_cards:
+		if card_node != null and is_instance_valid(card_node):
+			card_node.queue_free()
 
 	stacked_cards.clear()
 
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(1.0, card_thickness, 1.4)
+	var visible_count: int = mini(tribute_cards.size(), max_visible_cards)
+	var start_index: int = max(0, tribute_cards.size() - visible_count)
 
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.7, 0.55, 0.25)
+	for i in range(visible_count):
+		var card_data: CardData = tribute_cards[start_index + i]
+		var card_node := CardPileVisual.create_face_up_card_visual(card_data, card_scale)
 
-	# Lift the first tribute card above the base slab so it does not phase into it.
-	var base_lift: float = 0.035
-	var stack_gap: float = 0.006
+		# Cleaner stack: slight diagonal overlap, not wild offsets.
+		card_node.position = Vector3(
+			float(i) * 0.025,
+			0.045 + float(i) * (card_thickness + stack_gap),
+			float(i) * 0.018
+		)
 
-	for i in range(card_count):
-		var card := MeshInstance3D.new()
-		card.mesh = mesh
-		card.material_override = mat
-		card.position = Vector3(0, base_lift + i * (card_thickness + stack_gap), 0)
-		add_child(card)
-		stacked_cards.append(card)
+		card_node.rotation_degrees = Vector3(0.0, float(i) * 1.0, 0.0)
 
+		add_child(card_node)
+		stacked_cards.append(card_node)
 
-func add_card() -> void:
-	card_count += 1
-	build_stack()
+	card_count = tribute_cards.size()
 
 
 func _on_click_area_input_event(
