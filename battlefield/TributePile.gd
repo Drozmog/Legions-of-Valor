@@ -5,6 +5,7 @@ signal tribute_pile_clicked
 
 @export var card_thickness: float = 0.02
 
+@export var counter_side_offset: float = 0.0
 @export var counter_height: float = 0.75
 @export var counter_forward_offset: float = -1.15
 @export var counter_pixel_size: float = 0.008
@@ -46,12 +47,21 @@ func create_base() -> void:
 
 
 func create_status_label() -> void:
+	if status_label != null:
+		return
+
 	status_label = Label3D.new()
+	status_label.name = "StatusLabel"
 	status_label.text = "TP 0/0"
-	status_label.position = Vector3(0, counter_height, counter_forward_offset)
+
+	# Keep the old working position system.
+	status_label.position = Vector3(counter_side_offset, counter_height, counter_forward_offset)
 	status_label.pixel_size = counter_pixel_size
-	status_label.font_size = 42
-	status_label.outline_size = 8
+
+	# Smaller than before.
+	status_label.font_size = 32
+	status_label.outline_size = 6
+
 	status_label.modulate = Color(1.0, 0.92, 0.55, 1.0)
 	status_label.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
 	status_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -62,7 +72,7 @@ func create_status_label() -> void:
 
 func set_status_text(text: String) -> void:
 	if status_label == null:
-		return
+		create_status_label()
 
 	status_label.text = text
 

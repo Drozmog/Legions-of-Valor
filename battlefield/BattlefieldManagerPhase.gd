@@ -753,20 +753,28 @@ func update_tribute_counter() -> void:
 func create_debug_tp_button() -> void:
 	if get_node_or_null("UI/DebugAddTPButton") != null:
 		return
+
 	var button := Button.new()
 	button.name = "DebugAddTPButton"
 	button.text = "+1 TP"
+	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(120, 44)
+
 	button.anchor_left = 1.0
 	button.anchor_right = 1.0
 	button.anchor_top = 0.0
 	button.anchor_bottom = 0.0
+
 	button.offset_left = -150.0
 	button.offset_right = -20.0
-	button.offset_top = 180.0
-	button.offset_bottom = 224.0
+
+	# Moved lower so it does not overlap the Player Status panel.
+	button.offset_top = 265.0
+	button.offset_bottom = 309.0
+
 	button.pressed.connect(_on_debug_add_tp_pressed)
 	$UI.add_child(button)
+
 
 func _on_debug_add_tp_pressed() -> void:
 	if tribute_manager == null:

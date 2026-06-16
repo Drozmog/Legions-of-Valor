@@ -1,6 +1,14 @@
 class_name BattlefieldManager
 extends BattlefieldManagerPhase
 
+const AURION_WIN_TARGET: int = 25
+
+var player_aurion_points: int = 0
+var ai_aurion_points: int = 0
+
+var aurion_panel: PanelContainer = null
+var aurion_label: Label = null
+
 var ai_deck: Array[CardData] = []
 var ai_hand: Array[CardData] = []
 var ai_discard: Array[CardData] = []
@@ -48,8 +56,105 @@ func _ready() -> void:
 	create_spell_choice_panel()
 	create_parry_prompt_ui()
 	create_parry_pit()
-	disable_keyboard_focus_for_all_buttons(self)
+	create_aurion_counter_ui()
+	disable_keyboard_focus_for_all_buttons($UI)
 	
+
+func create_aurion_counter_ui() -> void:
+	if aurion_panel != null:
+		return
+
+	aurion_panel = PanelContainer.new()
+	aurion_panel.name = "AurionCounterPanel"
+
+	# Top-right area, between the center phase panel and the player status panel.
+	aurion_panel.anchor_left = 1.0
+	aurion_panel.anchor_right = 1.0
+	aurion_panel.anchor_top = 0.0
+	aurion_panel.anchor_bottom = 0.0
+
+	aurion_panel.offset_left = -690.0
+	aurion_panel.offset_right = -350.0
+	aurion_panel.offset_top = 34.0
+	aurion_panel.offset_bottom = 92.0
+	aurion_panel.z_index = 70
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.02, 0.015, 0.005, 0.72)
+	style.border_color = Color(1.0, 0.78, 0.22, 1.0)
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	aurion_panel.add_theme_stylebox_override("panel", style)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
+	aurion_panel.add_child(margin)
+
+	aurion_label = Label.new()
+	aurion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	aurion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	aurion_label.add_theme_font_size_override("font_size", 18)
+	margin.add_child(aurion_label)
+
+	$UI.add_child(aurion_panel)
+	update_aurion_counter_ui()
+	
+	
+func update_aurion_counter_ui() -> void:
+	if aurion_label == null:
+		return
+
+	aurion_label.text = (
+		"AURION POINTS\n"
+		+ "Player "
+		+ str(player_aurion_points)
+		+ "/"
+		+ str(AURION_WIN_TARGET)
+		+ "    AI "
+		+ str(ai_aurion_points)
+		+ "/"
+		+ str(AURION_WIN_TARGET)
+	)
+
+
+
+func add_aurion(scoring_owner: String, amount: int, reason: String = "") -> void:
+	if amount <= 0:
+		return
+
+	var clean_owner: String = scoring_owner.to_lower().strip_edges()
+
+	if clean_owner == "player":
+		player_aurion_points += amount
+		log_msg("Player gains +" + str(amount) + " Aurion. " + reason)
+
+	elif clean_owner == "ai" or clean_owner == "enemy" or clean_owner == "opponent":
+		ai_aurion_points += amount
+		log_msg("AI gains +" + str(amount) + " Aurion. " + reason)
+
+	else:
+		log_msg("Unknown Aurion owner: " + scoring_owner)
+		return
+
+	update_aurion_counter_ui()
+	check_aurion_victory()
+	
+	
+func check_aurion_victory() -> void:
+	if player_aurion_points >= AURION_WIN_TARGET:
+		log_msg("Player has reached " + str(AURION_WIN_TARGET) + " Aurion.")
+
+	if ai_aurion_points >= AURION_WIN_TARGET:
+		log_msg("AI has reached " + str(AURION_WIN_TARGET) + " Aurion.")
+
+
+
+
 	
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -383,12 +488,10 @@ func _on_parry_let_die_pressed() -> void:
 
 	if parry_defender_card != null:
 		log_msg("You let " + parry_defender_card.card_name + " die.")
+		add_aurion("ai", 1, "Destroyed " + parry_defender_card.card_name + " in combat.")
 
 	end_parry_prompt()
 	advance_combat_lane_after_resolution()
-
-	if not player_has_initiative:
-		ai_resolve_combat_sequence()
 	
 	
 func end_parry_prompt() -> void:
@@ -1835,6 +1938,10 @@ func ai_find_enemy_unit_slot_that_can_take_equipment() -> Node:
 
 	return null
 	
+
+
+
+
 	
 func ai_find_empty_enemy_slot(row: String) -> Node:
 	if board_slots == null:
@@ -2284,13 +2391,14 @@ func resolve_directed_clash(
 
 		return
 
-	if attacker_card.ap > defender_card.ap:
+	if attacker_card.ap >= defender_card.ap:
 		if not player_is_attacker:
 			begin_parry_prompt(lane, _attacker_slot, attacker_card, defender_slot, defender_card)
 			return
 
 		send_slot_card_to_discard(defender_slot)
 		log_msg(defender_label + " " + defender_card.card_name + " was destroyed.")
+		add_aurion("player", 1, "Destroyed " + defender_card.card_name + " in combat.")
 		return
 
 	log_msg(defender_label + " " + defender_card.card_name + " survived the attack.")
