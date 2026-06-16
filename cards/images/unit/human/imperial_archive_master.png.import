@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://llh4qg2c6yrh"
-path="res://.godot/imported/imperial_archive_master.png-301a4037ec4728489117158f04f813f7.ctex"
+path="res://.godot/imported/imperial_archive_master.png-8ab4c63866aa6b6fbb58861ba5da9a47.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/imperial_archive_master.png"
-dest_files=["res://.godot/imported/imperial_archive_master.png-301a4037ec4728489117158f04f813f7.ctex"]
+source_file="res://cards/images/unit/human/imperial_archive_master.png"
+dest_files=["res://.godot/imported/imperial_archive_master.png-8ab4c63866aa6b6fbb58861ba5da9a47.ctex"]
 
 [params]
 

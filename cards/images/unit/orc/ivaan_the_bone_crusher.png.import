@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ciuru71wbvway"
-path="res://.godot/imported/arch_wizard_maelcor.png-a8483f9538680d5c128bc928351a7d26.ctex"
+uid="uid://cuklmd2w6qfsp"
+path="res://.godot/imported/ivaan_the_bone_crusher.png-9aca43df0186e2384deac844a0460c4d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/arch_wizard_maelcor.png"
-dest_files=["res://.godot/imported/arch_wizard_maelcor.png-a8483f9538680d5c128bc928351a7d26.ctex"]
+source_file="res://cards/images/unit/orc/ivaan_the_bone_crusher.png"
+dest_files=["res://.godot/imported/ivaan_the_bone_crusher.png-9aca43df0186e2384deac844a0460c4d.ctex"]
 
 [params]
 

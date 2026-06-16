@@ -2,15 +2,23 @@ class_name BattlefieldManagerPhase
 extends Node3D
 
 const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
-const ARCH_WIZARD_MAELCOR: CardData = preload("res://cards/definitions/arch_wizard_maelcor.tres")
-const IMPERIAL_ARCHIVE_MASTER: CardData = preload("res://cards/definitions/imperial_archive_master.tres")
-const JENA_OF_YEL: CardData = preload("res://cards/definitions/jena_of_yel.tres")
-const IVAAN_BONE_CRUSHER: CardData = preload("res://cards/definitions/ivaan_bone_crusher.tres")
-const UPPER_HALL_PROSPECTOR: CardData = preload("res://cards/definitions/upper_hall_prospector.tres")
-const TEST_EQUIPMENT: CardData = preload("res://cards/definitions/Test_Equipment.tres")
-const TEST_SPELL: CardData = preload("res://cards/definitions/Test_Spell.tres")
 
-const OPPONENT_TEST_CARDS: Array[CardData] = [ARCH_WIZARD_MAELCOR, IMPERIAL_ARCHIVE_MASTER, JENA_OF_YEL, IVAAN_BONE_CRUSHER, UPPER_HALL_PROSPECTOR]
+const ARCH_WIZARD_MAELCOR: CardData = CardDatabase.ARCH_WIZARD_MAELCOR
+const IMPERIAL_ARCHIVE_MASTER: CardData = CardDatabase.IMPERIAL_ARCHIVE_MASTER
+const JENA_OF_YEL: CardData = CardDatabase.JENA_OF_YEL
+const IVAAN_THE_BONE_CRUSHER: CardData = CardDatabase.IVAAN_THE_BONE_CRUSHER
+const UPPER_HALL_PROSPECTOR: CardData = CardDatabase.UPPER_HALL_PROSPECTOR
+
+const BLACKMAIL: CardData = CardDatabase.BLACKMAIL
+const VAELORI_LONGBOW_M: CardData = CardDatabase.VAELORI_LONGBOW_M
+
+const OPPONENT_TEST_CARDS: Array[CardData] = [
+	ARCH_WIZARD_MAELCOR,
+	IMPERIAL_ARCHIVE_MASTER,
+	JENA_OF_YEL,
+	IVAAN_THE_BONE_CRUSHER,
+	UPPER_HALL_PROSPECTOR
+]
 
 enum BattlePhase { BATTLEPLAN, TRIBUTE, DEPLOYMENT, COMBAT }
 
@@ -397,7 +405,7 @@ func _on_slot_clicked(slot: Node) -> void:
 			hand.remove_selected_card()
 		cancel_selected_card()
 
-func _on_slot_right_clicked(slot: Node) -> void:
+func _on_slot_right_clicked(_slot: Node) -> void:
 	log_msg("Manual battlefield clearing is disabled. Cards leave the board only through combat, cleanup, or abilities.")
 
 func _on_tribute_pile_clicked() -> void:
@@ -426,13 +434,13 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_3:
 			select_card(JENA_OF_YEL)
 		if event.keycode == KEY_4:
-			select_card(IVAAN_BONE_CRUSHER)
+			select_card(IVAAN_THE_BONE_CRUSHER)
 		if event.keycode == KEY_5:
 			select_card(UPPER_HALL_PROSPECTOR)
 		if event.keycode == KEY_6:
-			select_card(TEST_EQUIPMENT)
+			select_card(VAELORI_LONGBOW_M)
 		if event.keycode == KEY_7:
-			select_card(TEST_SPELL)
+			select_card(BLACKMAIL)
 		if event.keycode == KEY_ESCAPE:
 			cancel_selected_card()
 		if event.keycode == KEY_E:
@@ -516,7 +524,7 @@ func try_sacrifice_selected_card_to_tribute() -> bool:
 		return false
 	if tribute_pile != null:
 		tribute_pile.add_card(selected_card_data)
-	if sacrificed_card_type == "spell":
+	if sacrificed_card_type == "gambit":
 		log_msg("Sacrificed " + sacrificed_card_name + " for temporary Tribute. +2 TP this turn.")
 	else:
 		log_msg("Sacrificed " + sacrificed_card_name + " for permanent Tribute. +1 permanent TP.")
@@ -681,11 +689,12 @@ func get_slot_card_data(slot: Node) -> CardData:
 		return slot.get_placed_card_data()
 	return null
 
-func find_slot_by_owner_row_lane(owner: String, row: String, lane: String) -> Node:
+func find_slot_by_owner_row_lane(owner_name: String, row: String, lane: String) -> Node:
 	for slot in board_slots.get_children():
-		if slot.get_meta("owner", "") == owner and slot.get_meta("row", "") == row and get_slot_lane(slot) == lane:
+		if slot.get_meta("owner", "") == owner_name and slot.get_meta("row", "") == row and get_slot_lane(slot) == lane:
 			return slot
 	return null
+	
 
 func get_slot_lane(slot: Node) -> String:
 	var slot_id := str(slot.get_meta("slot_id", "")).to_lower()

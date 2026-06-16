@@ -21,6 +21,7 @@ var ai_temp_tp: int = 0
 var ai_current_tp: int = 0
 var ai_tribute_used_this_turn: bool = false
 var ai_has_starting_hand: bool = false
+var used_battle_plan_keys: Dictionary = {}
 
 var pending_spell_card_ui: CardUI = null
 var pending_spell_slot: Node = null
@@ -60,6 +61,177 @@ func _ready() -> void:
 	create_aurion_counter_ui()
 	disable_keyboard_focus_for_all_buttons($UI)
 	
+
+func get_battle_plan_key(plan: Dictionary) -> String:
+	if plan.is_empty():
+		return ""
+
+	if plan.has("id"):
+		return str(plan.get("id", "")).strip_edges()
+
+	if plan.has("battle_plan_id"):
+		return str(plan.get("battle_plan_id", "")).strip_edges()
+
+	if plan.has("plan_id"):
+		return str(plan.get("plan_id", "")).strip_edges()
+
+	return str(plan.get("name", "Unknown Battle Plan")).strip_edges()
+
+
+func is_battle_plan_used(plan: Dictionary) -> bool:
+	var key: String = get_battle_plan_key(plan)
+
+	if key == "":
+		return false
+
+	return used_battle_plan_keys.has(key)
+
+
+func mark_battle_plan_used(plan: Dictionary) -> void:
+	var key: String = get_battle_plan_key(plan)
+
+	if key == "":
+		return
+
+	used_battle_plan_keys[key] = true
+
+
+func get_unused_battle_plan_choices(amount: int) -> Array[Dictionary]:
+	var final_choices: Array[Dictionary] = []
+
+	if battle_plan_manager == null:
+		return final_choices
+
+	if amount <= 0:
+		return final_choices
+
+	var local_seen_keys: Dictionary = {}
+	var attempts: int = 0
+	var max_attempts: int = 60
+
+	while final_choices.size() < amount and attempts < max_attempts:
+		attempts += 1
+
+		var raw_choices: Array = battle_plan_manager.get_random_battle_plan_choices(max(amount, 3))
+
+		if raw_choices.is_empty():
+			break
+
+		for raw_plan in raw_choices:
+			if not raw_plan is Dictionary:
+				continue
+
+			var plan: Dictionary = raw_plan
+			var key: String = get_battle_plan_key(plan)
+
+			if key == "":
+				continue
+
+			if used_battle_plan_keys.has(key):
+				continue
+
+			if local_seen_keys.has(key):
+				continue
+
+			local_seen_keys[key] = true
+			final_choices.append(plan)
+
+			if final_choices.size() >= amount:
+				break
+
+	return final_choices
+
+func open_battle_plan_selection() -> void:
+	waiting_for_battle_plan = true
+	set_phase(BattlePhase.BATTLEPLAN)
+
+	if battle_plan_manager == null:
+		log_msg("BattlePlanManager is missing.")
+		begin_game_after_battle_plan_selection()
+		set_phase(BattlePhase.TRIBUTE)
+		return
+
+	if battle_plan_selection_screen == null:
+		log_msg("BattlePlanSelectionScreen is missing.")
+		begin_game_after_battle_plan_selection()
+		set_phase(BattlePhase.TRIBUTE)
+		return
+
+	var choices: Array[Dictionary] = get_unused_battle_plan_choices(3)
+
+	if choices.is_empty():
+		log_msg("No unused Battle Plans remain. Battleplan deck is exhausted.")
+
+		if battle_plan_selection_screen != null:
+			battle_plan_selection_screen.visible = false
+
+		return
+
+	if choices.size() < 3:
+		log_msg("Battleplan deck is running low. Remaining choices: " + str(choices.size()))
+
+	battle_plan_selection_screen.show_selection(choices)
+	
+	
+func _on_battle_plan_selected(plan: Dictionary) -> void:
+	if plan.is_empty():
+		log_msg("No Battle Plan selected.")
+		return
+
+	if is_battle_plan_used(plan):
+		log_msg("That Battle Plan has already been used. Drawing new options.")
+		open_battle_plan_selection()
+		return
+
+	waiting_for_battle_plan = false
+
+	mark_battle_plan_used(plan)
+
+	if battle_plan_manager != null:
+		battle_plan_manager.select_battle_plan(plan)
+
+	choose_opponent_battle_plan()
+
+	if battle_plan_panel != null:
+		battle_plan_panel.set_battle_plan(plan)
+
+		if battle_plan_panel.has_method("set_opponent_battle_plan"):
+			battle_plan_panel.set_opponent_battle_plan(opponent_battle_plan)
+
+	apply_battle_plan_rules(plan)
+	apply_initiative_rules(plan)
+
+	log_msg("Selected Battle Plan: " + str(plan.get("name", "Unknown Battle Plan")))
+
+	if opponent_battle_plan.is_empty():
+		log_msg("Opponent has no unused Battle Plan.")
+	else:
+		log_msg("Opponent Battle Plan: " + str(opponent_battle_plan.get("name", "Unknown Battle Plan")))
+
+	if not game_has_started:
+		begin_game_after_battle_plan_selection()
+
+	draw_battleplan_cards(plan)
+	set_phase(BattlePhase.TRIBUTE)
+	
+	
+func choose_opponent_battle_plan() -> void:
+	opponent_battle_plan = {}
+
+	if battle_plan_manager == null:
+		return
+
+	var choices: Array[Dictionary] = get_unused_battle_plan_choices(1)
+
+	if choices.is_empty():
+		log_msg("Opponent Battleplan deck is exhausted.")
+		return
+
+	opponent_battle_plan = choices[0]
+	mark_battle_plan_used(opponent_battle_plan)
+	
+
+
 
 func update_ai_visuals() -> void:
 	if opponent_visuals == null:
@@ -975,7 +1147,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 			cancel_selected_card()
 			return
 
-		if is_spell_like_card(selected_card_data):
+		if is_gambit_card(selected_card_data):
 			if String(target_slot.get_meta("owner", "")) != "player":
 				log_msg("Spells can only be placed on your side of the board.")
 				return_card_to_hand_safely(card)
@@ -1067,10 +1239,10 @@ func get_clean_card_type(card_data: CardData) -> String:
 	return card_data.card_type.to_lower().strip_edges()
 	
 
-func is_spell_like_card(card_data: CardData) -> bool:
+func is_gambit_card(card_data: CardData) -> bool:
 	var card_type: String = get_clean_card_type(card_data)
 
-	return card_type == "spell" or card_type == "event" or card_type == "trap" or card_type == "ruse"
+	return card_type == "gambit"
 	
 
 func is_equipment_card(card_data: CardData) -> bool:
@@ -1138,7 +1310,11 @@ func draw_battleplan_cards(plan: Dictionary) -> void:
 
 	log_msg("Battleplan draw: player drew " + str(player_drawn_count) + "/" + str(draw_amount) + " cards.")
 
-	var ai_draw_amount: int = int(opponent_battle_plan.get("draw_amount", draw_amount))
+	if opponent_battle_plan.is_empty():
+		log_msg("AI battleplan draw skipped. No unused AI battleplan remains.")
+		return
+
+	var ai_draw_amount: int = int(opponent_battle_plan.get("draw_amount", 0))
 	ai_draw_cards(ai_draw_amount)
 
 	log_msg("AI battleplan draw: AI drew " + str(ai_draw_amount) + " cards. AI hand: " + str(ai_hand.size()))
@@ -1171,7 +1347,7 @@ func try_place_selected_card_on_slot(slot: Node) -> bool:
 	if card_type == "unit" and slot_row == "back":
 		place_face_down = true
 
-	if is_spell_like_card(selected_card_data):
+	if is_gambit_card(selected_card_data):
 		# Front row spells are always face up.
 		# Back row spells should normally come through confirm_pending_spell_placement().
 		place_face_down = false
@@ -1217,7 +1393,7 @@ func is_valid_slot_for_selected_card(slot: Node) -> bool:
 		var existing_card: CardData = get_slot_card_data(slot)
 		return is_unit_card(existing_card)
 
-	if is_spell_like_card(selected_card_data):
+	if is_gambit_card(selected_card_data):
 		# Spells can go front or back, any lane.
 		# Front = face up automatically.
 		# Back = prompt for face up / face down.
@@ -1298,7 +1474,7 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 		cancel_selected_card()
 		return
 
-	if not is_spell_like_card(selected_card_data):
+	if not is_gambit_card(selected_card_data):
 		hide_spell_choice_panel()
 		cancel_selected_card()
 		return
@@ -1435,7 +1611,7 @@ func cleanup_battlefield_spells() -> void:
 		if card_data == null:
 			continue
 
-		if not is_spell_like_card(card_data):
+		if not is_gambit_card(card_data):
 			continue
 
 		var slot_owner: String = String(slot.get_meta("owner", ""))
@@ -1570,15 +1746,7 @@ func setup_ai_deck() -> void:
 	ai_current_tp = 0
 	ai_tribute_used_this_turn = false
 
-	var pool: Array[CardData] = [
-		ARCH_WIZARD_MAELCOR,
-		IMPERIAL_ARCHIVE_MASTER,
-		JENA_OF_YEL,
-		IVAAN_BONE_CRUSHER,
-		UPPER_HALL_PROSPECTOR,
-		TEST_EQUIPMENT,
-		TEST_SPELL
-	]
+	var pool: Array[CardData] = CardDatabase.get_ai_test_deck()
 
 	for i in range(40):
 		ai_deck.append(pool[i % pool.size()])
@@ -1645,7 +1813,7 @@ func ai_offer_one_card_to_tribute() -> void:
 
 	var card_type: String = tribute_card.card_type.to_lower().strip_edges()
 
-	if card_type == "spell" or card_type == "event" or card_type == "trap" or card_type == "ruse":
+	if card_type == "gambit":
 		ai_temp_tp += 2
 		ai_current_tp += 2
 		log_msg("AI sacrificed " + tribute_card.card_name + " for +2 temporary TP.")
@@ -1769,12 +1937,12 @@ func ai_resolve_combat_sequence() -> void:
 		resolve_next_combat_lane(next_lane)
 
 
-func ai_count_front_units(owner: String) -> int:
+func ai_count_front_units(owner_name: String) -> int:
 	var count: int = 0
 	var lanes: Array[String] = ["left", "middle", "right"]
 
 	for lane in lanes:
-		var slot: Node = find_slot_by_owner_row_lane(owner, "front", lane)
+		var slot: Node = find_slot_by_owner_row_lane(owner_name, "front", lane)
 		var card_data: CardData = get_slot_card_data(slot)
 
 		if is_unit_card(card_data):
@@ -1783,19 +1951,18 @@ func ai_count_front_units(owner: String) -> int:
 	return count
 
 
-func ai_get_total_front_ap(owner: String) -> int:
+func ai_get_total_front_ap(owner_name: String) -> int:
 	var total_ap: int = 0
 	var lanes: Array[String] = ["left", "middle", "right"]
 
 	for lane in lanes:
-		var slot: Node = find_slot_by_owner_row_lane(owner, "front", lane)
+		var slot: Node = find_slot_by_owner_row_lane(owner_name, "front", lane)
 		var card_data: CardData = get_slot_card_data(slot)
 
 		if is_unit_card(card_data):
 			total_ap += card_data.ap
 
 	return total_ap
-
 
 
 func ai_deploy_one_card() -> void:
@@ -1880,7 +2047,7 @@ func ai_try_deploy_one_card() -> bool:
 
 		return false
 
-	if action_type == "unit" or action_type == "spell":
+	if action_type == "unit" or action_type == "gambit":
 		await play_enemy_hand_to_node_animation(card_data, target_slot, face_down)
 
 		if target_slot.has_method("place_card"):
@@ -2025,7 +2192,7 @@ func ai_find_spell_action() -> Dictionary:
 		chosen_slot = back_slot
 		face_down = randi() % 100 < 50
 
-	return ai_make_deployment_action(spell_index, chosen_slot, "spell", face_down)
+	return ai_make_deployment_action(spell_index, chosen_slot, "gambit", face_down)
 	
 	
 func ai_find_affordable_spell_index() -> int:
@@ -2035,7 +2202,7 @@ func ai_find_affordable_spell_index() -> int:
 		if card_data == null:
 			continue
 
-		if not is_spell_like_card(card_data):
+		if not is_gambit_card(card_data):
 			continue
 
 		if card_data.tribute_cost > ai_current_tp:
@@ -2139,10 +2306,7 @@ func ai_choose_slot_for_card(card_data: CardData) -> Node:
 	if is_equipment_card(card_data):
 		return ai_choose_equipment_target_slot(card_data)
 
-	if is_trap_card(card_data) or is_ruse_card(card_data):
-		return ai_choose_empty_back_slot_for_tactic(card_data)
-
-	if is_spell_card(card_data) or is_event_card(card_data):
+	if is_gambit_card(card_data):
 		return ai_choose_spell_like_slot(card_data)
 
 	return null
@@ -2178,7 +2342,7 @@ func ai_should_place_card_face_down(card_data: CardData, target_slot: Node) -> b
 	return false
 
 
-func ai_choose_empty_back_slot_for_tactic(card_data: CardData) -> Node:
+func ai_choose_empty_back_slot_for_tactic(_card_data: CardData) -> Node:
 	var candidate_slots: Array[Node] = []
 	var lanes: Array[String] = ["left", "middle", "right"]
 
@@ -2257,7 +2421,7 @@ func ai_choose_spell_like_slot(card_data: CardData) -> Node:
 	
 
 
-func ai_choose_equipment_target_slot(card_data: CardData) -> Node:
+func ai_choose_equipment_target_slot(_card_data: CardData) -> Node:
 	var candidate_slots: Array[Node] = []
 	var lanes: Array[String] = ["left", "middle", "right"]
 
@@ -2456,18 +2620,8 @@ func ai_score_deploy_card(card_data: CardData) -> int:
 			score += card_data.ap * 3
 			score += card_data.dp * 3
 
-		"trap":
-			score += 45
-
-		"ruse":
-			score += 45
-
-		"spell":
-			score += 25
-
-		"event":
-			score += 25
-
+		"gambit":
+			score += 35
 		_:
 			score -= 100
 

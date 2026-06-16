@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dxrdtf0ipu3cv"
-path="res://.godot/imported/upper_hall_prospector.png-0955f7c8fadd792a6acddf522e8f327e.ctex"
+uid="uid://dr8nodsp6rpn3"
+path="res://.godot/imported/vaelori_longbow_m.png-709f151630febd3112d752baa69206b1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/upper_hall_prospector.png"
-dest_files=["res://.godot/imported/upper_hall_prospector.png-0955f7c8fadd792a6acddf522e8f327e.ctex"]
+source_file="res://cards/images/equipment/vaelori_longbow_m.png"
+dest_files=["res://.godot/imported/vaelori_longbow_m.png-709f151630febd3112d752baa69206b1.ctex"]
 
 [params]
 

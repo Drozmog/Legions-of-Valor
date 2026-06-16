@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bkogd4bkr82l7"
-path="res://.godot/imported/withering_of_the_veil.png-96d11f40b252e630f5d7d6e2952c556f.ctex"
+uid="uid://dxrdtf0ipu3cv"
+path="res://.godot/imported/upper_hall_prospector.png-f082b48a55463acf4fc6be4e5327ad0f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/withering_of_the_veil.png"
-dest_files=["res://.godot/imported/withering_of_the_veil.png-96d11f40b252e630f5d7d6e2952c556f.ctex"]
+source_file="res://cards/images/unit/dwarf/upper_hall_prospector.png"
+dest_files=["res://.godot/imported/upper_hall_prospector.png-f082b48a55463acf4fc6be4e5327ad0f.ctex"]
 
 [params]
 

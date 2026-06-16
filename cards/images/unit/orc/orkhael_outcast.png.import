@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://u2qftdj4k0x7"
-path="res://.godot/imported/jena_of_y'el.png-e0bb06d0ecfe766fe254f54072eb3962.ctex"
+uid="uid://dj5l786lpl3jf"
+path="res://.godot/imported/orkhael_outcast.png-b52a4aea5acca5cfca69aff3aa6d1e8b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/jena_of_y'el.png"
-dest_files=["res://.godot/imported/jena_of_y'el.png-e0bb06d0ecfe766fe254f54072eb3962.ctex"]
+source_file="res://cards/images/unit/orc/orkhael_outcast.png"
+dest_files=["res://.godot/imported/orkhael_outcast.png-b52a4aea5acca5cfca69aff3aa6d1e8b.ctex"]
 
 [params]
 

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cfbnmmx05pk75"]
 
-[ext_resource type="Texture2D" uid="uid://dxrdtf0ipu3cv" path="res://cards/images/upper_hall_prospector.png" id="1_pscwf"]
+[ext_resource type="Texture2D" uid="uid://dxrdtf0ipu3cv" path="res://cards/images/unit/dwarf/upper_hall_prospector.png" id="1_pscwf"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_fsmj8"]
 
 [resource]

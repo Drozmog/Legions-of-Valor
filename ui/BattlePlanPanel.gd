@@ -1,9 +1,13 @@
 class_name BattlePlanPanel
 extends PanelContainer
 
-var title_label: Label = null
-var name_label: Label = null
-var description_label: Label = null
+var player_title_label: Label = null
+var player_name_label: Label = null
+var player_description_label: Label = null
+
+var opponent_title_label: Label = null
+var opponent_name_label: Label = null
+var opponent_description_label: Label = null
 
 
 func _ready() -> void:
@@ -20,9 +24,9 @@ func setup_position() -> void:
 	anchor_bottom = 0.0
 
 	offset_left = 20.0
-	offset_right = 285.0
-	offset_top = 185.0
-	offset_bottom = 300.0
+	offset_right = 100.0
+	offset_top = 355.0
+	offset_bottom = 470.0
 
 
 func setup_visuals() -> void:
@@ -39,41 +43,89 @@ func setup_visuals() -> void:
 
 func build_ui() -> void:
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
 	add_child(margin)
 
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 8)
-	margin.add_child(vbox)
+	var columns := HBoxContainer.new()
+	columns.add_theme_constant_override("separation", 14)
+	margin.add_child(columns)
 
-	title_label = Label.new()
-	title_label.text = "BATTLE PLAN"
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.add_theme_font_size_override("font_size", 13)
-	vbox.add_child(title_label)
+	var player_column := VBoxContainer.new()
+	player_column.custom_minimum_size = Vector2(220.0, 0.0)
+	player_column.add_theme_constant_override("separation", 5)
+	columns.add_child(player_column)
 
-	name_label = Label.new()
-	name_label.text = ""
-	name_label.add_theme_font_size_override("font_size", 15)
-	vbox.add_child(name_label)
+	var divider := VSeparator.new()
+	columns.add_child(divider)
 
-	description_label = Label.new()
-	description_label.text = ""
-	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	description_label.add_theme_font_size_override("font_size", 11)
-	vbox.add_child(description_label)
+	var opponent_column := VBoxContainer.new()
+	opponent_column.custom_minimum_size = Vector2(220.0, 0.0)
+	opponent_column.add_theme_constant_override("separation", 5)
+	columns.add_child(opponent_column)
+
+	player_title_label = Label.new()
+	player_title_label.text = "PLAYER BATTLE PLAN"
+	player_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	player_title_label.add_theme_font_size_override("font_size", 12)
+	player_column.add_child(player_title_label)
+
+	player_name_label = Label.new()
+	player_name_label.text = ""
+	player_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	player_name_label.add_theme_font_size_override("font_size", 14)
+	player_column.add_child(player_name_label)
+
+	player_description_label = Label.new()
+	player_description_label.text = ""
+	player_description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	player_description_label.add_theme_font_size_override("font_size", 10)
+	player_column.add_child(player_description_label)
+
+	opponent_title_label = Label.new()
+	opponent_title_label.text = "OPPONENT BATTLE PLAN"
+	opponent_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	opponent_title_label.add_theme_font_size_override("font_size", 12)
+	opponent_column.add_child(opponent_title_label)
+
+	opponent_name_label = Label.new()
+	opponent_name_label.text = ""
+	opponent_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	opponent_name_label.add_theme_font_size_override("font_size", 14)
+	opponent_column.add_child(opponent_name_label)
+
+	opponent_description_label = Label.new()
+	opponent_description_label.text = ""
+	opponent_description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	opponent_description_label.add_theme_font_size_override("font_size", 10)
+	opponent_column.add_child(opponent_description_label)
 
 
 func set_battle_plan(plan: Dictionary) -> void:
-	if name_label == null or description_label == null:
+	if player_name_label == null or player_description_label == null:
 		return
 
-	name_label.text = str(plan.get("name", "Unknown Battle Plan"))
+	player_name_label.text = str(plan.get("name", "Unknown Battle Plan"))
+	player_description_label.text = get_battle_plan_description(plan)
 
-	description_label.text = (
+
+func set_opponent_battle_plan(plan: Dictionary) -> void:
+	if opponent_name_label == null or opponent_description_label == null:
+		return
+
+	if plan.is_empty():
+		opponent_name_label.text = "None selected"
+		opponent_description_label.text = "Opponent has no battle plan."
+		return
+
+	opponent_name_label.text = str(plan.get("name", "Unknown Battle Plan"))
+	opponent_description_label.text = get_battle_plan_description(plan)
+
+
+func get_battle_plan_description(plan: Dictionary) -> String:
+	return (
 		"Initiative: " + str(plan.get("initiative_mark", "-")) + "\n" +
 		"Draw: " + str(plan.get("draw_amount", "-")) + "\n" +
 		"Max Hand: " + str(plan.get("max_hand_size", "-")) + "\n" +
@@ -83,8 +135,18 @@ func set_battle_plan(plan: Dictionary) -> void:
 
 
 func clear_battle_plan() -> void:
-	if name_label != null:
-		name_label.text = "None selected"
+	if player_name_label != null:
+		player_name_label.text = "None selected"
 
-	if description_label != null:
-		description_label.text = "Choose a battle plan before the round begins."
+	if player_description_label != null:
+		player_description_label.text = "Choose a battle plan before the round begins."
+
+	clear_opponent_battle_plan()
+
+
+func clear_opponent_battle_plan() -> void:
+	if opponent_name_label != null:
+		opponent_name_label.text = "None selected"
+
+	if opponent_description_label != null:
+		opponent_description_label.text = "Opponent battle plan will appear after selection."
