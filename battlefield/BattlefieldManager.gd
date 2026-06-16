@@ -50,7 +50,7 @@ var parry_prompt_label: Label = null
 var parry_let_die_button: Button = null
 
 @onready var opponent_visuals: OpponentVisuals = get_node_or_null("OpponentVisuals") as OpponentVisuals
-
+@onready var card_animation_manager: CardAnimationManager = get_node_or_null("CardAnimationManager") as CardAnimationManager
 
 func _ready() -> void:
 	super._ready()
@@ -72,6 +72,56 @@ func update_ai_visuals() -> void:
 			ai_tribute,
 			ai_discard
 		)
+
+
+func play_player_hand_to_node_animation(card_data: CardData, target_node: Node, face_down: bool = false) -> void:
+	if card_animation_manager == null:
+		return
+
+	await card_animation_manager.animate_card_from_anchor_to_node(
+		card_data,
+		"PlayerHandOrigin",
+		target_node,
+		face_down
+	)
+
+
+func play_enemy_hand_to_node_animation(card_data: CardData, target_node: Node, face_down: bool = false) -> void:
+	if card_animation_manager == null:
+		return
+
+	await card_animation_manager.animate_card_from_anchor_to_node(
+		card_data,
+		"EnemyHandOrigin",
+		target_node,
+		face_down
+	)
+
+
+func play_card_to_discard_animation(card_data: CardData, source_node: Node, slot_owner: String) -> void:
+	if card_animation_manager == null:
+		return
+
+	var target_node: Node = discard_pile
+
+	if slot_owner == "enemy":
+		target_node = get_enemy_visual_target("EnemyDiscardPileVisual")
+
+	card_animation_manager.animate_card_between_nodes(
+		card_data,
+		source_node,
+		target_node,
+		false
+	)
+
+
+func get_enemy_visual_target(node_name: String) -> Node:
+	if opponent_visuals == null:
+		return null
+
+	return opponent_visuals.get_node_or_null(node_name)
+	
+
 
 
 func create_aurion_counter_ui() -> void:
@@ -411,6 +461,11 @@ func sacrifice_card_to_parry(card_ui: CardUI) -> void:
 		return_card_to_hand_safely(card_ui)
 		cancel_selected_card()
 		return
+
+	if card_ui != null and is_instance_valid(card_ui):
+		card_ui.visible = false
+
+	await play_player_hand_to_node_animation(sacrificed_card, parry_pit_root, false)
 
 	var gained_dp: int = max(0, sacrificed_card.dp)
 	parry_gathered_dp += gained_dp
@@ -843,12 +898,11 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 	if selected_card_data == null and card.card_data != null:
 		select_card(card.card_data)
 
+	var dragged_card_data: CardData = selected_card_data
+
 	var target_node: Node = get_3d_node_under_screen_position(screen_position)
 	var target_slot: Node = find_board_slot_from_node(target_node)
 
-	# 0. Parry pit has highest priority during parry prompt.
-	# 0. Parry pit has highest priority during parry prompt.
-	# 0. Parry pit has highest priority during parry prompt.
 	if parry_active:
 		var dropped_on_parry_pit := false
 
@@ -858,7 +912,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 			dropped_on_parry_pit = true
 
 		if dropped_on_parry_pit:
-			sacrifice_card_to_parry(card)
+			await sacrifice_card_to_parry(card)
 			return
 
 		log_msg("Drop cards into the glowing pit to parry, or press Let Unit Die.")
@@ -866,7 +920,6 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 		cancel_selected_card()
 		return
 
-	# 1. Tribute pile has priority.
 	if is_node_inside_target(target_node, tribute_pile):
 		if current_phase != BattlePhase.TRIBUTE:
 			log_msg("Cards can only be sent to Tribute during the Tribute Phase.")
@@ -874,18 +927,25 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 			cancel_selected_card()
 			return
 
+		if card != null and is_instance_valid(card):
+			card.visible = false
+
+		await play_player_hand_to_node_animation(dragged_card_data, tribute_pile, false)
+
 		var sacrificed: bool = try_sacrifice_selected_card_to_tribute()
 
 		if sacrificed:
 			if hand != null:
 				hand.consume_dragged_card(card)
 		else:
+			if card != null and is_instance_valid(card):
+				card.visible = true
+
 			return_card_to_hand_safely(card)
 
 		cancel_selected_card()
 		return
 
-	# 2. Board slot / equipment / spell placement.
 	if target_slot != null:
 		if current_phase != BattlePhase.DEPLOYMENT:
 			log_msg("Cards can only be deployed during the Deployment Phase.")
@@ -896,12 +956,20 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 		var card_type: String = get_clean_card_type(selected_card_data)
 
 		if card_type == "equipment":
+			if card != null and is_instance_valid(card):
+				card.visible = false
+
+			await play_player_hand_to_node_animation(dragged_card_data, target_slot, false)
+
 			var attached: bool = try_attach_selected_equipment_to_slot(target_slot)
 
 			if attached:
 				if hand != null:
 					hand.consume_dragged_card(card)
 			else:
+				if card != null and is_instance_valid(card):
+					card.visible = true
+
 				return_card_to_hand_safely(card)
 
 			cancel_selected_card()
@@ -923,12 +991,20 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 			var target_row: String = String(target_slot.get_meta("row", ""))
 
 			if target_row == "front":
+				if card != null and is_instance_valid(card):
+					card.visible = false
+
+				await play_player_hand_to_node_animation(dragged_card_data, target_slot, false)
+
 				var front_spell_placed: bool = try_place_selected_card_on_slot(target_slot)
 
 				if front_spell_placed:
 					if hand != null:
 						hand.consume_dragged_card(card)
 				else:
+					if card != null and is_instance_valid(card):
+						card.visible = true
+
 					return_card_to_hand_safely(card)
 
 				cancel_selected_card()
@@ -944,18 +1020,31 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 			cancel_selected_card()
 			return
 
+		var place_face_down: bool = false
+		var slot_row: String = String(target_slot.get_meta("row", ""))
+
+		if is_unit_card(selected_card_data) and slot_row == "back":
+			place_face_down = true
+
+		if card != null and is_instance_valid(card):
+			card.visible = false
+
+		await play_player_hand_to_node_animation(dragged_card_data, target_slot, place_face_down)
+
 		var placed: bool = try_place_selected_card_on_slot(target_slot)
 
 		if placed:
 			if hand != null:
 				hand.consume_dragged_card(card)
 		else:
+			if card != null and is_instance_valid(card):
+				card.visible = true
+
 			return_card_to_hand_safely(card)
 
 		cancel_selected_card()
 		return
 
-	# 3. Hand reorder.
 	if hand != null and hand.has_method("is_screen_position_in_hand_reorder_zone"):
 		if hand.is_screen_position_in_hand_reorder_zone(screen_position):
 			if hand.has_method("reorder_card_in_hand"):
@@ -1244,23 +1333,39 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 		cancel_selected_card()
 		return
 
-	var placed: bool = pending_spell_slot.place_card(TEST_CARD_SCENE, selected_card_data, place_face_down)
+	var spell_card_data: CardData = selected_card_data
+	var spell_slot: Node = pending_spell_slot
+	var spell_card_ui: CardUI = pending_spell_card_ui
+
+	if spell_card_ui != null and is_instance_valid(spell_card_ui):
+		spell_card_ui.visible = false
+
+	hide_spell_choice_panel()
+
+	await play_player_hand_to_node_animation(spell_card_data, spell_slot, place_face_down)
+
+	var placed: bool = spell_slot.place_card(TEST_CARD_SCENE, spell_card_data, place_face_down)
 
 	if placed:
-		tribute_manager.spend_tribute(selected_card_data.tribute_cost)
+		tribute_manager.spend_tribute(spell_card_data.tribute_cost)
 
 		var visibility_text: String = "face down" if place_face_down else "face up"
-		log_msg("Placed spell " + selected_card_data.card_name + " " + visibility_text + ".")
-		log_msg("Spent " + str(selected_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
+		log_msg("Placed spell " + spell_card_data.card_name + " " + visibility_text + ".")
+		log_msg("Spent " + str(spell_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
 
-		if pending_spell_card_ui != null and hand != null:
-			hand.consume_dragged_card(pending_spell_card_ui)
+		if spell_card_ui != null and hand != null:
+			hand.consume_dragged_card(spell_card_ui)
 		elif hand != null:
 			hand.remove_selected_card()
 
-		handle_card_deployed(selected_card_data)
+		handle_card_deployed(spell_card_data)
+	else:
+		if spell_card_ui != null and is_instance_valid(spell_card_ui):
+			spell_card_ui.visible = true
 
-	hide_spell_choice_panel()
+		if spell_card_ui != null:
+			return_card_to_hand_safely(spell_card_ui)
+
 	cancel_selected_card()
 	
 
@@ -1335,6 +1440,8 @@ func cleanup_battlefield_spells() -> void:
 
 		var slot_owner: String = String(slot.get_meta("owner", ""))
 
+		play_card_to_discard_animation(card_data, slot, slot_owner)
+
 		if slot_owner == "enemy":
 			ai_discard.append(card_data)
 		elif discard_pile != null:
@@ -1359,6 +1466,8 @@ func send_slot_card_to_discard(slot: Node) -> void:
 	var card_data: CardData = get_slot_card_data(slot)
 
 	if card_data != null:
+		play_card_to_discard_animation(card_data, slot, slot_owner)
+
 		if slot_owner == "enemy":
 			ai_discard.append(card_data)
 		elif discard_pile != null:
@@ -1370,6 +1479,8 @@ func send_slot_card_to_discard(slot: Node) -> void:
 		for equipment_card in equipment_cards:
 			if equipment_card == null:
 				continue
+
+			play_card_to_discard_animation(equipment_card, slot, slot_owner)
 
 			if slot_owner == "enemy":
 				ai_discard.append(equipment_card)
@@ -1410,10 +1521,20 @@ func begin_deployment_phase() -> void:
 		log_msg("Player has initiative and deploys first. AI will deploy after you press Go to Combat.")
 	else:
 		log_msg("AI has initiative and deploys first.")
-		ai_take_deployment_turn()
+
+		if next_phase_button != null:
+			next_phase_button.disabled = true
+
+		await ai_take_deployment_turn()
+
+		if next_phase_button != null:
+			next_phase_button.disabled = false
 
 
 func _on_next_phase_pressed() -> void:
+	if next_phase_button != null and next_phase_button.disabled:
+		return
+
 	match current_phase:
 		BattlePhase.BATTLEPLAN:
 			open_battle_plan_selection()
@@ -1423,7 +1544,14 @@ func _on_next_phase_pressed() -> void:
 
 		BattlePhase.DEPLOYMENT:
 			if player_has_initiative:
-				ai_take_deployment_turn()
+				if next_phase_button != null:
+					next_phase_button.disabled = true
+
+				await ai_take_deployment_turn()
+
+				if next_phase_button != null:
+					next_phase_button.disabled = false
+
 			set_phase(BattlePhase.COMBAT)
 
 		BattlePhase.COMBAT:
@@ -1477,7 +1605,13 @@ func ai_start_tribute_phase() -> void:
 	ai_current_tp = ai_current_perm_tp
 	ai_tribute_used_this_turn = false
 
-	ai_offer_one_card_to_tribute()
+	if next_phase_button != null:
+		next_phase_button.disabled = true
+
+	await ai_offer_one_card_to_tribute()
+
+	if next_phase_button != null:
+		next_phase_button.disabled = false
 
 
 func ai_offer_one_card_to_tribute() -> void:
@@ -1494,11 +1628,18 @@ func ai_offer_one_card_to_tribute() -> void:
 		log_msg("AI found no valid Tribute card.")
 		return
 
-	var tribute_card: CardData = ai_hand.pop_at(tribute_index)
+	var tribute_card: CardData = ai_hand[tribute_index]
 
 	if tribute_card == null:
 		return
 
+	await play_enemy_hand_to_node_animation(
+		tribute_card,
+		get_enemy_visual_target("EnemyTributePileVisual"),
+		false
+	)
+
+	ai_hand.pop_at(tribute_index)
 	ai_tribute.append(tribute_card)
 	ai_tribute_used_this_turn = true
 
@@ -1661,6 +1802,7 @@ func ai_deploy_one_card() -> void:
 	# Legacy wrapper. Other code can still call this safely.
 	ai_take_deployment_turn()
 	
+	
 func ai_take_deployment_turn() -> void:
 	if ai_hand.is_empty():
 		log_msg("AI has no hand cards to deploy.")
@@ -1670,12 +1812,14 @@ func ai_take_deployment_turn() -> void:
 	var max_plays: int = max(1, ai_max_deployments_per_phase)
 
 	for i in range(max_plays):
-		var played: bool = ai_try_deploy_one_card()
+		var played: bool = await ai_try_deploy_one_card()
 
 		if not played:
 			break
 
 		plays_made += 1
+
+		await get_tree().create_timer(0.25).timeout
 
 		if ai_current_tp <= 0:
 			break
@@ -1714,6 +1858,8 @@ func ai_try_deploy_one_card() -> bool:
 	var success: bool = false
 
 	if action_type == "equipment":
+		await play_enemy_hand_to_node_animation(card_data, target_slot, false)
+
 		if target_slot.has_method("attach_equipment"):
 			success = target_slot.attach_equipment(TEST_CARD_SCENE, card_data)
 
@@ -1735,6 +1881,8 @@ func ai_try_deploy_one_card() -> bool:
 		return false
 
 	if action_type == "unit" or action_type == "spell":
+		await play_enemy_hand_to_node_animation(card_data, target_slot, face_down)
+
 		if target_slot.has_method("place_card"):
 			success = target_slot.place_card(TEST_CARD_SCENE, card_data, face_down)
 
@@ -1747,6 +1895,7 @@ func ai_try_deploy_one_card() -> bool:
 
 			log_msg("AI placed " + card_data.card_name + " " + visibility_text + " in enemy " + row_text + " row.")
 			log_msg("AI TP after deployment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
+			update_ai_visuals()
 			return true
 
 	return false

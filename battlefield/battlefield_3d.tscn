@@ -19,6 +19,7 @@
 [ext_resource type="Script" uid="uid://b620xjxapgjsm" path="res://battlefield/DiscardPile.gd" id="17_daqav"]
 [ext_resource type="Texture2D" uid="uid://bgjff8r7til78" path="res://Textures/World Textures/ParryTable.png" id="18_djscq"]
 [ext_resource type="Script" uid="uid://rpa2sw7oae1o" path="res://battlefield/OpponentVisuals.gd" id="19_moveh"]
+[ext_resource type="Script" uid="uid://bvdqqom8n8net" path="res://battlefield/CardAnimationManager.gd" id="20_xm46m"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(17.135, 8.34)
@@ -449,7 +450,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.15666, 0.1, 2.2)
 script = ExtResource("17_daqav")
 
 [node name="ParryPit" type="Node3D" parent="." unique_id=2130131975]
-transform = Transform3D(1.11, 0, 0, 0, 1.11, 0, 0, 0, 1.11, 4.19, 0.08, 0.019)
+transform = Transform3D(1.11, 0, 0, 0, 1.11, 0, 0, 0, 1.11, 4.19, 0.1, 0)
 
 [node name="ParryPitGlow" type="MeshInstance3D" parent="ParryPit" unique_id=1129680907]
 mesh = SubResource("CylinderMesh_daqav")
@@ -481,8 +482,35 @@ transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -4.5
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 5.955, 0.1, -2.2)
 
 [node name="EnemyParryPitVisual" type="Node3D" parent="OpponentVisuals" unique_id=347655592]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.19, 0.08, -0.09)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.19, 0.1, 0)
 
 [node name="EnemyParryPitGlow" type="MeshInstance3D" parent="OpponentVisuals/EnemyParryPitVisual" unique_id=1381109763]
 mesh = SubResource("CylinderMesh_moveh")
 surface_material_override/0 = SubResource("StandardMaterial3D_xm46m")
+
+[node name="CardAnimationManager" type="Node3D" parent="." unique_id=90830503]
+script = ExtResource("20_xm46m")
+
+[node name="PlayerHandOrigin" type="Node3D" parent="CardAnimationManager" unique_id=1235106769]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4430811, 3.0187287)
+
+[node name="EnemyHandOrigin" type="Node3D" parent="CardAnimationManager" unique_id=1032167219]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.246, -2.5)
+
+[node name="PlayerTributeTarget" type="Node3D" parent="CardAnimationManager" unique_id=410709231]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.708, 0, 2.195)
+
+[node name="EnemyTributeTarget" type="Node3D" parent="CardAnimationManager" unique_id=1572632379]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.599, 0, -2.076)
+
+[node name="PlayerDiscardTarget" type="Node3D" parent="CardAnimationManager" unique_id=2128081715]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.157, 0.1, 2.195)
+
+[node name="EnemyDiscardTarget" type="Node3D" parent="CardAnimationManager" unique_id=64227198]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.955, 0.1, -2.2)
+
+[node name="PlayerParryPitTarget" type="Node3D" parent="CardAnimationManager" unique_id=1141560511]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.19, 0.1, 0)
+
+[node name="EnemyParryPitTarget" type="Node3D" parent="CardAnimationManager" unique_id=140739834]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.19, 0.1, 0)
