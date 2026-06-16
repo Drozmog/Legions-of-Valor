@@ -20,18 +20,318 @@ var spell_choice_label: Label = null
 
 var global_ability_icons_visible: bool = false
 
+var parry_active: bool = false
+var parry_lane: String = ""
+var parry_attacker_slot: Node = null
+var parry_attacker_card: CardData = null
+var parry_defender_slot: Node = null
+var parry_defender_card: CardData = null
+var parry_required_dp: int = 0
+var parry_gathered_dp: int = 0
+
+var parry_pit_root: Node3D = null
+var parry_pit_area: Area3D = null
+var parry_counter_label: Label3D = null
+
+var parry_prompt_panel: PanelContainer = null
+var parry_prompt_label: Label = null
+var parry_let_die_button: Button = null
+var parry_sacrifice_stack_root: Node3D = null
+var parry_sacrifice_nodes: Array[Node3D] = []
+
+
+
 func _ready() -> void:
 	super._ready()
 	create_spell_choice_panel()
+	create_parry_prompt_ui()
+	create_parry_pit()
+	disable_keyboard_focus_for_all_buttons(self)
+	
 	
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_SPACE:
+			if hand != null and hand.has_method("toggle_hand"):
+				hand.toggle_hand()
+
+			get_viewport().set_input_as_handled()
+			return
+
 		if event.keycode == KEY_SHIFT:
 			toggle_global_ability_icons()
 			get_viewport().set_input_as_handled()
 			return
 
 	super._input(event)
+	
+	
+func create_parry_prompt_ui() -> void:
+	if parry_prompt_panel != null:
+		return
+
+	parry_prompt_panel = PanelContainer.new()
+	parry_prompt_panel.name = "ParryPromptPanel"
+	parry_prompt_panel.visible = false
+	parry_prompt_panel.anchor_left = 0.5
+	parry_prompt_panel.anchor_right = 0.5
+	parry_prompt_panel.anchor_top = 1.0
+	parry_prompt_panel.anchor_bottom = 1.0
+	parry_prompt_panel.offset_left = -260.0
+	parry_prompt_panel.offset_right = 260.0
+	parry_prompt_panel.offset_top = -240.0
+	parry_prompt_panel.offset_bottom = -90.0
+	parry_prompt_panel.z_index = 90
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.02, 0.01, 0.005, 0.92)
+	style.border_color = Color(1.0, 0.35, 0.12, 1.0)
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	parry_prompt_panel.add_theme_stylebox_override("panel", style)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	parry_prompt_panel.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	margin.add_child(vbox)
+
+	parry_prompt_label = Label.new()
+	parry_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	parry_prompt_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	parry_prompt_label.text = "Parry"
+	parry_prompt_label.add_theme_font_size_override("font_size", 17)
+	vbox.add_child(parry_prompt_label)
+
+	parry_let_die_button = Button.new()
+	parry_let_die_button.text = "Let Unit Die"
+	parry_let_die_button.focus_mode = Control.FOCUS_NONE
+	parry_let_die_button.pressed.connect(_on_parry_let_die_pressed)
+	vbox.add_child(parry_let_die_button)
+
+	$UI.add_child(parry_prompt_panel)
+	
+	
+func create_parry_pit() -> void:
+	parry_pit_root = get_node_or_null("ParryPit") as Node3D
+
+	if parry_pit_root == null:
+		log_msg("ParryPit node is missing. Add a Node3D named ParryPit under Battlefield3D.")
+		return
+
+	parry_pit_area = parry_pit_root.get_node_or_null("ParryPitDropArea") as Area3D
+	parry_counter_label = parry_pit_root.get_node_or_null("ParryDPCounter") as Label3D
+
+	if parry_pit_area == null:
+		log_msg("ParryPitDropArea is missing under ParryPit.")
+
+	if parry_counter_label == null:
+		log_msg("ParryDPCounter is missing under ParryPit.")
+
+	parry_sacrifice_stack_root = parry_pit_root.get_node_or_null("ParrySacrificeStack") as Node3D
+
+	if parry_sacrifice_stack_root == null:
+		parry_sacrifice_stack_root = Node3D.new()
+		parry_sacrifice_stack_root.name = "ParrySacrificeStack"
+		parry_sacrifice_stack_root.position = Vector3(0, 0.08, 0)
+		parry_pit_root.add_child(parry_sacrifice_stack_root)
+
+	parry_pit_root.visible = false
+	
+	
+func add_visible_parry_sacrifice_card(card_data: CardData) -> void:
+	if card_data == null:
+		return
+
+	if parry_sacrifice_stack_root == null:
+		return
+
+	var visual_card := TEST_CARD_SCENE.instantiate() as Node3D
+	parry_sacrifice_stack_root.add_child(visual_card)
+
+	if visual_card.has_method("assign_card_data"):
+		visual_card.assign_card_data(card_data, false)
+
+	var index: int = parry_sacrifice_nodes.size()
+
+	# Ordered overlap, not a perfect pile.
+	var x_offset: float = -0.28 + float(index % 4) * 0.18
+	var z_offset: float = -0.18 + float(index % 4) * 0.12
+	var y_offset: float = 0.02 + float(index) * 0.012
+	var rotation_offset: float = -10.0 + float(index % 5) * 5.0
+
+	visual_card.position = Vector3(x_offset, y_offset, z_offset)
+	visual_card.rotation_degrees = Vector3(0, rotation_offset, 0)
+	visual_card.scale = Vector3(0.46, 0.46, 0.46)
+
+	parry_sacrifice_nodes.append(visual_card)
+	
+	
+func clear_visible_parry_sacrifice_cards() -> void:
+	for visual_card in parry_sacrifice_nodes:
+		if visual_card != null and is_instance_valid(visual_card):
+			visual_card.queue_free()
+
+	parry_sacrifice_nodes.clear()
+	
+	
+func begin_parry_prompt(
+	lane: String,
+	attacker_slot: Node,
+	attacker_card: CardData,
+	defender_slot: Node,
+	defender_card: CardData
+) -> void:
+	parry_active = true
+	parry_lane = lane
+	parry_attacker_slot = attacker_slot
+	parry_attacker_card = attacker_card
+	parry_defender_slot = defender_slot
+	parry_defender_card = defender_card
+	parry_required_dp = max(1, attacker_card.ap)
+	parry_gathered_dp = 0
+
+	if parry_pit_root != null:
+		parry_pit_root.visible = true
+
+	if parry_prompt_panel != null:
+		parry_prompt_panel.visible = true
+
+	if parry_prompt_label != null:
+		parry_prompt_label.text = (
+			"Your "
+			+ defender_card.card_name
+			+ " is being attacked by "
+			+ attacker_card.card_name
+			+ ".\nDrop hand cards into the glowing pit to gather DP."
+		)
+
+	update_parry_counter_label()
+
+	log_msg("Parry prompt: sacrifice hand cards into the pit. Required DP: " + str(parry_required_dp))
+	
+	
+func disable_keyboard_focus_for_all_buttons(root: Node) -> void:
+	if root == null:
+		return
+
+	if root is Button:
+		var button := root as Button
+		button.focus_mode = Control.FOCUS_NONE
+
+	for child in root.get_children():
+		disable_keyboard_focus_for_all_buttons(child)
+
+	
+	
+func update_parry_counter_label() -> void:
+	if parry_counter_label == null:
+		return
+
+	parry_counter_label.text = str(parry_gathered_dp) + "/" + str(parry_required_dp) + " DP"
+
+	if parry_gathered_dp >= parry_required_dp:
+		parry_counter_label.modulate = Color(0.45, 1.0, 0.45, 1.0)
+	else:
+		parry_counter_label.modulate = Color(1.0, 0.88, 0.45, 1.0)
+		
+		
+func sacrifice_card_to_parry(card_ui: CardUI) -> void:
+	if not parry_active:
+		return
+
+	if card_ui == null:
+		return
+
+	if not is_instance_valid(card_ui):
+		return
+
+	var sacrificed_card: CardData = card_ui.card_data
+
+	if sacrificed_card == null:
+		return_card_to_hand_safely(card_ui)
+		cancel_selected_card()
+		return
+
+	var gained_dp: int = max(0, sacrificed_card.dp)
+	parry_gathered_dp += gained_dp
+
+	add_visible_parry_sacrifice_card(sacrificed_card)
+
+	if discard_pile != null:
+		discard_pile.add_card(sacrificed_card)
+
+	if hand != null:
+		hand.consume_dragged_card(card_ui)
+
+	log_msg("Parry sacrifice: " + sacrificed_card.card_name + " added " + str(gained_dp) + " DP.")
+	update_parry_counter_label()
+	cancel_selected_card()
+
+	if parry_gathered_dp >= parry_required_dp:
+		complete_parry_success()
+		
+		
+		
+func complete_parry_success() -> void:
+	if not parry_active:
+		return
+
+	log_msg(
+		"Parry successful. "
+		+ parry_defender_card.card_name
+		+ " survives with "
+		+ str(parry_gathered_dp)
+		+ "/"
+		+ str(parry_required_dp)
+		+ " DP."
+	)
+
+	end_parry_prompt()
+	advance_combat_lane_after_resolution()
+	
+func _on_parry_let_die_pressed() -> void:
+	if not parry_active:
+		return
+
+	if parry_defender_slot != null:
+		send_slot_card_to_discard(parry_defender_slot)
+
+	if parry_defender_card != null:
+		log_msg("You let " + parry_defender_card.card_name + " die.")
+
+	end_parry_prompt()
+	advance_combat_lane_after_resolution()
+	
+	
+func end_parry_prompt() -> void:
+	parry_active = false
+	parry_lane = ""
+	parry_attacker_slot = null
+	parry_attacker_card = null
+	parry_defender_slot = null
+	parry_defender_card = null
+	parry_required_dp = 0
+	parry_gathered_dp = 0
+
+	clear_visible_parry_sacrifice_cards()
+
+	if parry_pit_root != null:
+		parry_pit_root.visible = false
+
+	if parry_prompt_panel != null:
+		parry_prompt_panel.visible = false
+		
+		
+	
+	
 	
 func toggle_global_ability_icons() -> void:
 	global_ability_icons_visible = !global_ability_icons_visible
@@ -119,6 +419,135 @@ func create_spell_choice_panel() -> void:
 
 	$UI.add_child(spell_choice_panel)
 	
+
+
+	
+func begin_combat_phase() -> void:
+	reset_combat_state()
+
+	if player_has_initiative:
+		log_msg("Phase: Combat. Player attacks first. Click the leftmost or rightmost lane to choose combat direction.")
+	else:
+		log_msg("Phase: Combat. Opponent attacks first. Click the leftmost or rightmost lane to choose combat direction.")
+		
+func reset_combat_state() -> void:
+	combat_direction_selected = false
+	combat_lane_order.clear()
+	combat_next_lane_index = 0
+	
+func handle_combat_lane_click(slot: Node) -> void:
+	if slot == null:
+		return
+
+	var lane: String = get_slot_lane(slot)
+
+	if lane == "":
+		return
+
+	if not combat_direction_selected:
+		if lane == "left":
+			set_combat_lane_order_from_left()
+			resolve_next_combat_lane(lane)
+			return
+
+		if lane == "right":
+			set_combat_lane_order_from_right()
+			resolve_next_combat_lane(lane)
+			return
+
+		log_msg("Choose the leftmost or rightmost lane first to set combat direction.")
+		return
+
+	resolve_next_combat_lane(lane)
+	
+	
+func set_combat_lane_order_from_left() -> void:
+	combat_direction_selected = true
+	combat_lane_order.clear()
+	combat_lane_order.append("left")
+	combat_lane_order.append("middle")
+	combat_lane_order.append("right")
+	combat_next_lane_index = 0
+
+	log_msg("Combat direction selected: left to right.")
+	
+	
+func set_combat_lane_order_from_right() -> void:
+	combat_direction_selected = true
+	combat_lane_order.clear()
+	combat_lane_order.append("right")
+	combat_lane_order.append("middle")
+	combat_lane_order.append("left")
+	combat_next_lane_index = 0
+
+	log_msg("Combat direction selected: right to left.")
+	
+	
+func resolve_next_combat_lane(clicked_lane: String) -> void:
+	if parry_active:
+		log_msg("Resolve the current parry prompt first.")
+		return
+
+	if combat_next_lane_index >= combat_lane_order.size():
+		log_msg("All combat lanes are already resolved.")
+		return
+
+	var expected_lane: String = combat_lane_order[combat_next_lane_index]
+
+	if clicked_lane != expected_lane:
+		log_msg("Next combat must resolve in the " + expected_lane + " lane.")
+		return
+
+	var player_slot: Node = find_slot_by_owner_row_lane("player", "front", expected_lane)
+	var opponent_slot: Node = find_slot_by_owner_row_lane("enemy", "front", expected_lane)
+
+	resolve_lane_combat(expected_lane, player_slot, opponent_slot)
+
+	# If parry started, do NOT advance lane yet.
+	# Parry will advance the lane after success or Let Die.
+	if parry_active:
+		return
+
+	advance_combat_lane_after_resolution()
+	
+	
+		
+func advance_combat_lane_after_resolution() -> void:
+	combat_next_lane_index += 1
+
+	if combat_next_lane_index >= combat_lane_order.size():
+		log_msg("All combat lanes resolved. Press End Combat / Next Round when ready.")
+	else:
+		log_msg("Next lane to resolve: " + combat_lane_order[combat_next_lane_index])
+		
+
+func resolve_lane_combat(lane: String, player_slot: Node, opponent_slot: Node) -> void:
+	var player_card: CardData = get_slot_card_data(player_slot)
+	var opponent_card: CardData = get_slot_card_data(opponent_slot)
+
+	var player_has_unit: bool = is_unit_card(player_card)
+	var opponent_has_unit: bool = is_unit_card(opponent_card)
+
+	if not player_has_unit and not opponent_has_unit:
+		log_msg(lane.capitalize() + " lane: no unit combat.")
+		return
+
+	if player_has_unit and not opponent_has_unit:
+		log_msg(lane.capitalize() + " lane: " + player_card.card_name + " has no opposing unit target.")
+		return
+
+	if not player_has_unit and opponent_has_unit:
+		log_msg(lane.capitalize() + " lane: opponent " + opponent_card.card_name + " has no player unit target.")
+		return
+
+	if player_has_initiative:
+		resolve_directed_clash(lane, player_slot, player_card, opponent_slot, opponent_card, true)
+	else:
+		resolve_directed_clash(lane, opponent_slot, opponent_card, player_slot, player_card, false)
+	
+	
+
+
 
 func show_spell_choice_panel(card_ui: CardUI, slot: Node) -> void:
 	pending_spell_card_ui = card_ui
@@ -240,6 +669,17 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 	var target_node: Node = get_3d_node_under_screen_position(screen_position)
 	var target_slot: Node = find_board_slot_from_node(target_node)
 
+	# 0. Parry pit has highest priority during parry prompt.
+	if parry_active:
+		if is_node_inside_target(target_node, parry_pit_root):
+			sacrifice_card_to_parry(card)
+			return
+
+		log_msg("Drop cards into the glowing pit to parry, or press Let Unit Die.")
+		return_card_to_hand_safely(card)
+		cancel_selected_card()
+		return
+
 	# 1. Tribute pile has priority.
 	if is_node_inside_target(target_node, tribute_pile):
 		if current_phase != BattlePhase.TRIBUTE:
@@ -296,7 +736,6 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 
 			var target_row: String = String(target_slot.get_meta("row", ""))
 
-			# Front row spells are always face up.
 			if target_row == "front":
 				var front_spell_placed: bool = try_place_selected_card_on_slot(target_slot)
 
@@ -309,7 +748,6 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 				cancel_selected_card()
 				return
 
-			# Back row spells ask face up / face down.
 			if target_row == "back":
 				return_card_to_hand_safely(card)
 				show_spell_choice_panel(card, target_slot)
@@ -341,10 +779,11 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 			cancel_selected_card()
 			return
 
-	# 4. Anything else returns.
 	log_msg("Card dropped nowhere valid.")
 	return_card_to_hand_safely(card)
 	cancel_selected_card()
+	
+
 	
 func get_clean_card_type(card_data: CardData) -> String:
 	if card_data == null:
@@ -621,6 +1060,10 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 	
 
 func start_next_round() -> void:
+	if parry_active:
+		log_msg("Resolve the parry prompt before ending combat.")
+		return
+
 	cleanup_battlefield_spells()
 
 	if tribute_manager != null:
@@ -633,6 +1076,43 @@ func start_next_round() -> void:
 	cancel_selected_card()
 	open_battle_plan_selection()
 	
+
+
+func find_slot_by_owner_row_lane(owner_name: String, row: String, lane: String) -> Node:
+	if board_slots == null:
+		return null
+
+	for slot in board_slots.get_children():
+		if String(slot.get_meta("owner", "")) == owner_name and String(slot.get_meta("row", "")) == row and get_slot_lane(slot) == lane:
+			return slot
+
+	return null
+	
+
+func get_slot_lane(slot: Node) -> String:
+	if slot == null:
+		return ""
+
+	var slot_id: String = String(slot.get_meta("slot_id", "")).to_lower()
+
+	if slot_id.contains("left"):
+		return "left"
+
+	if slot_id.contains("middle"):
+		return "middle"
+
+	if slot_id.contains("right"):
+		return "right"
+
+	var column: String = String(slot.get_meta("column", "")).to_lower()
+
+	if column == "left" or column == "middle" or column == "right":
+		return column
+
+	return ""
+
+
+
 func cleanup_battlefield_spells() -> void:
 	if board_slots == null:
 		return
@@ -670,7 +1150,7 @@ func send_slot_card_to_discard(slot: Node) -> void:
 		discard_pile.add_card(card_data)
 
 	if slot.has_method("get_equipment_cards") and discard_pile != null:
-		var equipment_cards: Array[CardData] = slot.get_equipment_cards()
+		var equipment_cards: Array = slot.get_equipment_cards()
 
 		for equipment_card in equipment_cards:
 			if equipment_card != null:
@@ -930,17 +1410,17 @@ func ai_spend_tp(cost: int) -> bool:
 
 func resolve_directed_clash(
 	lane: String,
-	attacker_slot: Node,
+	_attacker_slot: Node,
 	attacker_card: CardData,
 	defender_slot: Node,
 	defender_card: CardData,
 	player_is_attacker: bool
 ) -> void:
-	var attacker_label: String = "Player" if player_is_attacker else "Opponent"
-	var defender_label: String = "Opponent" if player_is_attacker else "Player"
-
 	if attacker_card == null or defender_card == null:
 		return
+
+	var attacker_label: String = "Player" if player_is_attacker else "Opponent"
+	var defender_label: String = "Opponent" if player_is_attacker else "Player"
 
 	log_msg(
 		lane.capitalize()
@@ -958,38 +1438,17 @@ func resolve_directed_clash(
 		+ str(defender_card.ap)
 	)
 
-	# IMPORTANT:
-	# Battlefield combat compares AP vs AP.
-	# DP is NOT used here. DP will only be used later for parry/defense cards from hand.
 	if attacker_card.ap >= defender_card.ap:
+		if not player_is_attacker:
+			begin_parry_prompt(lane, _attacker_slot, attacker_card, defender_slot, defender_card)
+			return
+
 		send_slot_card_to_discard(defender_slot)
-		log_msg(defender_label + " " + defender_card.card_name + " removed from board.")
+		log_msg(defender_label + " " + defender_card.card_name + " was destroyed.")
 		return
 
-	log_msg(defender_label + " " + defender_card.card_name + " survives the attack.")
+	log_msg(defender_label + " " + defender_card.card_name + " survived the attack.")
 	
-
-
-func resolve_lane_combat(lane: String, player_slot: Node, opponent_slot: Node) -> void:
-	var player_card: CardData = get_slot_card_data(player_slot)
-	var opponent_card: CardData = get_slot_card_data(opponent_slot)
-
-	if player_card == null and opponent_card == null:
-		log_msg(lane.capitalize() + " lane: no combat.")
-		return
-
-	if player_card != null and opponent_card == null:
-		log_msg(lane.capitalize() + " lane: " + player_card.card_name + " has no opposing target.")
-		return
-
-	if player_card == null and opponent_card != null:
-		log_msg(lane.capitalize() + " lane: opponent " + opponent_card.card_name + " has no player target.")
-		return
-
-	if player_has_initiative:
-		resolve_directed_clash(lane, player_slot, player_card, opponent_slot, opponent_card, true)
-	else:
-		resolve_directed_clash(lane, opponent_slot, opponent_card, player_slot, player_card, false)
 
 
 func spawn_random_opponent_cards() -> void:

@@ -56,6 +56,15 @@ size = Vector3(1.02, 0.5, 1.4)
 [sub_resource type="BoxShape3D" id="BoxShape3D_1fhha"]
 size = Vector3(1.02, 0.5, 1.4)
 
+[sub_resource type="CylinderMesh" id="CylinderMesh_daqav"]
+top_radius = 0.62
+bottom_radius = 0.62
+height = 0.045
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_djscq"]
+height = 0.45
+radius = 0.8
+
 [node name="Battlefield3D" type="Node3D" unique_id=1594429578 node_paths=PackedStringArray("hand", "draw_pile", "tribute_pile", "player_deck")]
 script = ExtResource("1_a265j")
 hand = NodePath("UI/Hand")
@@ -417,3 +426,19 @@ script = ExtResource("14_vaox5")
 [node name="DiscardPile" type="Node3D" parent="." unique_id=1628121275]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.955, 0.1, 2.2)
 script = ExtResource("17_daqav")
+
+[node name="ParryPit" type="Node3D" parent="." unique_id=2130131975]
+transform = Transform3D(0.585, 0, 0, 0, 0.585, 0, 0, 0, 0.585, 4.7249684, 0.08, 0.49399853)
+
+[node name="ParryPitGlow" type="MeshInstance3D" parent="ParryPit" unique_id=1129680907]
+mesh = SubResource("CylinderMesh_daqav")
+
+[node name="ParryDPCounter" type="Label3D" parent="ParryPit" unique_id=903500747]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 45, 0)
+text = "0/0 DP"
+
+[node name="ParryPitDropArea" type="Area3D" parent="ParryPit" unique_id=1833703348]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ParryPit/ParryPitDropArea" unique_id=604015528]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
+shape = SubResource("CylinderShape3D_djscq")
