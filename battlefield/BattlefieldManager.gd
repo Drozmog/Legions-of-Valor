@@ -424,103 +424,42 @@ func create_parry_prompt_ui() -> void:
 	
 	
 func create_parry_pit() -> void:
-	parry_pit_root = get_node_or_null("ParryPit")
+	parry_pit_root = get_node_or_null("ParryPit") as Node3D
 
 	if parry_pit_root == null:
-		parry_pit_root = get_node_or_null("Battlefield3D/ParryPit")
-
-	if parry_pit_root == null and get_tree().current_scene != null:
-		parry_pit_root = get_tree().current_scene.get_node_or_null("Battlefield3D/ParryPit")
-
-	if parry_pit_root == null:
-		push_error("ParryPit not found. Expected node path: Battlefield3D/ParryPit")
+		log_msg("ParryPit node is missing. Add a Node3D named ParryPit under Battlefield3D.")
 		return
 
-	parry_pit_glow = parry_pit_root.get_node_or_null("ParryPitGlow")
+	parry_pit_glow = parry_pit_root.get_node_or_null("ParryPitGlow") as Node3D
 	parry_dp_counter = parry_pit_root.get_node_or_null("ParryDPCounter")
-	parry_pit_drop_area = parry_pit_root.get_node_or_null("ParryPitDropArea")
-	parry_sacrifice_stack_root = parry_pit_root.get_node_or_null("ParrySacrificeStack")
+	parry_pit_drop_area = parry_pit_root.get_node_or_null("ParryPitDropArea") as Area3D
+	parry_sacrifice_stack_root = parry_pit_root.get_node_or_null("ParrySacrificeStack") as Node3D
+
+	if parry_pit_glow == null:
+		log_msg("ParryPitGlow is missing under ParryPit.")
 
 	if parry_dp_counter == null:
-		push_warning("ParryDPCounter not found under ParryPit. Creating fallback Label3D.")
-		parry_dp_counter = Label3D.new()
-		parry_dp_counter.name = "ParryDPCounter"
-		parry_pit_root.add_child(parry_dp_counter)
-
-	if parry_dp_counter is Label3D:
-		parry_dp_counter.position = Vector3(-0.60, 0.85, -0.30)
-		parry_dp_counter.text = "0/0 DP"
-		parry_dp_counter.font_size = 48
-		parry_dp_counter.modulate = Color(1.0, 0.92, 0.35, 1.0)
-		parry_dp_counter.outline_size = 8
-		parry_dp_counter.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
-		parry_dp_counter.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		parry_dp_counter.no_depth_test = true
-		parry_dp_counter.visible = false
-
-	if parry_dp_counter == null:
-		push_warning("ParryDPCounter not found under ParryPit.")
+		log_msg("ParryDPCounter is missing under ParryPit.")
 
 	if parry_pit_drop_area == null:
-		push_warning("ParryPitDropArea not found under ParryPit.")
+		log_msg("ParryPitDropArea is missing under ParryPit.")
 
 	if parry_sacrifice_stack_root == null:
 		parry_sacrifice_stack_root = Node3D.new()
 		parry_sacrifice_stack_root.name = "ParrySacrificeStack"
+		parry_sacrifice_stack_root.position = Vector3(0, 0.08, 0)
 		parry_pit_root.add_child(parry_sacrifice_stack_root)
-		parry_sacrifice_stack_root.position = Vector3.ZERO
 
-	parry_pit_root.visible = false
-	update_parry_counter_visual(0, 0)
+	set_parry_pit_visible(false)
+	clear_visible_parry_sacrifice_cards()
+	update_parry_counter_label()
 	
-	
-func show_parry_pit(required_dp: int) -> void:
-	parry_required_dp = required_dp
+func set_parry_pit_visible(is_visible: bool) -> void:
+	if parry_pit_root != null:
+		parry_pit_root.visible = is_visible
 
-	if parry_pit_root == null:
-		create_parry_pit()
-
-	if parry_pit_root == null:
-		return
-
-	parry_pit_root.visible = true
-
-	if parry_pit_glow != null:
-		parry_pit_glow.visible = true
-
-	if parry_dp_counter != null:
-		parry_dp_counter.visible = true
-
-	update_parry_counter_visual(parry_gathered_dp, parry_required_dp)
-
-
-func hide_parry_pit() -> void:
-	if parry_pit_root == null:
-		return
-
-	if parry_pit_glow != null:
-		parry_pit_glow.visible = false
-
-	if parry_dp_counter != null:
-		parry_dp_counter.visible = false
-
-	parry_pit_root.visible = false
-
-	update_parry_counter_visual(0, 0)
-
-
-func update_parry_counter_visual(current_dp: int, required_dp: int) -> void:
-	if parry_dp_counter == null:
-		return
-
-	var counter_text := "%d/%d DP" % [current_dp, required_dp]
-
-	if parry_dp_counter is Label3D:
-		parry_dp_counter.text = counter_text
-	elif parry_dp_counter is Label:
-		parry_dp_counter.text = counter_text
-	else:
-		parry_dp_counter.set("text", counter_text)
+	if parry_pit_drop_area != null:
+		parry_pit_drop_area.input_ray_pickable = is_visible
 	
 	
 func add_visible_parry_sacrifice_card(card_data: CardData) -> void:
@@ -538,7 +477,6 @@ func add_visible_parry_sacrifice_card(card_data: CardData) -> void:
 
 	var index: int = parry_sacrifice_nodes.size()
 
-	# Ordered overlap, not a perfect pile.
 	var x_offset: float = -0.28 + float(index % 4) * 0.18
 	var z_offset: float = -0.18 + float(index % 4) * 0.12
 	var y_offset: float = 0.02 + float(index) * 0.012
@@ -578,7 +516,7 @@ func begin_parry_prompt(
 	parry_required_dp = max(1, attacker_card.ap)
 	parry_gathered_dp = 0
 
-	show_parry_pit(parry_required_dp)
+	set_parry_pit_visible(true)
 
 	if parry_prompt_panel != null:
 		parry_prompt_panel.visible = true
@@ -590,14 +528,11 @@ func begin_parry_prompt(
 			+ " is being attacked by "
 			+ attacker_card.card_name
 			+ ".\nDrop hand cards into the glowing pit to gather DP."
-			+ "\nRequired DP: "
-			+ str(parry_required_dp)
 		)
 
 	update_parry_counter_label()
 
 	log_msg("Parry prompt: sacrifice hand cards into the pit. Required DP: " + str(parry_required_dp))
-	
 	
 	
 func disable_keyboard_focus_for_all_buttons(root: Node) -> void:
@@ -614,7 +549,28 @@ func disable_keyboard_focus_for_all_buttons(root: Node) -> void:
 	
 	
 func update_parry_counter_label() -> void:
-	update_parry_counter_visual(parry_gathered_dp, parry_required_dp)
+	if parry_dp_counter == null:
+		return
+
+	var counter_text := str(parry_gathered_dp) + "/" + str(parry_required_dp) + " DP"
+
+	if parry_dp_counter is Label3D:
+		var label_3d := parry_dp_counter as Label3D
+		label_3d.text = counter_text
+
+		if parry_active and parry_gathered_dp >= parry_required_dp:
+			label_3d.modulate = Color(0.45, 1.0, 0.45, 1.0)
+		elif parry_active:
+			label_3d.modulate = Color(1.0, 0.88, 0.45, 1.0)
+		else:
+			label_3d.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+		return
+
+	if parry_dp_counter is Label:
+		var label := parry_dp_counter as Label
+		label.text = counter_text
+		return
 		
 		
 func sacrifice_card_to_parry(card_ui: CardUI) -> void:
@@ -633,11 +589,6 @@ func sacrifice_card_to_parry(card_ui: CardUI) -> void:
 		return_card_to_hand_safely(card_ui)
 		cancel_selected_card()
 		return
-
-	if card_ui != null and is_instance_valid(card_ui):
-		card_ui.visible = false
-
-	await play_player_hand_to_node_animation(sacrificed_card, parry_pit_root, false)
 
 	var gained_dp: int = max(0, sacrificed_card.dp)
 	parry_gathered_dp += gained_dp
@@ -675,11 +626,6 @@ func complete_parry_success() -> void:
 
 	end_parry_prompt()
 	advance_combat_lane_after_resolution()
-
-	if not player_has_initiative:
-		ai_resolve_combat_sequence()
-		
-
 	
 func _on_parry_let_die_pressed() -> void:
 	if not parry_active:
@@ -690,7 +636,6 @@ func _on_parry_let_die_pressed() -> void:
 
 	if parry_defender_card != null:
 		log_msg("You let " + parry_defender_card.card_name + " die.")
-		add_aurion("ai", 1, "Destroyed " + parry_defender_card.card_name + " in combat.")
 
 	end_parry_prompt()
 	advance_combat_lane_after_resolution()
@@ -707,10 +652,12 @@ func end_parry_prompt() -> void:
 	parry_gathered_dp = 0
 
 	clear_visible_parry_sacrifice_cards()
-	hide_parry_pit()
+	set_parry_pit_visible(false)
 
 	if parry_prompt_panel != null:
 		parry_prompt_panel.visible = false
+
+	update_parry_counter_label()
 		
 		
 	
@@ -757,8 +704,8 @@ func create_spell_choice_panel() -> void:
 	spell_choice_panel.z_index = 80
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.02, 0.02, 0.015, 0.94)
-	style.border_color = Color(0.9, 0.72, 0.32, 1.0)
+	style.bg_color = Color(0.02, 0.02, 0.025, 0.92)
+	style.border_color = Color(0.75, 0.55, 1.0, 0.95)
 	style.border_width_left = 2
 	style.border_width_right = 2
 	style.border_width_top = 2
@@ -766,8 +713,8 @@ func create_spell_choice_panel() -> void:
 	spell_choice_panel.add_theme_stylebox_override("panel", style)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
 	margin.add_theme_constant_override("margin_top", 14)
 	margin.add_theme_constant_override("margin_bottom", 14)
 	spell_choice_panel.add_child(margin)
@@ -777,19 +724,19 @@ func create_spell_choice_panel() -> void:
 	margin.add_child(vbox)
 
 	spell_choice_label = Label.new()
-	spell_choice_label.text = "Place spell as:"
+	spell_choice_label.text = "Place gambit as:"
 	spell_choice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	spell_choice_label.add_theme_font_size_override("font_size", 18)
 	vbox.add_child(spell_choice_label)
 
 	var face_up_button := Button.new()
-	face_up_button.text = "Face Up"
+	face_up_button.text = "Front Row: immediate"
 	face_up_button.focus_mode = Control.FOCUS_NONE
 	face_up_button.pressed.connect(_on_spell_face_up_pressed)
 	vbox.add_child(face_up_button)
 
 	var face_down_button := Button.new()
-	face_down_button.text = "Face Down"
+	face_down_button.text = "Back Row: hidden setup"
 	face_down_button.focus_mode = Control.FOCUS_NONE
 	face_down_button.pressed.connect(_on_spell_face_down_pressed)
 	vbox.add_child(face_down_button)
@@ -802,142 +749,260 @@ func create_spell_choice_panel() -> void:
 
 	$UI.add_child(spell_choice_panel)
 	
+func create_phase_ui() -> void:
+	phase_panel = PanelContainer.new()
+	phase_panel.name = "PhasePanel"
+	phase_panel.anchor_left = 0.5
+	phase_panel.anchor_right = 0.5
+	phase_panel.anchor_top = 0.0
+	phase_panel.anchor_bottom = 0.0
+	phase_panel.offset_left = -210.0
+	phase_panel.offset_right = 210.0
+	phase_panel.offset_top = 20.0
+	phase_panel.offset_bottom = 178.0
 
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0, 0, 0, 0.58)
+	style.border_color = Color(0.9, 0.75, 0.35, 0.95)
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	phase_panel.add_theme_stylebox_override("panel", style)
 
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 12)
+	margin.add_theme_constant_override("margin_right", 12)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	phase_panel.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 7)
+	margin.add_child(vbox)
+
+	phase_label = Label.new()
+	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phase_label.add_theme_font_size_override("font_size", 18)
+	vbox.add_child(phase_label)
+
+	aurion_label = Label.new()
+	aurion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	aurion_label.add_theme_font_size_override("font_size", 15)
+	vbox.add_child(aurion_label)
+
+	next_phase_button = Button.new()
+	next_phase_button.focus_mode = Control.FOCUS_NONE
+	next_phase_button.pressed.connect(_on_next_phase_pressed)
+	vbox.add_child(next_phase_button)
+
+	$UI.add_child(phase_panel)
+	update_phase_ui()
+	update_aurion_counter_ui()
+
+func create_ability_prompt_panel() -> void:
+	ability_prompt_panel = AbilityPromptPanel.new()
+	ability_prompt_panel.ability_choice_made.connect(_on_ability_choice_made)
+	$UI.add_child(ability_prompt_panel)
+
+func _on_ability_choice_made(use_ability: bool, card_data: CardData, ability_text: String) -> void:
+	if card_data == null:
+		return
+	if use_ability:
+		log_msg("Used chosen ability: " + card_data.card_name)
+		log_msg(ability_text)
+	else:
+		log_msg("Skipped chosen ability: " + card_data.card_name)
+
+func set_phase(new_phase: int) -> void:
+	current_phase = new_phase
+	update_phase_ui()
+	update_slot_highlights()
+	match current_phase:
+		BattlePhase.BATTLEPLAN:
+			log_msg("Phase: Battleplan")
+		BattlePhase.TRIBUTE:
+			begin_tribute_phase()
+		BattlePhase.DEPLOYMENT:
+			begin_deployment_phase()
+		BattlePhase.COMBAT:
+			begin_combat_phase()
+			
+func begin_tribute_phase() -> void:
+	log_msg("Phase: Tribute")
+
+	if tribute_manager != null:
+		tribute_manager.start_new_turn_refresh()
+		update_tribute_counter()
+
+	if not ai_has_starting_hand:
+		ensure_ai_game_started()
+	
+func begin_deployment_phase() -> void:
+	log_msg("Phase: Deployment")
+
+	ensure_ai_game_started()
+
+	if player_has_initiative:
+		log_msg("Player has initiative and deploys first.")
+		return
+
+	log_msg("Opponent has initiative and deploys first.")
+	ai_take_deployment_turn()
+	
 	
 func begin_combat_phase() -> void:
 	reset_combat_state()
 
 	if player_has_initiative:
-		log_msg("Phase: Combat. Player has initiative. Click the leftmost or rightmost lane to choose combat direction.")
+		log_msg("Phase: Combat. Player has first action.")
 	else:
-		log_msg("Phase: Combat. AI has initiative and will decide whether to attack.")
-		ai_take_combat_initiative()
-	
+		log_msg("Phase: Combat. Opponent has first action.")
+		ai_take_combat_turn()
 		
+func update_phase_ui() -> void:
+	if phase_label == null or next_phase_button == null:
+		return
+	match current_phase:
+		BattlePhase.BATTLEPLAN:
+			phase_label.text = "BATTLEPLAN PHASE"
+			next_phase_button.text = "Choose Battleplan"
+		BattlePhase.TRIBUTE:
+			phase_label.text = "TRIBUTE PHASE"
+			next_phase_button.text = "Go to Deployment"
+		BattlePhase.DEPLOYMENT:
+			phase_label.text = "DEPLOYMENT PHASE"
+			next_phase_button.text = "Go to Combat"
+		BattlePhase.COMBAT:
+			phase_label.text = "COMBAT PHASE"
+			next_phase_button.text = "End Combat / Next Round"
+			
+			
+func _on_next_phase_pressed() -> void:
+	match current_phase:
+		BattlePhase.BATTLEPLAN:
+			open_battle_plan_selection()
+		BattlePhase.TRIBUTE:
+			set_phase(BattlePhase.DEPLOYMENT)
+		BattlePhase.DEPLOYMENT:
+			if not player_has_initiative:
+				set_phase(BattlePhase.COMBAT)
+				return
+
+			ai_take_deployment_turn()
+			set_phase(BattlePhase.COMBAT)
+		BattlePhase.COMBAT:
+			if player_has_initiative:
+				ai_take_combat_turn()
+
+			start_next_round()
+			
+func start_next_round() -> void:
+	if battle_plan_manager != null:
+		battle_plan_manager.advance_round()
+
+	cancel_selected_card()
+	clear_pending_spell_placement()
+	end_parry_prompt()
+	cleanup_battlefield_spells()
+	open_battle_plan_selection()
+
 func reset_combat_state() -> void:
 	combat_direction_selected = false
 	combat_lane_order.clear()
 	combat_next_lane_index = 0
-	
-func handle_combat_lane_click(slot: Node) -> void:
-	if slot == null:
+
+func connect_all_slots() -> void:
+	if board_slots == null:
+		return
+	for slot in board_slots.get_children():
+		if slot.has_signal("slot_clicked"):
+			slot.slot_clicked.connect(_on_slot_clicked)
+		if slot.has_signal("slot_right_clicked"):
+			slot.slot_right_clicked.connect(_on_slot_right_clicked)
+
+func _on_hand_card_drag_started(card: CardUI) -> void:
+	if waiting_for_battle_plan or card == null:
+		return
+	select_card(card.card_data)
+
+func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
+	if card == null:
 		return
 
-	if not player_has_initiative:
-		log_msg("AI has initiative this combat. You cannot choose the attack lane.")
-		return
-		
-	var lane: String = get_slot_lane(slot)
+	var target_node := get_3d_node_under_screen_position(screen_position)
+	var target_slot := find_board_slot_from_node(target_node)
 
-	if lane == "":
+	if parry_active and is_node_inside_target(target_node, parry_pit_drop_area):
+		sacrifice_card_to_parry(card)
 		return
 
-	if not combat_direction_selected:
-		if lane == "left":
-			set_combat_lane_order_from_left()
-			resolve_next_combat_lane(lane)
+	if target_slot != null:
+		if current_phase != BattlePhase.DEPLOYMENT:
+			log_msg("Cards can only be deployed during the Deployment Phase.")
+			return_card_to_hand_safely(card)
+			cancel_selected_card()
 			return
 
-		if lane == "right":
-			set_combat_lane_order_from_right()
-			resolve_next_combat_lane(lane)
+		if not has_selected_card or selected_card_data == null:
+			return_card_to_hand_safely(card)
+			cancel_selected_card()
 			return
 
-		log_msg("Choose the leftmost or rightmost lane first to set combat direction.")
+		if is_spell_like_card(selected_card_data):
+			var slot_row: String = target_slot.get_meta("row", "")
+
+			if slot_row == "front":
+				var front_spell_placed: bool = try_place_selected_card_on_slot(target_slot)
+
+				if front_spell_placed:
+					play_player_hand_to_node_animation(selected_card_data, target_slot, false)
+					hand.consume_dragged_card(card)
+				else:
+					return_card_to_hand_safely(card)
+
+				cancel_selected_card()
+				return
+
+			if slot_row == "back":
+				show_spell_choice_panel(card, target_slot)
+				return
+
+			log_msg("Invalid gambit placement row.")
+			return_card_to_hand_safely(card)
+			cancel_selected_card()
+			return
+
+		var placed := try_place_selected_card_on_slot(target_slot)
+
+		if placed:
+			play_player_hand_to_node_animation(selected_card_data, target_slot, false)
+			hand.consume_dragged_card(card)
+		else:
+			return_card_to_hand_safely(card)
+
+		cancel_selected_card()
 		return
 
-	resolve_next_combat_lane(lane)
-	
-	
-func set_combat_lane_order_from_left() -> void:
-	combat_direction_selected = true
-	combat_lane_order.clear()
-	combat_lane_order.append("left")
-	combat_lane_order.append("middle")
-	combat_lane_order.append("right")
-	combat_next_lane_index = 0
-
-	log_msg("Combat direction selected: left to right.")
-	
-	
-func set_combat_lane_order_from_right() -> void:
-	combat_direction_selected = true
-	combat_lane_order.clear()
-	combat_lane_order.append("right")
-	combat_lane_order.append("middle")
-	combat_lane_order.append("left")
-	combat_next_lane_index = 0
-
-	log_msg("Combat direction selected: right to left.")
-	
-	
-func resolve_next_combat_lane(clicked_lane: String) -> void:
-	if parry_active:
-		log_msg("Resolve the current parry prompt first.")
+	if is_node_inside_target(target_node, tribute_pile):
+		if current_phase != BattlePhase.TRIBUTE:
+			log_msg("Cards can only be sent to Tribute during the Tribute Phase.")
+			return_card_to_hand_safely(card)
+			cancel_selected_card()
+			return
+		var sacrificed := try_sacrifice_selected_card_to_tribute()
+		if sacrificed:
+			hand.consume_dragged_card(card)
+		else:
+			return_card_to_hand_safely(card)
+		cancel_selected_card()
 		return
 
-	if combat_next_lane_index >= combat_lane_order.size():
-		log_msg("All combat lanes are already resolved.")
-		return
-
-	var expected_lane: String = combat_lane_order[combat_next_lane_index]
-
-	if clicked_lane != expected_lane:
-		log_msg("Next combat must resolve in the " + expected_lane + " lane.")
-		return
-
-	var player_slot: Node = find_slot_by_owner_row_lane("player", "front", expected_lane)
-	var opponent_slot: Node = find_slot_by_owner_row_lane("enemy", "front", expected_lane)
-
-	resolve_lane_combat(expected_lane, player_slot, opponent_slot)
-
-	# If parry started, do NOT advance lane yet.
-	# Parry will advance the lane after success or Let Die.
-	if parry_active:
-		return
-
-	advance_combat_lane_after_resolution()
+	log_msg("Card dropped nowhere valid.")
+	return_card_to_hand_safely(card)
+	cancel_selected_card()
 	
 	
-		
-func advance_combat_lane_after_resolution() -> void:
-	combat_next_lane_index += 1
-
-	if combat_next_lane_index >= combat_lane_order.size():
-		log_msg("All combat lanes resolved. Press End Combat / Next Round when ready.")
-	else:
-		log_msg("Next lane to resolve: " + combat_lane_order[combat_next_lane_index])
-		
-
-func resolve_lane_combat(lane: String, player_slot: Node, opponent_slot: Node) -> void:
-	var player_card: CardData = get_slot_card_data(player_slot)
-	var opponent_card: CardData = get_slot_card_data(opponent_slot)
-
-	var player_has_unit: bool = is_unit_card(player_card)
-	var opponent_has_unit: bool = is_unit_card(opponent_card)
-
-	if not player_has_unit and not opponent_has_unit:
-		log_msg(lane.capitalize() + " lane: no unit combat.")
-		return
-
-	if player_has_unit and not opponent_has_unit:
-		log_msg(lane.capitalize() + " lane: " + player_card.card_name + " has no opposing unit target.")
-		return
-
-	if not player_has_unit and opponent_has_unit:
-		log_msg(lane.capitalize() + " lane: opponent " + opponent_card.card_name + " has no player unit target.")
-		return
-
-	if player_has_initiative:
-		resolve_directed_clash(lane, player_slot, player_card, opponent_slot, opponent_card, true)
-	else:
-		resolve_directed_clash(lane, opponent_slot, opponent_card, player_slot, player_card, false)
-	
-	
-
-
-
 func show_spell_choice_panel(card_ui: CardUI, slot: Node) -> void:
 	pending_spell_card_ui = card_ui
 	pending_spell_slot = slot
@@ -949,8 +1014,8 @@ func show_spell_choice_panel(card_ui: CardUI, slot: Node) -> void:
 		spell_choice_label.text = "Place " + selected_card_data.card_name + " as:"
 
 	spell_choice_panel.visible = true
-	
-	
+
+
 func hide_spell_choice_panel() -> void:
 	if spell_choice_panel != null:
 		spell_choice_panel.visible = false
@@ -961,12 +1026,12 @@ func hide_spell_choice_panel() -> void:
 
 func _on_spell_face_up_pressed() -> void:
 	confirm_pending_spell_placement(false)
-	
-	
+
+
 func _on_spell_face_down_pressed() -> void:
 	confirm_pending_spell_placement(true)
-	
-	
+
+
 func _on_spell_choice_cancel_pressed() -> void:
 	if pending_spell_card_ui != null:
 		return_card_to_hand_safely(pending_spell_card_ui)
@@ -975,262 +1040,172 @@ func _on_spell_choice_cancel_pressed() -> void:
 	cancel_selected_card()
 
 
-func create_phase_ui() -> void:
-	phase_panel = PanelContainer.new()
-	phase_panel.name = "PhasePanel"
-
-	# One combined right-side command panel.
-	# Sits below enemy discard/deck visuals and above the player tribute pile.
-	phase_panel.anchor_left = 1.0
-	phase_panel.anchor_right = 1.0
-	phase_panel.anchor_top = 0.0
-	phase_panel.anchor_bottom = 0.0
-
-	phase_panel.offset_left = -250.0
-	phase_panel.offset_right = -20.0
-	phase_panel.offset_top = 320.0
-	phase_panel.offset_bottom = 300.0
-	phase_panel.z_index = 75
-
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.02, 0.015, 0.005, 0.74)
-	style.border_color = Color(1.0, 0.78, 0.22, 1.0)
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_width_top = 2
-	style.border_width_bottom = 2
-	phase_panel.add_theme_stylebox_override("panel", style)
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	phase_panel.add_child(margin)
-
-	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
-	margin.add_child(vbox)
-
-	phase_label = Label.new()
-	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	phase_label.add_theme_font_size_override("font_size", 17)
-	vbox.add_child(phase_label)
-
-	aurion_label = Label.new()
-	aurion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	aurion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	aurion_label.add_theme_font_size_override("font_size", 14)
-	vbox.add_child(aurion_label)
-
-	next_phase_button = Button.new()
-	next_phase_button.focus_mode = Control.FOCUS_NONE
-	next_phase_button.custom_minimum_size = Vector2(0, 32)
-	next_phase_button.pressed.connect(_on_next_phase_pressed)
-	vbox.add_child(next_phase_button)
-
-	# No more separate opponent test button.
-	spawn_opponent_button = null
-
-	$UI.add_child(phase_panel)
-	update_phase_ui()
-	update_aurion_counter_ui()
-
-
-func begin_game_after_battle_plan_selection() -> void:
-	if game_has_started:
+func return_card_to_hand_safely(card: CardUI) -> void:
+	if hand == null:
 		return
 
-	game_has_started = true
-
-	setup_ai_deck()
-	ai_draw_cards(5)
-	ai_has_starting_hand = true
-
-	update_tribute_counter()
-	deal_starting_hand()
-
-	if tribute_manager != null:
-		log_msg("Starting Tribute: " + tribute_manager.get_status_text())
-
-	log_msg("AI starting hand dealt. AI hand: " + str(ai_hand.size()) + " | AI deck: " + str(ai_deck.size()))
-	update_ai_visuals()
-
-
-func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
 	if card == null:
-		cancel_selected_card()
 		return
 
 	if not is_instance_valid(card):
-		cancel_selected_card()
 		return
 
-	if selected_card_data == null and card.card_data != null:
-		select_card(card.card_data)
-
-	var dragged_card_data: CardData = selected_card_data
-
-	var target_node: Node = get_3d_node_under_screen_position(screen_position)
-	var target_slot: Node = find_board_slot_from_node(target_node)
-
-	if parry_active:
-		var dropped_on_parry_pit := false
-
-		if parry_pit_drop_area != null and is_node_inside_target(target_node, parry_pit_drop_area):
-			dropped_on_parry_pit = true
-		elif parry_pit_root != null and is_node_inside_target(target_node, parry_pit_root):
-			dropped_on_parry_pit = true
-
-		if dropped_on_parry_pit:
-			await sacrifice_card_to_parry(card)
-			return
-
-		log_msg("Drop cards into the glowing pit to parry, or press Let Unit Die.")
-		return_card_to_hand_safely(card)
-		cancel_selected_card()
-		return
-
-	if is_node_inside_target(target_node, tribute_pile):
-		if current_phase != BattlePhase.TRIBUTE:
-			log_msg("Cards can only be sent to Tribute during the Tribute Phase.")
-			return_card_to_hand_safely(card)
-			cancel_selected_card()
-			return
-
-		if card != null and is_instance_valid(card):
-			card.visible = false
-
-		await play_player_hand_to_node_animation(dragged_card_data, tribute_pile, false)
-
-		var sacrificed: bool = try_sacrifice_selected_card_to_tribute()
-
-		if sacrificed:
-			if hand != null:
-				hand.consume_dragged_card(card)
-		else:
-			if card != null and is_instance_valid(card):
-				card.visible = true
-
-			return_card_to_hand_safely(card)
-
-		cancel_selected_card()
-		return
-
-	if target_slot != null:
-		if current_phase != BattlePhase.DEPLOYMENT:
-			log_msg("Cards can only be deployed during the Deployment Phase.")
-			return_card_to_hand_safely(card)
-			cancel_selected_card()
-			return
-
-		var card_type: String = get_clean_card_type(selected_card_data)
-
-		if card_type == "equipment":
-			if card != null and is_instance_valid(card):
-				card.visible = false
-
-			await play_player_hand_to_node_animation(dragged_card_data, target_slot, false)
-
-			var attached: bool = try_attach_selected_equipment_to_slot(target_slot)
-
-			if attached:
-				if hand != null:
-					hand.consume_dragged_card(card)
-			else:
-				if card != null and is_instance_valid(card):
-					card.visible = true
-
-				return_card_to_hand_safely(card)
-
-			cancel_selected_card()
-			return
-
-		if is_gambit_card(selected_card_data):
-			if String(target_slot.get_meta("owner", "")) != "player":
-				log_msg("Spells can only be placed on your side of the board.")
-				return_card_to_hand_safely(card)
-				cancel_selected_card()
-				return
-
-			if bool(target_slot.get_meta("occupied", false)):
-				log_msg("That slot is already occupied.")
-				return_card_to_hand_safely(card)
-				cancel_selected_card()
-				return
-
-			var target_row: String = String(target_slot.get_meta("row", ""))
-
-			if target_row == "front":
-				if card != null and is_instance_valid(card):
-					card.visible = false
-
-				await play_player_hand_to_node_animation(dragged_card_data, target_slot, false)
-
-				var front_spell_placed: bool = try_place_selected_card_on_slot(target_slot)
-
-				if front_spell_placed:
-					if hand != null:
-						hand.consume_dragged_card(card)
-				else:
-					if card != null and is_instance_valid(card):
-						card.visible = true
-
-					return_card_to_hand_safely(card)
-
-				cancel_selected_card()
-				return
-
-			if target_row == "back":
-				return_card_to_hand_safely(card)
-				show_spell_choice_panel(card, target_slot)
-				return
-
-			log_msg("Invalid spell placement row.")
-			return_card_to_hand_safely(card)
-			cancel_selected_card()
-			return
-
-		var place_face_down: bool = false
-		var slot_row: String = String(target_slot.get_meta("row", ""))
-
-		if is_unit_card(selected_card_data) and slot_row == "back":
-			place_face_down = true
-
-		if card != null and is_instance_valid(card):
-			card.visible = false
-
-		await play_player_hand_to_node_animation(dragged_card_data, target_slot, place_face_down)
-
-		var placed: bool = try_place_selected_card_on_slot(target_slot)
-
-		if placed:
-			if hand != null:
-				hand.consume_dragged_card(card)
-		else:
-			if card != null and is_instance_valid(card):
-				card.visible = true
-
-			return_card_to_hand_safely(card)
-
-		cancel_selected_card()
-		return
-
-	if hand != null and hand.has_method("is_screen_position_in_hand_reorder_zone"):
-		if hand.is_screen_position_in_hand_reorder_zone(screen_position):
-			if hand.has_method("reorder_card_in_hand"):
-				hand.reorder_card_in_hand(card, screen_position.x)
-
-			return_card_to_hand_safely(card)
-			cancel_selected_card()
-			return
-
-	log_msg("Card dropped nowhere valid.")
-	return_card_to_hand_safely(card)
-	cancel_selected_card()
+	hand.return_dragged_card_to_hand(card)
 	
+	
+func clear_pending_spell_placement() -> void:
+	if pending_spell_card_ui != null:
+		return_card_to_hand_safely(pending_spell_card_ui)
 
+	hide_spell_choice_panel()
+
+func deal_starting_hand() -> void:
+	if hand == null or player_deck == null:
+		log_msg("Hand or PlayerDeck is missing.")
+		return
+	for i in range(5):
+		var drawn_card: CardData = player_deck.draw_top_card()
+		if drawn_card == null:
+			return
+		hand.add_card_to_hand(drawn_card, false)
+	if draw_pile != null:
+		draw_pile.set_card_count(player_deck.cards_remaining())
+	log_msg("Starting hand dealt. Deck remaining: " + str(player_deck.cards_remaining()))
+
+func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
+	if waiting_for_battle_plan:
+		return
+	if current_phase == BattlePhase.DEPLOYMENT or current_phase == BattlePhase.COMBAT:
+		log_msg("You cannot draw cards after Deployment has begun.")
+		return
+	if hand == null or player_deck == null:
+		return
+	if not hand.can_accept_card():
+		log_msg("Hand is full. Max hand size: " + str(hand.max_hand_size))
+		return
+	var preview_card: CardData = player_deck.peek_top_card()
+	var started: bool = hand.start_draw_pile_drag(screen_position, preview_card)
+	if started:
+		log_msg("Dragging card from Draw Pile.")
+	else:
+		log_msg("Draw Pile is empty.")
+
+func _on_draw_pile_drag_moved(screen_position: Vector2) -> void:
+	if hand != null:
+		hand.update_draw_pile_drag(screen_position)
+
+func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
+	if hand == null or player_deck == null:
+		return
+	if not hand.is_screen_position_in_hand_drop_zone(screen_position):
+		hand.finish_draw_pile_drag(screen_position, null)
+		return
+	if not hand.can_accept_card():
+		hand.finish_draw_pile_drag(screen_position, null)
+		log_msg("Draw cancelled. Hand is full. Max hand size: " + str(hand.max_hand_size))
+		return
+	var drawn_card: CardData = player_deck.draw_top_card()
+	var accepted: bool = hand.finish_draw_pile_drag(screen_position, drawn_card)
+	if accepted:
+		draw_pile.consume_top_card()
+		log_msg("Card drawn into hand. Deck remaining: " + str(player_deck.cards_remaining()))
+
+func _on_slot_clicked(slot: Node) -> void:
+	if current_phase == BattlePhase.COMBAT:
+		handle_combat_lane_click(slot)
+		return
+	if current_phase != BattlePhase.DEPLOYMENT:
+		log_msg("Cards can only be deployed during the Deployment Phase.")
+		return
+	var placed := try_place_selected_card_on_slot(slot)
+	if placed:
+		if hand != null:
+			hand.remove_selected_card()
+		cancel_selected_card()
+
+func _on_slot_right_clicked(_slot: Node) -> void:
+	log_msg("Manual battlefield clearing is disabled. Cards leave the board only through combat, cleanup, or abilities.")
+
+func _on_tribute_pile_clicked() -> void:
+	if waiting_for_battle_plan:
+		return
+	if current_phase != BattlePhase.TRIBUTE:
+		log_msg("Tribute pile is only active during the Tribute Phase.")
+		return
+	if not has_selected_card:
+		log_msg("Drag a card from your hand to the Tribute Pile.")
+		return
+	var sacrificed := try_sacrifice_selected_card_to_tribute()
+	if sacrificed:
+		if hand != null:
+			hand.remove_selected_card()
+		cancel_selected_card()
+
+func _input(event: InputEvent) -> void:
+	if waiting_for_battle_plan:
+		return
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_1:
+			select_card(ARCH_WIZARD_MAELCOR)
+		if event.keycode == KEY_2:
+			select_card(IMPERIAL_ARCHIVE_MASTER)
+		if event.keycode == KEY_3:
+			select_card(JENA_OF_YEL)
+		if event.keycode == KEY_4:
+			select_card(IVAAN_THE_BONE_CRUSHER)
+		if event.keycode == KEY_5:
+			select_card(UPPER_HALL_PROSPECTOR)
+		if event.keycode == KEY_6:
+			select_card(VAELORI_LONGBOW_M)
+		if event.keycode == KEY_7:
+			select_card(BLACKMAIL)
+		if event.keycode == KEY_ESCAPE:
+			cancel_selected_card()
+		if event.keycode == KEY_E:
+			_on_next_phase_pressed()
+		if event.keycode == KEY_T:
+			debug_tribute_selected_card()
+		if event.keycode == KEY_Y:
+			tribute_manager.refresh_tribute_points()
+		if event.keycode == KEY_D and hand != null:
+			debug_draw_card()
+
+func debug_draw_card() -> void:
+	if current_phase == BattlePhase.DEPLOYMENT or current_phase == BattlePhase.COMBAT:
+		log_msg("You cannot draw cards after Deployment has begun.")
+		return
+	if player_deck == null or not hand.can_accept_card():
+		return
+	var drawn_card: CardData = player_deck.draw_top_card()
+	if drawn_card == null:
+		return
+	hand.add_card_to_hand(drawn_card)
+	if draw_pile != null:
+		draw_pile.consume_top_card()
+
+func debug_tribute_selected_card() -> void:
+	if selected_card_data == null:
+		return
+	if tribute_manager != null and not tribute_manager.can_offer_card_this_turn():
+		log_msg("Tribute already used this turn. Only 1 card can be used as Tribute per turn.")
+		return
+	tribute_manager.offer_card_to_tribute(selected_card_data)
+	log_msg("Debug tributed: " + selected_card_data.card_name + ". " + tribute_manager.get_status_text())
+
+func select_card(card_data: CardData) -> void:
+	if card_data == null:
+		return
+	selected_card_scene = TEST_CARD_SCENE
+	selected_card_data = card_data
+	has_selected_card = true
+	log_msg("Selected: " + card_data.card_name + " | TP " + str(card_data.tribute_cost) + " | " + card_data.card_type)
+	update_slot_highlights()
+
+func cancel_selected_card() -> void:
+	selected_card_scene = null
+	selected_card_data = null
+	has_selected_card = false
+	update_slot_highlights()
 	
 func get_clean_card_type(card_data: CardData) -> String:
 	if card_data == null:
@@ -1238,372 +1213,183 @@ func get_clean_card_type(card_data: CardData) -> String:
 
 	return card_data.card_type.to_lower().strip_edges()
 	
-
 func is_gambit_card(card_data: CardData) -> bool:
 	var card_type: String = get_clean_card_type(card_data)
 
 	return card_type == "gambit"
 	
 
+# Legacy wrapper so older call sites do not break during the rename.
+func is_spell_like_card(card_data: CardData) -> bool:
+	return is_gambit_card(card_data)
+	
+
 func is_equipment_card(card_data: CardData) -> bool:
 	return get_clean_card_type(card_data) == "equipment"
 
-func is_trap_card(card_data: CardData) -> bool:
-	return get_clean_card_type(card_data) == "trap"
+func is_trap_card(_card_data: CardData) -> bool:
+	return false
 
 
-func is_ruse_card(card_data: CardData) -> bool:
-	return get_clean_card_type(card_data) == "ruse"
+func is_ruse_card(_card_data: CardData) -> bool:
+	return false
 
 
-func is_event_card(card_data: CardData) -> bool:
-	return get_clean_card_type(card_data) == "event"
+func is_event_card(_card_data: CardData) -> bool:
+	return false
 
 
-func is_spell_card(card_data: CardData) -> bool:
-	return get_clean_card_type(card_data) == "spell"
+func is_spell_card(_card_data: CardData) -> bool:
+	return false
 	
 
 func get_slot_card_data(slot: Node) -> CardData:
 	if slot == null:
 		return null
-
 	if slot.has_method("get_placed_card_data"):
 		return slot.get_placed_card_data()
-
 	return null
-	
-
-func return_card_to_hand_safely(card: CardUI) -> void:
-	if hand == null:
-		return
-
-	if card != null and is_instance_valid(card):
-		card.mouse_is_pressed = false
-		card.is_dragging = false
-		card.set_process(false)
-
-	if hand.has_method("return_dragged_card_to_hand"):
-		hand.return_dragged_card_to_hand(card)
-
-
-func draw_battleplan_cards(plan: Dictionary) -> void:
-	var draw_amount: int = int(plan.get("draw_amount", 0))
-
-	var player_drawn_count: int = 0
-
-	if draw_amount > 0 and player_deck != null and hand != null:
-		for i in range(draw_amount):
-			if not hand.can_accept_card():
-				break
-
-			var drawn_card: CardData = player_deck.draw_top_card()
-
-			if drawn_card == null:
-				break
-
-			hand.add_card_to_hand(drawn_card)
-			player_drawn_count += 1
-
-			if draw_pile != null:
-				draw_pile.consume_top_card()
-
-	log_msg("Battleplan draw: player drew " + str(player_drawn_count) + "/" + str(draw_amount) + " cards.")
-
-	if opponent_battle_plan.is_empty():
-		log_msg("AI battleplan draw skipped. No unused AI battleplan remains.")
-		return
-
-	var ai_draw_amount: int = int(opponent_battle_plan.get("draw_amount", 0))
-	ai_draw_cards(ai_draw_amount)
-
-	log_msg("AI battleplan draw: AI drew " + str(ai_draw_amount) + " cards. AI hand: " + str(ai_hand.size()))
-
 
 func try_place_selected_card_on_slot(slot: Node) -> bool:
 	if slot == null:
 		return false
-
+	var slot_id: String = slot.get_meta("slot_id", "")
 	if not has_selected_card or selected_card_data == null:
 		return false
-
-	var slot_id: String = String(slot.get_meta("slot_id", ""))
-	var slot_row: String = String(slot.get_meta("row", ""))
-	var card_type: String = get_clean_card_type(selected_card_data)
-
-	if card_type == "equipment":
-		return try_attach_selected_equipment_to_slot(slot)
-
 	if not is_valid_slot_for_selected_card(slot):
-		log_msg("Invalid placement for " + selected_card_data.card_name + " on " + slot_id)
+		log_msg("Invalid placement for " + selected_card_data.card_name + " on " + str(slot_id))
 		return false
-
 	if not tribute_manager.can_afford(selected_card_data.tribute_cost):
 		log_msg("Not enough Tribute Points. Need " + str(selected_card_data.tribute_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
 		return false
-
+	var slot_row: String = slot.get_meta("row", "")
 	var place_face_down: bool = false
-
-	if card_type == "unit" and slot_row == "back":
+	if is_spell_like_card(selected_card_data):
+		# Front row gambits are always face up.
+		# Back row gambits should normally come through confirm_pending_spell_placement().
+		place_face_down = slot_row == "back"
+	elif slot_row == "back":
 		place_face_down = true
-
-	if is_gambit_card(selected_card_data):
-		# Front row spells are always face up.
-		# Back row spells should normally come through confirm_pending_spell_placement().
-		place_face_down = false
-
-	var placed_successfully: bool = slot.place_card(TEST_CARD_SCENE, selected_card_data, place_face_down)
-
+	var placed_successfully: bool = slot.place_card(selected_card_scene, selected_card_data, place_face_down)
 	if placed_successfully:
 		tribute_manager.spend_tribute(selected_card_data.tribute_cost)
 		log_msg("Spent " + str(selected_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
 		handle_card_deployed(selected_card_data)
 		return true
-
 	return false
-	
-	
+
+func try_sacrifice_selected_card_to_tribute() -> bool:
+	if not has_selected_card or selected_card_data == null:
+		return false
+	if tribute_manager != null and not tribute_manager.can_offer_card_this_turn():
+		log_msg("Tribute already used this turn. Only 1 card can be used as Tribute per turn.")
+		return false
+	var sacrificed_card_name := selected_card_data.card_name
+	var sacrificed_card_type := get_clean_card_type(selected_card_data)
+	var tribute_success: bool = tribute_manager.offer_card_to_tribute(selected_card_data)
+	if not tribute_success:
+		return false
+	if tribute_pile != null:
+		tribute_pile.add_card(selected_card_data)
+	if sacrificed_card_type == "gambit":
+		log_msg("Sacrificed " + sacrificed_card_name + " for temporary Tribute. +2 TP this turn.")
+	else:
+		log_msg("Sacrificed " + sacrificed_card_name + " for permanent Tribute. +1 permanent TP.")
+	return true
+
 func is_valid_slot_for_selected_card(slot: Node) -> bool:
 	if current_phase != BattlePhase.DEPLOYMENT:
 		return false
-
 	if not has_selected_card or selected_card_data == null:
 		return false
-
-	if slot == null:
+	if slot.get_meta("owner", "") != "player":
 		return false
-
-	if String(slot.get_meta("owner", "")) != "player":
+	if slot.occupied:
 		return false
-
-	var slot_row: String = String(slot.get_meta("row", ""))
-	var slot_occupied: bool = bool(slot.get_meta("occupied", false))
-	var card_type: String = get_clean_card_type(selected_card_data)
-
-	if card_type == "equipment":
-		if not slot_occupied:
+	var slot_row: String = slot.get_meta("row", "")
+	if is_equipment_card(selected_card_data):
+		if slot_row != "front":
 			return false
-
-		if not slot.has_method("can_attach_equipment"):
+		if not slot.has_method("has_unit_card") or not slot.has_unit_card():
 			return false
-
-		if not slot.can_attach_equipment():
-			return false
-
-		var existing_card: CardData = get_slot_card_data(slot)
-		return is_unit_card(existing_card)
-
-	if is_gambit_card(selected_card_data):
-		# Spells can go front or back, any lane.
-		# Front = face up automatically.
-		# Back = prompt for face up / face down.
-		return (slot_row == "front" or slot_row == "back") and not slot_occupied
-
-	if card_type == "unit":
-		# Units can go front face-up or back face-down.
-		return (slot_row == "front" or slot_row == "back") and not slot_occupied
-
-	return false
-	
-	
-func is_unit_card(card_data: CardData) -> bool:
-	return get_clean_card_type(card_data) == "unit"
-	
-	
-	
-func try_attach_selected_equipment_to_slot(slot: Node) -> bool:
-	if slot == null:
-		return false
-
-	if selected_card_data == null:
-		return false
-
-	if not is_equipment_card(selected_card_data):
-		return false
-
-	if String(slot.get_meta("owner", "")) != "player":
-		log_msg("Equipment can only be attached to your units.")
-		return false
-
-	if not bool(slot.get_meta("occupied", false)):
-		log_msg("Equipment cannot be placed alone. Attach it to an existing unit.")
-		return false
-
-	if bool(slot.get_meta("face_down", false)):
-		log_msg("Equipment cannot be attached to a face-down card.")
-		return false
-	
-	var existing_card: CardData = get_slot_card_data(slot)
-
-	if not is_unit_card(existing_card):
-		log_msg("Equipment can only be attached to a unit.")
-		return false
-
-	if not slot.has_method("can_attach_equipment") or not slot.can_attach_equipment():
-		log_msg("This unit already has the maximum 2 equipment cards.")
-		return false
-
-	if not tribute_manager.can_afford(selected_card_data.tribute_cost):
-		log_msg("Not enough Tribute Points. Need " + str(selected_card_data.tribute_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
-		return false
-
-	if not slot.has_method("attach_equipment"):
-		log_msg("This slot does not support equipment attachment.")
-		return false
-
-	var attached: bool = slot.attach_equipment(TEST_CARD_SCENE, selected_card_data)
-
-	if attached:
-		tribute_manager.spend_tribute(selected_card_data.tribute_cost)
-		log_msg("Attached " + selected_card_data.card_name + " to " + existing_card.card_name + ".")
-		log_msg("Spent " + str(selected_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
-		handle_card_deployed(selected_card_data)
 		return true
+	if is_spell_like_card(selected_card_data):
+		return slot_row == "front" or slot_row == "back"
+	if slot_row != "front":
+		return false
+	return true
 
-	return false
-	
-
-func confirm_pending_spell_placement(place_face_down: bool) -> void:
-	if pending_spell_slot == null:
-		hide_spell_choice_panel()
-		cancel_selected_card()
-		return
-
-	if selected_card_data == null:
-		hide_spell_choice_panel()
-		cancel_selected_card()
-		return
-
-	if not is_gambit_card(selected_card_data):
-		hide_spell_choice_panel()
-		cancel_selected_card()
-		return
-
-	if current_phase != BattlePhase.DEPLOYMENT:
-		log_msg("Spells can only be placed during the Deployment Phase.")
-		hide_spell_choice_panel()
-		cancel_selected_card()
-		return
-
-	if String(pending_spell_slot.get_meta("owner", "")) != "player":
-		log_msg("Spells can only be placed on your side of the board.")
-		hide_spell_choice_panel()
-		cancel_selected_card()
-		return
-
-	if String(pending_spell_slot.get_meta("row", "")) != "back":
-		log_msg("Only back-row spells can be placed face down.")
-		hide_spell_choice_panel()
-		cancel_selected_card()
-		return
-
-	if bool(pending_spell_slot.get_meta("occupied", false)):
-		log_msg("That slot is already occupied.")
-		hide_spell_choice_panel()
-		cancel_selected_card()
-		return
-
-	if not tribute_manager.can_afford(selected_card_data.tribute_cost):
-		log_msg("Not enough Tribute Points. Need " + str(selected_card_data.tribute_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
-		hide_spell_choice_panel()
-		cancel_selected_card()
-		return
-
-	var spell_card_data: CardData = selected_card_data
-	var spell_slot: Node = pending_spell_slot
-	var spell_card_ui: CardUI = pending_spell_card_ui
-
-	if spell_card_ui != null and is_instance_valid(spell_card_ui):
-		spell_card_ui.visible = false
-
-	hide_spell_choice_panel()
-
-	await play_player_hand_to_node_animation(spell_card_data, spell_slot, place_face_down)
-
-	var placed: bool = spell_slot.place_card(TEST_CARD_SCENE, spell_card_data, place_face_down)
-
-	if placed:
-		tribute_manager.spend_tribute(spell_card_data.tribute_cost)
-
-		var visibility_text: String = "face down" if place_face_down else "face up"
-		log_msg("Placed spell " + spell_card_data.card_name + " " + visibility_text + ".")
-		log_msg("Spent " + str(spell_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
-
-		if spell_card_ui != null and hand != null:
-			hand.consume_dragged_card(spell_card_ui)
-		elif hand != null:
-			hand.remove_selected_card()
-
-		handle_card_deployed(spell_card_data)
-	else:
-		if spell_card_ui != null and is_instance_valid(spell_card_ui):
-			spell_card_ui.visible = true
-
-		if spell_card_ui != null:
-			return_card_to_hand_safely(spell_card_ui)
-
-	cancel_selected_card()
-	
-
-func start_next_round() -> void:
-	if parry_active:
-		log_msg("Resolve the parry prompt before ending combat.")
-		return
-
-	cleanup_battlefield_spells()
-
-	if tribute_manager != null:
-		tribute_manager.start_new_turn_refresh()
-		update_tribute_counter()
-
-	if battle_plan_manager != null:
-		battle_plan_manager.advance_round()
-
-	cancel_selected_card()
-	open_battle_plan_selection()
-	
-
-
-func find_slot_by_owner_row_lane(owner_name: String, row: String, lane: String) -> Node:
+func update_slot_highlights() -> void:
 	if board_slots == null:
-		return null
-
+		return
 	for slot in board_slots.get_children():
-		if String(slot.get_meta("owner", "")) == owner_name and String(slot.get_meta("row", "")) == row and get_slot_lane(slot) == lane:
-			return slot
+		if not slot.has_method("set_highlight") or not slot.has_method("set_invalid_highlight"):
+			continue
+		if not has_selected_card or current_phase != BattlePhase.DEPLOYMENT:
+			slot.set_highlight(false)
+			slot.set_invalid_highlight(false)
+			continue
+		if is_valid_slot_for_selected_card(slot):
+			slot.set_highlight(true)
+		else:
+			slot.set_invalid_highlight(true)
 
-	return null
+func handle_card_deployed(card_data: CardData) -> void:
+	if card_data == null:
+		return
+
+	var ability_text_lower: String = card_data.ability_text.to_lower()
+
+	if ability_text_lower == "":
+		return
+
+	if is_spell_like_card(card_data):
+		resolve_gambit_on_play(card_data)
+		return
+
+	if is_equipment_card(card_data):
+		log_msg("Equipment attached: " + card_data.card_name)
+		return
+
+	if ability_text_lower.contains("on deploy") or ability_text_lower.contains("when deployed"):
+		if ability_requires_choice(card_data):
+			if ability_prompt_panel != null:
+				ability_prompt_panel.show_for_card(card_data)
+		else:
+			log_msg("On-deploy ability triggered: " + card_data.card_name)
+			log_msg(card_data.ability_text)
+		return
+
+	log_msg("Passive ability active: " + card_data.card_name)
+
+func ability_requires_choice(card_data: CardData) -> bool:
+	if card_data == null:
+		return false
+	var ability_text_lower: String = card_data.ability_text.to_lower()
+	return ability_text_lower.contains("volley") or ability_text_lower.contains("may ") or ability_text_lower.contains("choose")
 	
+func resolve_gambit_on_play(card_data: CardData) -> void:
+	if card_data == null:
+		return
 
-func get_slot_lane(slot: Node) -> String:
-	if slot == null:
-		return ""
+	log_msg("Gambit played: " + card_data.card_name)
 
-	var slot_id: String = String(slot.get_meta("slot_id", "")).to_lower()
+	var ability_text_lower: String = card_data.ability_text.to_lower()
 
-	if slot_id.contains("left"):
-		return "left"
+	if ability_text_lower.contains("opponent discards"):
+		ai_discard_random_hand_card()
 
-	if slot_id.contains("middle"):
-		return "middle"
+	if ability_text_lower.contains("loses 1 aurion") or ability_text_lower.contains("lose 1 aurion"):
+		ai_aurion_points = max(0, ai_aurion_points - 1)
+		update_aurion_counter_ui()
+		log_msg("AI loses 1 Aurion.")
 
-	if slot_id.contains("right"):
-		return "right"
-
-	var column: String = String(slot.get_meta("column", "")).to_lower()
-
-	if column == "left" or column == "middle" or column == "right":
-		return column
-
-	return ""
-
-
+	if ability_text_lower.contains("cannot attack"):
+		log_msg(card_data.card_name + " effect noted: target cannot attack this turn. Targeting will be added later.")
 
 func cleanup_battlefield_spells() -> void:
 	if board_slots == null:
 		return
-
-	var cleaned_count: int = 0
 
 	for slot in board_slots.get_children():
 		var card_data: CardData = get_slot_card_data(slot)
@@ -1611,128 +1397,293 @@ func cleanup_battlefield_spells() -> void:
 		if card_data == null:
 			continue
 
-		if not is_gambit_card(card_data):
+		if not is_spell_like_card(card_data):
 			continue
 
-		var slot_owner: String = String(slot.get_meta("owner", ""))
+		send_slot_card_to_discard(slot)
+		log_msg("Gambit resolved and moved to discard: " + card_data.card_name)
 
-		play_card_to_discard_animation(card_data, slot, slot_owner)
 
-		if slot_owner == "enemy":
-			ai_discard.append(card_data)
-		elif discard_pile != null:
-			discard_pile.add_card(card_data)
+func ai_discard_random_hand_card() -> void:
+	if ai_hand.is_empty():
+		log_msg("AI has no cards to discard.")
+		return
 
-		if slot.has_method("clear_slot"):
-			slot.clear_slot()
-
-		cleaned_count += 1
-
-	if cleaned_count > 0:
-		log_msg("Cleaned up " + str(cleaned_count) + " spell card(s) from the battlefield.")
-
+	var index: int = randi() % ai_hand.size()
+	var discarded_card: CardData = ai_hand[index]
+	ai_hand.remove_at(index)
+	ai_discard.append(discarded_card)
 	update_ai_visuals()
+	log_msg("AI discarded: " + discarded_card.card_name)
+	
 
+func spawn_random_opponent_cards() -> void:
+	if board_slots == null:
+		return
+	var opponent_front_slots: Array[Node] = []
+	for slot in board_slots.get_children():
+		if slot.get_meta("owner", "") == "enemy" and slot.get_meta("row", "") == "front" and not slot.occupied:
+			opponent_front_slots.append(slot)
+	opponent_front_slots.shuffle()
+	for slot in opponent_front_slots:
+		var card_data: CardData = get_random_opponent_test_card()
+		if card_data != null:
+			slot.place_card(TEST_CARD_SCENE, card_data, false)
+			log_msg("Spawned opponent test card: " + card_data.card_name)
+
+func get_random_opponent_test_card() -> CardData:
+	if OPPONENT_TEST_CARDS.is_empty():
+		return null
+	var index: int = randi() % OPPONENT_TEST_CARDS.size()
+	return OPPONENT_TEST_CARDS[index]
+
+func handle_combat_lane_click(slot: Node) -> void:
+	var lane: String = get_slot_lane(slot)
+	if lane == "":
+		return
+	if not combat_direction_selected:
+		if lane == "left":
+			set_combat_lane_order_from_left()
+			resolve_next_combat_lane(lane)
+			return
+		if lane == "right":
+			set_combat_lane_order_from_right()
+			resolve_next_combat_lane(lane)
+			return
+		log_msg("Choose the leftmost or rightmost lane first to set combat direction.")
+		return
+	resolve_next_combat_lane(lane)
+
+func set_combat_lane_order_from_left() -> void:
+	combat_direction_selected = true
+	combat_lane_order.clear()
+	combat_lane_order.append("left")
+	combat_lane_order.append("middle")
+	combat_lane_order.append("right")
+	combat_next_lane_index = 0
+	log_msg("Combat direction selected: left to right.")
+
+func set_combat_lane_order_from_right() -> void:
+	combat_direction_selected = true
+	combat_lane_order.clear()
+	combat_lane_order.append("right")
+	combat_lane_order.append("middle")
+	combat_lane_order.append("left")
+	combat_next_lane_index = 0
+	log_msg("Combat direction selected: right to left.")
+	
+func resolve_next_combat_lane(clicked_lane: String) -> void:
+	if combat_next_lane_index >= combat_lane_order.size():
+		return
+
+	var expected_lane: String = combat_lane_order[combat_next_lane_index]
+
+	if clicked_lane != expected_lane:
+		log_msg("Next combat must resolve in the " + expected_lane + " lane.")
+		return
+
+	var player_slot := find_slot_by_owner_row_lane("player", "front", expected_lane)
+	var opponent_slot := find_slot_by_owner_row_lane("enemy", "front", expected_lane)
+
+	resolve_lane_combat(expected_lane, player_slot, opponent_slot)
+
+	# If no Parry prompt is active, the lane fully resolved immediately.
+	if not parry_active:
+		advance_combat_lane_after_resolution()
+		
+func advance_combat_lane_after_resolution() -> void:
+	combat_next_lane_index += 1
+
+	if combat_next_lane_index >= combat_lane_order.size():
+		log_msg("All combat lanes resolved. Press End Combat / Next Round when ready.")
+		return
+
+	log_msg("Next combat lane: " + combat_lane_order[combat_next_lane_index])
+
+
+func resolve_lane_combat(lane: String, player_slot: Node, opponent_slot: Node) -> void:
+	var player_card: CardData = get_slot_card_data(player_slot)
+	var opponent_card: CardData = get_slot_card_data(opponent_slot)
+
+	if player_card == null and opponent_card == null:
+		log_msg(lane.capitalize() + " lane: no combat.")
+		award_empty_lane_aurion(lane)
+		return
+
+	if player_card != null and opponent_card == null:
+		log_msg(lane.capitalize() + " lane: " + player_card.card_name + " has no opposing target.")
+		award_empty_lane_aurion(lane)
+		return
+
+	if player_card == null and opponent_card != null:
+		log_msg(lane.capitalize() + " lane: opponent " + opponent_card.card_name + " has no player target.")
+		award_empty_lane_aurion(lane)
+		return
+
+	if player_has_initiative:
+		resolve_directed_clash(lane, player_slot, player_card, opponent_slot, opponent_card, true)
+	else:
+		resolve_directed_clash(lane, opponent_slot, opponent_card, player_slot, player_card, false)
+
+
+func award_empty_lane_aurion(lane: String) -> void:
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+	var enemy_back_slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
+
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var enemy_back_card: CardData = get_slot_card_data(enemy_back_slot)
+
+	if player_back_card != null:
+		add_aurion("player", 1, "Back-row hold in " + lane + " lane.")
+
+	if enemy_back_card != null:
+		add_aurion("enemy", 1, "Enemy back-row hold in " + lane + " lane.")
+		
+		
+func resolve_directed_clash(
+	lane: String,
+	first_slot: Node,
+	first_card: CardData,
+	second_slot: Node,
+	second_card: CardData,
+	player_is_first: bool
+) -> void:
+	if first_card == null or second_card == null:
+		return
+
+	var first_label := "Player"
+	var second_label := "Opponent"
+
+	if not player_is_first:
+		first_label = "Opponent"
+		second_label = "Player"
+
+	log_msg(
+		lane.capitalize()
+		+ " lane clash: "
+		+ first_label
+		+ " "
+		+ first_card.card_name
+		+ " AP "
+		+ str(first_card.ap)
+		+ " vs "
+		+ second_label
+		+ " "
+		+ second_card.card_name
+		+ " DP "
+		+ str(second_card.dp)
+	)
+
+	if first_card.ap >= second_card.dp:
+		send_slot_card_to_discard(second_slot)
+		log_msg(second_label + " " + second_card.card_name + " removed from board.")
+		return
+
+	log_msg(second_label + " " + second_card.card_name + " survives. Parry window opens.")
+	begin_parry_prompt(lane, first_slot, first_card, second_slot, second_card)
+	
+func get_slot_card_data(slot: Node) -> CardData:
+	if slot == null:
+		return null
+	if slot.has_method("get_placed_card_data"):
+		return slot.get_placed_card_data()
+	return null
+
+func find_slot_by_owner_row_lane(owner_name: String, row: String, lane: String) -> Node:
+	for slot in board_slots.get_children():
+		if slot.get_meta("owner", "") == owner_name and slot.get_meta("row", "") == row and get_slot_lane(slot) == lane:
+			return slot
+	return null
+
+func get_slot_lane(slot: Node) -> String:
+	var slot_id := str(slot.get_meta("slot_id", "")).to_lower()
+	if slot_id.contains("left"):
+		return "left"
+	if slot_id.contains("middle"):
+		return "middle"
+	if slot_id.contains("right"):
+		return "right"
+	var column: String = slot.get_meta("column", "")
+	if column == "left" or column == "middle" or column == "right":
+		return column
+	return ""
 
 func send_slot_card_to_discard(slot: Node) -> void:
 	if slot == null:
 		return
-
-	var slot_owner: String = String(slot.get_meta("owner", ""))
 	var card_data: CardData = get_slot_card_data(slot)
+	var slot_owner: String = str(slot.get_meta("owner", ""))
 
 	if card_data != null:
 		play_card_to_discard_animation(card_data, slot, slot_owner)
 
-		if slot_owner == "enemy":
-			ai_discard.append(card_data)
-		elif discard_pile != null:
+		if discard_pile != null and slot_owner != "enemy":
 			discard_pile.add_card(card_data)
 
-	if slot.has_method("get_equipment_cards"):
-		var equipment_cards: Array = slot.get_equipment_cards()
-
-		for equipment_card in equipment_cards:
-			if equipment_card == null:
-				continue
-
-			play_card_to_discard_animation(equipment_card, slot, slot_owner)
-
-			if slot_owner == "enemy":
-				ai_discard.append(equipment_card)
-			elif discard_pile != null:
-				discard_pile.add_card(equipment_card)
+		if slot_owner == "enemy":
+			ai_discard.append(card_data)
+			update_ai_visuals()
 
 	if slot.has_method("clear_slot"):
 		slot.clear_slot()
+		
+func get_3d_node_under_screen_position(screen_position: Vector2) -> Node:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return null
+	var ray_origin := camera.project_ray_origin(screen_position)
+	var ray_end := ray_origin + camera.project_ray_normal(screen_position) * 1000.0
+	var query := PhysicsRayQueryParameters3D.create(ray_origin, ray_end)
+	query.collide_with_areas = true
+	query.collide_with_bodies = true
+	var result := get_world_3d().direct_space_state.intersect_ray(query)
+	if result.is_empty():
+		return null
+	return result.get("collider", null)
 
-	update_ai_visuals()
+func find_board_slot_from_node(node: Node) -> Node:
+	var current := node
+	while current != null:
+		if current.has_method("place_card") and current.has_meta("slot_id"):
+			return current
+		current = current.get_parent()
+	return null
 
+func is_node_inside_target(node: Node, target: Node) -> bool:
+	if node == null or target == null:
+		return false
+	var current := node
+	while current != null:
+		if current == target:
+			return true
+		current = current.get_parent()
+	return false
 
+func _on_tribute_changed(_status_text: String) -> void:
+	update_tribute_counter()
 
-func set_phase(new_phase: int) -> void:
-	current_phase = new_phase
-	update_phase_ui()
-	update_slot_highlights()
-
-	match current_phase:
-		BattlePhase.BATTLEPLAN:
-			log_msg("Phase: Battleplan")
-
-		BattlePhase.TRIBUTE:
-			log_msg("Phase: Tribute")
-			ai_start_tribute_phase()
-
-		BattlePhase.DEPLOYMENT:
-			begin_deployment_phase()
-
-		BattlePhase.COMBAT:
-			begin_combat_phase()
-
-
-func begin_deployment_phase() -> void:
-	log_msg("Phase: Deployment")
-
-	if player_has_initiative:
-		log_msg("Player has initiative and deploys first. AI will deploy after you press Go to Combat.")
-	else:
-		log_msg("AI has initiative and deploys first.")
-
-		if next_phase_button != null:
-			next_phase_button.disabled = true
-
-		await ai_take_deployment_turn()
-
-		if next_phase_button != null:
-			next_phase_button.disabled = false
-
-
-func _on_next_phase_pressed() -> void:
-	if next_phase_button != null and next_phase_button.disabled:
+func update_tribute_counter() -> void:
+	if tribute_pile == null or tribute_manager == null:
+		return
+	if tribute_pile.has_method("set_status_text"):
+		tribute_pile.set_status_text(tribute_manager.get_counter_text())
+		
+func update_draw_pile_counter() -> void:
+	if draw_pile == null or player_deck == null:
 		return
 
-	match current_phase:
-		BattlePhase.BATTLEPLAN:
-			open_battle_plan_selection()
+	if draw_pile.has_method("set_card_count"):
+		draw_pile.set_card_count(player_deck.cards_remaining())
 
-		BattlePhase.TRIBUTE:
-			set_phase(BattlePhase.DEPLOYMENT)
 
-		BattlePhase.DEPLOYMENT:
-			if player_has_initiative:
-				if next_phase_button != null:
-					next_phase_button.disabled = true
-
-				await ai_take_deployment_turn()
-
-				if next_phase_button != null:
-					next_phase_button.disabled = false
-
-			set_phase(BattlePhase.COMBAT)
-
-		BattlePhase.COMBAT:
-			start_next_round()
-
+func ensure_ai_game_started() -> void:
+	if ai_has_starting_hand:
+		return
+	setup_ai_deck()
+	ai_draw_cards(5)
+	ai_has_starting_hand = true
+	log_msg("Opponent starting hand prepared: " + str(ai_hand.size()) + " cards.")
+	
 
 func setup_ai_deck() -> void:
 	ai_deck.clear()
@@ -1753,19 +1704,26 @@ func setup_ai_deck() -> void:
 
 	ai_deck.shuffle()
 	update_ai_visuals()
-
-
+	
+	
 func ai_draw_cards(amount: int) -> void:
 	for i in range(amount):
 		if ai_deck.is_empty():
-			return
+			break
+		var card: CardData = ai_deck.pop_back()
+		ai_hand.append(card)
+		log_msg("Opponent drew a card. Opponent hand: " + str(ai_hand.size()))
 
-		var drawn_card: CardData = ai_deck.pop_back()
+	update_ai_visuals()
+	
+func ai_draw_battleplan_cards(plan: Dictionary) -> void:
+	var draw_amount: int = int(plan.get("draw_amount", 0))
 
-		if drawn_card != null:
-			ai_hand.append(drawn_card)
-		update_ai_visuals()
+	if draw_amount <= 0:
+		return
 
+	ai_draw_cards(draw_amount)
+	log_msg("Opponent battleplan draw: " + str(draw_amount) + " cards.")
 
 func ai_start_tribute_phase() -> void:
 	ai_current_perm_tp = ai_perm_tp
@@ -1773,170 +1731,347 @@ func ai_start_tribute_phase() -> void:
 	ai_current_tp = ai_current_perm_tp
 	ai_tribute_used_this_turn = false
 
-	if next_phase_button != null:
-		next_phase_button.disabled = true
-
-	await ai_offer_one_card_to_tribute()
-
-	if next_phase_button != null:
-		next_phase_button.disabled = false
-
-
-func ai_offer_one_card_to_tribute() -> void:
+func ai_offer_card_to_tribute(card_index: int) -> bool:
 	if ai_tribute_used_this_turn:
-		return
+		return false
 
-	if ai_hand.is_empty():
-		log_msg("AI has no cards to offer as Tribute.")
-		return
+	if card_index < 0 or card_index >= ai_hand.size():
+		return false
 
-	var tribute_index: int = ai_choose_tribute_card_index()
-
-	if tribute_index < 0:
-		log_msg("AI found no valid Tribute card.")
-		return
-
-	var tribute_card: CardData = ai_hand[tribute_index]
-
-	if tribute_card == null:
-		return
-
-	await play_enemy_hand_to_node_animation(
-		tribute_card,
-		get_enemy_visual_target("EnemyTributePileVisual"),
-		false
-	)
-
-	ai_hand.pop_at(tribute_index)
-	ai_tribute.append(tribute_card)
+	var card_data: CardData = ai_hand[card_index]
+	ai_hand.remove_at(card_index)
+	ai_tribute.append(card_data)
 	ai_tribute_used_this_turn = true
 
-	var card_type: String = tribute_card.card_type.to_lower().strip_edges()
-
-	if card_type == "gambit":
+	if is_spell_like_card(card_data):
 		ai_temp_tp += 2
 		ai_current_tp += 2
-		log_msg("AI sacrificed " + tribute_card.card_name + " for +2 temporary TP.")
+		log_msg("Opponent tributed a gambit for +2 temporary TP.")
 	else:
 		ai_perm_tp += 1
 		ai_current_perm_tp += 1
 		ai_current_tp += 1
-		log_msg("AI sacrificed " + tribute_card.card_name + " for +1 permanent TP.")
+		log_msg("Opponent tributed a card for +1 permanent TP.")
 
-	log_msg("AI TP: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
 	update_ai_visuals()
+	return true
 	
+	
+func ai_get_affordable_card_indexes() -> Array[int]:
+	var indexes: Array[int] = []
 
-func ai_choose_tribute_card_index() -> int:
-	# Prefer a unit/equipment for permanent TP.
 	for i in range(ai_hand.size()):
-		var card_data: CardData = ai_hand[i]
+		var card: CardData = ai_hand[i]
 
-		if card_data == null:
+		if card == null:
 			continue
 
-		var card_type: String = card_data.card_type.to_lower().strip_edges()
+		if card.tribute_cost <= ai_current_tp:
+			indexes.append(i)
 
-		if card_type == "unit" or card_type == "equipment":
-			return i
+	return indexes
 
-	# If no permanent tribute option exists, use a spell/event/trap/ruse.
-	if not ai_hand.is_empty():
-		return 0
+func ai_choose_tribute_card_index() -> int:
+	if ai_hand.is_empty():
+		return -1
 
-	return -1
+	var best_index: int = 0
+	var best_score: int = 999999
 
+	for i in range(ai_hand.size()):
+		var card: CardData = ai_hand[i]
 
-func ai_take_combat_initiative() -> void:
-	if not ai_should_attack_this_combat():
-		log_msg("AI chooses not to attack this combat.")
-		combat_direction_selected = true
-		combat_lane_order.clear()
-		combat_next_lane_index = 0
-		return
+		if card == null:
+			continue
 
-	var start_lane: String = ai_choose_combat_start_lane()
+		var score: int = 0
 
-	if start_lane == "right":
-		set_combat_lane_order_from_right()
-	else:
-		set_combat_lane_order_from_left()
+		if is_spell_like_card(card):
+			score += 1
+		else:
+			score += 5
 
-	log_msg("AI chooses to attack from the " + start_lane + " lane.")
-	ai_resolve_combat_sequence()
+		score += card.ap
+		score += card.dp
+		score += card.tribute_cost
 
+		if score < best_score:
+			best_score = score
+			best_index = i
 
-func ai_should_attack_this_combat() -> bool:
-	var ai_units: int = ai_count_front_units("enemy")
+	return best_index
+
+func ai_take_tribute_turn() -> void:
+	ai_start_tribute_phase()
+
+	var tribute_index: int = ai_choose_tribute_card_index()
+
+	if tribute_index != -1:
+		ai_offer_card_to_tribute(tribute_index)
+
+	update_ai_visuals()
+	
+func ai_choose_empty_front_slot() -> Node:
+	var available_slots: Array[Node] = []
+
+	for slot in board_slots.get_children():
+		if slot.get_meta("owner", "") != "enemy":
+			continue
+
+		if slot.get_meta("row", "") != "front":
+			continue
+
+		if slot.occupied:
+			continue
+
+		available_slots.append(slot)
+
+	if available_slots.is_empty():
+		return null
+
+	available_slots.shuffle()
+	return available_slots[0]
+	
+func ai_choose_empty_back_slot_for_tactic(_card_data: CardData) -> Node:
+	var available_slots: Array[Node] = []
+
+	for slot in board_slots.get_children():
+		if slot.get_meta("owner", "") != "enemy":
+			continue
+
+		if slot.get_meta("row", "") != "back":
+			continue
+
+		if slot.occupied:
+			continue
+
+		available_slots.append(slot)
+
+	if available_slots.is_empty():
+		return null
+
+	available_slots.shuffle()
+	return available_slots[0]
+	
+func ai_choose_spell_like_slot(card_data: CardData) -> Node:
+	if card_data == null:
+		return null
+
+	var front_units: int = ai_count_front_units("enemy")
 	var player_units: int = ai_count_front_units("player")
 
-	if ai_units <= 0:
+	if player_units > front_units:
+		var back_slot: Node = ai_choose_empty_back_slot_for_tactic(card_data)
+
+		if back_slot != null:
+			return back_slot
+
+	var front_slot: Node = ai_choose_empty_front_slot()
+
+	if front_slot != null:
+		return front_slot
+
+	return ai_choose_empty_back_slot_for_tactic(card_data)
+
+
+func ai_choose_equipment_target_slot(_card_data: CardData) -> Node:
+	var possible_slots: Array[Node] = []
+
+	for slot in board_slots.get_children():
+		if slot.get_meta("owner", "") != "enemy":
+			continue
+
+		if slot.get_meta("row", "") != "front":
+			continue
+
+		if not slot.occupied:
+			continue
+
+		if not slot.has_method("has_unit_card") or not slot.has_unit_card():
+			continue
+
+		possible_slots.append(slot)
+
+	if possible_slots.is_empty():
+		return null
+
+	possible_slots.shuffle()
+	return possible_slots[0]
+	
+func ai_choose_slot_for_card(card_data: CardData) -> Node:
+	if card_data == null:
+		return null
+
+	if is_equipment_card(card_data):
+		return ai_choose_equipment_target_slot(card_data)
+
+	if is_gambit_card(card_data):
+		return ai_choose_spell_like_slot(card_data)
+
+	return ai_choose_empty_front_slot()
+	
+	
+func ai_make_deployment_action(card_index: int, target_slot: Node, action_type: String, face_down: bool = false) -> Dictionary:
+	var card_data: CardData = null
+
+	if card_index >= 0 and card_index < ai_hand.size():
+		card_data = ai_hand[card_index]
+
+	return {
+		"card_index": card_index,
+		"target_slot": target_slot,
+		"action_type": action_type,
+		"face_down": face_down,
+		"card_data": card_data
+	}
+	
+func ai_score_deploy_card(card_data: CardData, target_slot: Node) -> int:
+	if card_data == null:
+		return -999999
+
+	if target_slot == null:
+		return -999999
+
+	var score: int = 0
+	var card_type: String = get_clean_card_type(card_data)
+
+	match card_type:
+		"unit":
+			score += 40
+			score += card_data.ap * 3
+			score += card_data.dp * 2
+
+		"equipment":
+			score += 30
+			score += card_data.ap * 2
+			score += card_data.dp * 2
+
+		"gambit":
+			score += 35
+
+		_:
+			score += 5
+
+	score -= card_data.tribute_cost * 2
+
+	var slot_row: String = target_slot.get_meta("row", "")
+
+	if card_type == "unit" and slot_row == "front":
+		score += 10
+
+	if card_type == "equipment" and slot_row == "front":
+		score += 10
+
+	if card_type == "gambit" and slot_row == "back":
+		score += 10
+
+	return score
+	
+	
+func ai_find_best_deployment_action() -> Dictionary:
+	var affordable_indexes: Array[int] = ai_get_affordable_card_indexes()
+
+	if affordable_indexes.is_empty():
+		return ai_make_deployment_action(-1, null, "none")
+
+	var best_action: Dictionary = ai_make_deployment_action(-1, null, "none")
+	var best_score: int = -999999
+
+	for card_index in affordable_indexes:
+		var card_data: CardData = ai_hand[card_index]
+		var target_slot: Node = ai_choose_slot_for_card(card_data)
+
+		if target_slot == null:
+			continue
+
+		var score: int = ai_score_deploy_card(card_data, target_slot)
+
+		if score > best_score:
+			best_score = score
+			best_action = ai_make_deployment_action(
+				card_index,
+				target_slot,
+				get_clean_card_type(card_data),
+				target_slot.get_meta("row", "") == "back"
+			)
+
+	return best_action
+
+func ai_deploy_card_from_action(action: Dictionary) -> bool:
+	var card_index: int = int(action.get("card_index", -1))
+	var target_slot: Node = action.get("target_slot", null)
+	var action_type: String = str(action.get("action_type", "none"))
+	var face_down: bool = bool(action.get("face_down", false))
+
+	if action_type == "none":
 		return false
 
-	if player_units <= 0:
+	if target_slot == null:
+		return false
+
+	if card_index < 0 or card_index >= ai_hand.size():
+		return false
+
+	var card_data: CardData = ai_hand[card_index]
+
+	if card_data == null:
+		return false
+
+	if card_data.tribute_cost > ai_current_tp:
+		return false
+
+	if action_type == "equipment":
+		if not target_slot.has_method("attach_equipment"):
+			return false
+
+		if not target_slot.attach_equipment(TEST_CARD_SCENE, card_data):
+			return false
+
+		ai_current_tp -= card_data.tribute_cost
+		ai_hand.remove_at(card_index)
+		update_ai_visuals()
+
+		log_msg("Opponent attached equipment: " + card_data.card_name)
 		return true
 
-	var ai_total_ap: int = ai_get_total_front_ap("enemy")
-	var player_total_ap: int = ai_get_total_front_ap("player")
+	if action_type == "unit" or action_type == "gambit":
+		var placed: bool = target_slot.place_card(TEST_CARD_SCENE, card_data, face_down)
 
-	# If AI is clearly stronger, attack.
-	if ai_total_ap >= player_total_ap:
+		if not placed:
+			return false
+
+		ai_current_tp -= card_data.tribute_cost
+		ai_hand.remove_at(card_index)
+		update_ai_visuals()
+
+		if action_type == "gambit":
+			log_msg("Opponent set a gambit.")
+		else:
+			log_msg("Opponent deployed: " + card_data.card_name)
+
 		return true
 
-	# If AI is weaker, it can still attack sometimes.
-	return (randi() % 100) < 35
+	return false
 
+func ai_take_deployment_turn() -> void:
+	var deployments_made: int = 0
 
-func ai_choose_combat_start_lane() -> String:
-	var left_score: int = ai_score_combat_direction(["left", "middle", "right"])
-	var right_score: int = ai_score_combat_direction(["right", "middle", "left"])
+	while deployments_made < ai_max_deployments_per_phase:
+		var action: Dictionary = ai_find_best_deployment_action()
 
-	if left_score > right_score:
-		return "left"
+		if str(action.get("action_type", "none")) == "none":
+			break
 
-	if right_score > left_score:
-		return "right"
+		if not ai_deploy_card_from_action(action):
+			break
 
-	if (randi() % 2) == 0:
-		return "left"
+		deployments_made += 1
 
-	return "right"
-
-
-func ai_score_combat_direction(lanes: Array[String]) -> int:
-	var score: int = 0
-	var weight: int = 3
-
-	for lane in lanes:
-		var ai_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
-		var player_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
-
-		var ai_card: CardData = get_slot_card_data(ai_slot)
-		var player_card: CardData = get_slot_card_data(player_slot)
-
-		if is_unit_card(ai_card):
-			score += ai_card.ap * weight
-
-			if is_unit_card(player_card):
-				if ai_card.ap >= player_card.ap:
-					score += 20 * weight
-				else:
-					score -= 10 * weight
-			else:
-				score += 12 * weight
-
-		weight -= 1
-
-	score += randi() % 10
-	return score
-
-
-func ai_resolve_combat_sequence() -> void:
-	while current_phase == BattlePhase.COMBAT and not parry_active and combat_next_lane_index < combat_lane_order.size():
-		var next_lane: String = combat_lane_order[combat_next_lane_index]
-		resolve_next_combat_lane(next_lane)
-
-
+	if deployments_made == 0:
+		log_msg("Opponent has no valid deployment.")
+	else:
+		log_msg("Opponent deployment complete: " + str(deployments_made) + " card(s).")
+		
 func ai_count_front_units(owner_name: String) -> int:
 	var count: int = 0
 	var lanes: Array[String] = ["left", "middle", "right"]
@@ -1949,8 +2084,7 @@ func ai_count_front_units(owner_name: String) -> int:
 			count += 1
 
 	return count
-
-
+	
 func ai_get_total_front_ap(owner_name: String) -> int:
 	var total_ap: int = 0
 	var lanes: Array[String] = ["left", "middle", "right"]
@@ -1964,762 +2098,125 @@ func ai_get_total_front_ap(owner_name: String) -> int:
 
 	return total_ap
 
-
-func ai_deploy_one_card() -> void:
-	# Legacy wrapper. Other code can still call this safely.
-	ai_take_deployment_turn()
-	
-	
-func ai_take_deployment_turn() -> void:
-	if ai_hand.is_empty():
-		log_msg("AI has no hand cards to deploy.")
+func ai_take_combat_turn() -> void:
+	if current_phase != BattlePhase.COMBAT:
 		return
 
-	var plays_made: int = 0
-	var max_plays: int = max(1, ai_max_deployments_per_phase)
-
-	for i in range(max_plays):
-		var played: bool = await ai_try_deploy_one_card()
-
-		if not played:
-			break
-
-		plays_made += 1
-
-		await get_tree().create_timer(0.25).timeout
-
-		if ai_current_tp <= 0:
-			break
-
-	if plays_made == 0:
-		log_msg("AI passes deployment. No legal affordable play.")
-	else:
-		log_msg("AI completed deployment with " + str(plays_made) + " play(s).")
-		
-		
-func ai_try_deploy_one_card() -> bool:
-	var action: Dictionary = ai_choose_deployment_action()
-
-	if action.is_empty():
-		return false
-
-	var card_index: int = int(action.get("card_index", -1))
-	var target_slot: Node = action.get("slot", null) as Node
-	var action_type: String = String(action.get("action_type", ""))
-	var face_down: bool = bool(action.get("face_down", false))
-
-	if card_index < 0 or card_index >= ai_hand.size():
-		return false
-
-	if target_slot == null:
-		return false
-
-	var card_data: CardData = ai_hand[card_index]
-
-	if card_data == null:
-		return false
-
-	if card_data.tribute_cost > ai_current_tp:
-		return false
-
-	var success: bool = false
-
-	if action_type == "equipment":
-		await play_enemy_hand_to_node_animation(card_data, target_slot, false)
-
-		if target_slot.has_method("attach_equipment"):
-			success = target_slot.attach_equipment(TEST_CARD_SCENE, card_data)
-
-		if success:
-			ai_hand.pop_at(card_index)
-			ai_spend_tp(card_data.tribute_cost)
-
-			var equipped_unit: CardData = get_slot_card_data(target_slot)
-			var equipped_unit_name: String = "unit"
-
-			if equipped_unit != null:
-				equipped_unit_name = equipped_unit.card_name
-
-			log_msg("AI attached " + card_data.card_name + " to " + equipped_unit_name + ".")
-			log_msg("AI TP after equipment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
-			update_ai_visuals()
-			return true
-
-		return false
-
-	if action_type == "unit" or action_type == "gambit":
-		await play_enemy_hand_to_node_animation(card_data, target_slot, face_down)
-
-		if target_slot.has_method("place_card"):
-			success = target_slot.place_card(TEST_CARD_SCENE, card_data, face_down)
-
-		if success:
-			ai_hand.pop_at(card_index)
-			ai_spend_tp(card_data.tribute_cost)
-
-			var visibility_text: String = "face down" if face_down else "face up"
-			var row_text: String = String(target_slot.get_meta("row", "unknown row"))
-
-			log_msg("AI placed " + card_data.card_name + " " + visibility_text + " in enemy " + row_text + " row.")
-			log_msg("AI TP after deployment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
-			update_ai_visuals()
-			return true
-
-	return false
-	
-	
-func ai_choose_deployment_action() -> Dictionary:
-	var equipment_action: Dictionary = ai_find_equipment_action()
-	var spell_action: Dictionary = ai_find_spell_action()
-	var unit_action: Dictionary = ai_find_unit_action()
-
-	# Testing behavior:
-	# Sometimes choose spell/equipment even before full effects exist,
-	# so we can verify the board rules.
-	var roll: int = randi() % 100
-
-	if roll < 25 and not equipment_action.is_empty():
-		return equipment_action
-
-	if roll < 55 and not spell_action.is_empty():
-		return spell_action
-
-	if not unit_action.is_empty():
-		return unit_action
-
-	if not spell_action.is_empty():
-		return spell_action
-
-	if not equipment_action.is_empty():
-		return equipment_action
-
-	return {}
-	
-	
-func ai_make_deployment_action(card_index: int, slot: Node, action_type: String, face_down: bool) -> Dictionary:
-	return {
-		"card_index": card_index,
-		"slot": slot,
-		"action_type": action_type,
-		"face_down": face_down
-	}
-	
-func ai_find_unit_action() -> Dictionary:
-	var unit_index: int = ai_find_best_affordable_unit_index()
-
-	if unit_index < 0:
-		return {}
-
-	var front_slot: Node = ai_find_empty_enemy_slot("front")
-	var back_slot: Node = ai_find_empty_enemy_slot("back")
-
-	if front_slot == null and back_slot == null:
-		return {}
-
-	var chosen_slot: Node = null
-	var face_down: bool = false
-
-	if front_slot != null and back_slot != null:
-		# Mostly prefer front row, but sometimes use back row face-down.
-		if randi() % 100 < 65:
-			chosen_slot = front_slot
-			face_down = false
-		else:
-			chosen_slot = back_slot
-			face_down = true
-	elif front_slot != null:
-		chosen_slot = front_slot
-		face_down = false
-	else:
-		chosen_slot = back_slot
-		face_down = true
-
-	return ai_make_deployment_action(unit_index, chosen_slot, "unit", face_down)
-	
-	
-func ai_find_best_affordable_unit_index() -> int:
-	var best_index: int = -1
-	var best_ap: int = -999
-
-	for i in range(ai_hand.size()):
-		var card_data: CardData = ai_hand[i]
-
-		if card_data == null:
-			continue
-
-		if not is_unit_card(card_data):
-			continue
-
-		if card_data.tribute_cost > ai_current_tp:
-			continue
-
-		if card_data.ap > best_ap:
-			best_ap = card_data.ap
-			best_index = i
-
-	return best_index
-	
-	
-func ai_find_spell_action() -> Dictionary:
-	var spell_index: int = ai_find_affordable_spell_index()
-
-	if spell_index < 0:
-		return {}
-
-	var front_slot: Node = ai_find_empty_enemy_slot("front")
-	var back_slot: Node = ai_find_empty_enemy_slot("back")
-
-	if front_slot == null and back_slot == null:
-		return {}
-
-	var chosen_slot: Node = null
-	var face_down: bool = false
-
-	if front_slot != null and back_slot != null:
-		# Spells can go front or back.
-		# Front is always face up.
-		# Back can be face up or face down.
-		if randi() % 100 < 45:
-			chosen_slot = front_slot
-			face_down = false
-		else:
-			chosen_slot = back_slot
-			face_down = randi() % 100 < 50
-	elif front_slot != null:
-		chosen_slot = front_slot
-		face_down = false
-	else:
-		chosen_slot = back_slot
-		face_down = randi() % 100 < 50
-
-	return ai_make_deployment_action(spell_index, chosen_slot, "gambit", face_down)
-	
-	
-func ai_find_affordable_spell_index() -> int:
-	for i in range(ai_hand.size()):
-		var card_data: CardData = ai_hand[i]
-
-		if card_data == null:
-			continue
-
-		if not is_gambit_card(card_data):
-			continue
-
-		if card_data.tribute_cost > ai_current_tp:
-			continue
-
-		return i
-
-	return -1
-	
-	
-func ai_find_equipment_action() -> Dictionary:
-	var target_slot: Node = ai_find_enemy_unit_slot_that_can_take_equipment()
-
-	if target_slot == null:
-		return {}
-
-	for i in range(ai_hand.size()):
-		var card_data: CardData = ai_hand[i]
-
-		if card_data == null:
-			continue
-
-		if not is_equipment_card(card_data):
-			continue
-
-		if card_data.tribute_cost > ai_current_tp:
-			continue
-
-		return ai_make_deployment_action(i, target_slot, "equipment", false)
-
-	return {}
-	
-	
-func ai_find_enemy_unit_slot_that_can_take_equipment() -> Node:
-	if board_slots == null:
-		return null
-
-	for slot in board_slots.get_children():
-		if String(slot.get_meta("owner", "")) != "enemy":
-			continue
-
-		if not bool(slot.get_meta("occupied", false)):
-			continue
-
-		if bool(slot.get_meta("face_down", false)):
-			continue
-
-		var existing_card: CardData = get_slot_card_data(slot)
-
-		if not is_unit_card(existing_card):
-			continue
-
-		if not slot.has_method("can_attach_equipment"):
-			continue
-
-		if not slot.can_attach_equipment():
-			continue
-
-		return slot
-
-	return null
-	
-
-
-
-
-	
-func ai_find_empty_enemy_slot(row: String) -> Node:
-	if board_slots == null:
-		return null
-
-	var empty_slots: Array[Node] = []
-
-	for slot in board_slots.get_children():
-		if String(slot.get_meta("owner", "")) != "enemy":
-			continue
-
-		if String(slot.get_meta("row", "")) != row:
-			continue
-
-		if bool(slot.get_meta("occupied", false)):
-			continue
-
-		empty_slots.append(slot)
-
-	if empty_slots.is_empty():
-		return null
-
-	empty_slots.shuffle()
-	return empty_slots[0]
-	
-		
-
-func ai_choose_slot_for_card(card_data: CardData) -> Node:
-	if card_data == null:
-		return null
-
-	if is_unit_card(card_data):
-		return ai_choose_front_slot_for_card(card_data)
-
-	if is_equipment_card(card_data):
-		return ai_choose_equipment_target_slot(card_data)
-
-	if is_gambit_card(card_data):
-		return ai_choose_spell_like_slot(card_data)
-
-	return null
-
-
-func ai_should_place_card_face_down(card_data: CardData, target_slot: Node) -> bool:
-	if card_data == null or target_slot == null:
-		return false
-
-	var row: String = String(target_slot.get_meta("row", ""))
-
-	# Front row is always face-up.
-	if row == "front":
-		return false
-
-	# Back row cards should be hidden.
-	if row == "back":
-		if is_unit_card(card_data):
-			return true
-
-		if is_trap_card(card_data):
-			return true
-
-		if is_ruse_card(card_data):
-			return true
-
-		if is_spell_card(card_data):
-			return true
-
-		if is_event_card(card_data):
-			return true
-
-	return false
-
-
-func ai_choose_empty_back_slot_for_tactic(_card_data: CardData) -> Node:
-	var candidate_slots: Array[Node] = []
-	var lanes: Array[String] = ["left", "middle", "right"]
-
-	for lane in lanes:
-		var slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
-
-		if slot == null:
-			continue
-
-		if get_slot_card_data(slot) == null:
-			candidate_slots.append(slot)
-
-	if candidate_slots.is_empty():
-		return null
-
-	# Prefer back-row tactics behind an AI front unit.
-	var protected_slots: Array[Node] = []
-
-	for slot in candidate_slots:
-		var lane: String = get_slot_lane(slot)
-		var front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
-		var front_card: CardData = get_slot_card_data(front_slot)
-
-		if is_unit_card(front_card):
-			protected_slots.append(slot)
-
-	if not protected_slots.is_empty():
-		return protected_slots.pick_random()
-
-	return candidate_slots.pick_random()
-
-
-func ai_choose_spell_like_slot(card_data: CardData) -> Node:
-	var front_slots: Array[Node] = []
-	var back_slots: Array[Node] = []
-	var lanes: Array[String] = ["left", "middle", "right"]
-
-	for lane in lanes:
-		var front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
-
-		if front_slot != null and get_slot_card_data(front_slot) == null:
-			front_slots.append(front_slot)
-
-		var back_slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
-
-		if back_slot != null and get_slot_card_data(back_slot) == null:
-			back_slots.append(back_slot)
-
-	if front_slots.is_empty() and back_slots.is_empty():
-		return null
-
-	# Traps and ruses prefer the back row.
-	if is_trap_card(card_data) or is_ruse_card(card_data):
-		if not back_slots.is_empty():
-			return back_slots.pick_random()
-
-		return front_slots.pick_random()
-
-	# Spells and events can go front or back.
-	if is_spell_card(card_data) or is_event_card(card_data):
-		if not front_slots.is_empty() and not back_slots.is_empty():
-			if (randi() % 100) < 60:
-				return front_slots.pick_random()
-
-			return back_slots.pick_random()
-
-		if not front_slots.is_empty():
-			return front_slots.pick_random()
-
-		return back_slots.pick_random()
-
-	var all_slots: Array[Node] = []
-	all_slots.append_array(front_slots)
-	all_slots.append_array(back_slots)
-	return all_slots.pick_random()
-	
-
-
-func ai_choose_equipment_target_slot(_card_data: CardData) -> Node:
-	var candidate_slots: Array[Node] = []
-	var lanes: Array[String] = ["left", "middle", "right"]
-
-	for lane in lanes:
-		var slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
-
-		if slot == null:
-			continue
-
-		var slot_card: CardData = get_slot_card_data(slot)
-
-		if not is_unit_card(slot_card):
-			continue
-
-		if slot.has_method("can_attach_equipment") and not slot.can_attach_equipment():
-			continue
-
-		candidate_slots.append(slot)
-
-	if candidate_slots.is_empty():
-		return null
-
-	var best_score: int = -999999
-	var best_slots: Array[Node] = []
-
-	for slot in candidate_slots:
-		var unit_card: CardData = get_slot_card_data(slot)
-		var score: int = 0
-
-		if unit_card != null:
-			score += unit_card.ap
-			score += unit_card.dp
-
-		score += randi() % 10
-
-		if score > best_score:
-			best_score = score
-			best_slots.clear()
-			best_slots.append(slot)
-		elif score == best_score:
-			best_slots.append(slot)
-
-	return best_slots.pick_random()
-
-
-func ai_attach_equipment_to_slot(equipment_card: CardData, target_slot: Node) -> bool:
-	if equipment_card == null or target_slot == null:
-		return false
-
-	if not target_slot.has_method("attach_equipment"):
-		log_msg("AI could not attach equipment because target slot has no attach_equipment method.")
-		return false
-
-	return target_slot.attach_equipment(TEST_CARD_SCENE, equipment_card)
-	
-	
-		
-		
-func ai_choose_front_slot_for_card(card_data: CardData) -> Node:
-	var candidate_slots: Array[Node] = ai_get_empty_front_slots()
-
-	if candidate_slots.is_empty():
-		return null
-
-	var best_score: int = -999999
-	var best_slots: Array[Node] = []
-
-	for slot in candidate_slots:
-		var lane: String = get_slot_lane(slot)
-		var score: int = ai_score_front_slot_for_card(card_data, lane)
-
-		if score > best_score:
-			best_score = score
-			best_slots.clear()
-			best_slots.append(slot)
-		elif score == best_score:
-			best_slots.append(slot)
-
-	if best_slots.is_empty():
-		return candidate_slots.pick_random()
-
-	return best_slots.pick_random()
-
-
-func ai_get_empty_front_slots() -> Array[Node]:
-	var empty_slots: Array[Node] = []
-	var lanes: Array[String] = ["left", "middle", "right"]
-
-	for lane in lanes:
-		var slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
-
-		if slot == null:
-			continue
-
-		if get_slot_card_data(slot) == null:
-			empty_slots.append(slot)
-
-	return empty_slots
-
-
-func ai_score_front_slot_for_card(card_data: CardData, lane: String) -> int:
-	var score: int = 0
-
-	if card_data == null:
-		return score
-
-	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
-	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
-
-	var player_front_card: CardData = get_slot_card_data(player_front_slot)
-	var player_back_card: CardData = get_slot_card_data(player_back_slot)
-
-	# If the player has a front unit in this lane, AI likes contesting/blocking it.
-	if is_unit_card(player_front_card):
-		score += 35
-
-		# If AI can beat or match it by AP, this lane becomes very attractive.
-		if card_data.ap >= player_front_card.ap:
-			score += 35
-		else:
-			score += 15
-
-		# Strong enemy targets attract AI attention.
-		score += min(player_front_card.ap, 10)
-
-	# If the player has no front unit, AI may still choose the open lane.
-	else:
-		score += 18
-
-	# If the player has something hidden/backline in this lane, AI slightly cares.
-	if player_back_card != null:
-		score += 8
-
-	# Add randomness so AI does not feel scripted.
-	score += randi() % 25
-
-	return score
-	
-	
-
-
-func ai_find_empty_front_slot() -> Node:
-	if board_slots == null:
-		return null
-
-	for slot in board_slots.get_children():
-		if slot.get_meta("owner", "") == "enemy" and slot.get_meta("row", "") == "front" and not slot.occupied:
-			return slot
-
-	return null
-
-
-func ai_choose_deploy_card_index() -> int:
-	var best_index: int = -1
-	var best_score: int = -999999
-
-	for i in range(ai_hand.size()):
-		var card_data: CardData = ai_hand[i]
-
-		if card_data == null:
-			continue
-
-		if card_data.tribute_cost > ai_current_tp:
-			continue
-
-		# Do not choose cards that currently have nowhere legal/useful to go.
-		var possible_slot: Node = ai_choose_slot_for_card(card_data)
-
-		if possible_slot == null:
-			continue
-
-		var score: int = ai_score_deploy_card(card_data)
-
-		if score > best_score:
-			best_score = score
-			best_index = i
-
-	return best_index
-
-
-func ai_score_deploy_card(card_data: CardData) -> int:
-	if card_data == null:
-		return -999999
-
-	var score: int = 0
-	var card_type: String = get_clean_card_type(card_data)
-
-	match card_type:
-		"unit":
-			score += 70
-			score += card_data.ap * 4
-			score += card_data.dp * 2
-
-		"equipment":
-			score += 60
-			score += card_data.ap * 3
-			score += card_data.dp * 3
-
-		"gambit":
-			score += 35
-		_:
-			score -= 100
-
-	# Prefer cheaper cards slightly so AI does not waste its full turn too easily.
-	score -= card_data.tribute_cost * 2
-
-	# Randomness so AI is not scripted.
-	score += randi() % 20
-
-	return score
-
-
-func ai_spend_tp(cost: int) -> bool:
-	if cost <= 0:
-		return true
-
-	if ai_current_tp < cost:
-		return false
-
-	var remaining_cost: int = cost
-
-	if ai_temp_tp > 0:
-		var temp_spent: int = mini(ai_temp_tp, remaining_cost)
-		ai_temp_tp -= temp_spent
-		ai_current_tp -= temp_spent
-		remaining_cost -= temp_spent
-
-	if remaining_cost > 0:
-		ai_current_perm_tp -= remaining_cost
-		ai_current_tp -= remaining_cost
-
-	return true
-
-
-func resolve_directed_clash(
-	lane: String,
-	_attacker_slot: Node,
-	attacker_card: CardData,
-	defender_slot: Node,
-	defender_card: CardData,
-	player_is_attacker: bool
-) -> void:
-	if attacker_card == null or defender_card == null:
+	if combat_direction_selected:
 		return
 
-	var attacker_label: String = "Player" if player_is_attacker else "Opponent"
-	var defender_label: String = "Opponent" if player_is_attacker else "Player"
+	var player_left_ap: int = 0
+	var player_right_ap: int = 0
 
-	log_msg(
-		lane.capitalize()
-		+ " lane attack: "
-		+ attacker_label
-		+ " "
-		+ attacker_card.card_name
-		+ " AP "
-		+ str(attacker_card.ap)
-		+ " vs "
-		+ defender_label
-		+ " "
-		+ defender_card.card_name
-		+ " AP "
-		+ str(defender_card.ap)
-	)
+	var player_left_slot: Node = find_slot_by_owner_row_lane("player", "front", "left")
+	var player_right_slot: Node = find_slot_by_owner_row_lane("player", "front", "right")
 
-	if attacker_card.ap == defender_card.ap:
-		send_slot_card_to_discard(defender_slot)
-		send_slot_card_to_discard(_attacker_slot)
+	var player_left_card: CardData = get_slot_card_data(player_left_slot)
+	var player_right_card: CardData = get_slot_card_data(player_right_slot)
 
-		log_msg(
-			lane.capitalize()
-			+ " lane kamikaze clash: "
-			+ attacker_label
-			+ " "
-			+ attacker_card.card_name
-			+ " and "
-			+ defender_label
-			+ " "
-			+ defender_card.card_name
-			+ " destroyed each other."
-		)
+	if player_left_card != null:
+		player_left_ap = player_left_card.ap
 
+	if player_right_card != null:
+		player_right_ap = player_right_card.ap
+
+	if player_left_ap >= player_right_ap:
+		set_combat_lane_order_from_left()
+		resolve_next_combat_lane("left")
+	else:
+		set_combat_lane_order_from_right()
+		resolve_next_combat_lane("right")
+
+func is_unit_card(card_data: CardData) -> bool:
+	return get_clean_card_type(card_data) == "unit"
+
+func create_debug_tp_button() -> void:
+	if get_node_or_null("UI/DebugAddTPButton") != null:
 		return
 
-	if attacker_card.ap >= defender_card.ap:
-		if not player_is_attacker:
-			begin_parry_prompt(lane, _attacker_slot, attacker_card, defender_slot, defender_card)
-			return
+	var button := Button.new()
+	button.name = "DebugAddTPButton"
+	button.text = "+1 TP"
+	button.focus_mode = Control.FOCUS_NONE
+	button.custom_minimum_size = Vector2(120, 44)
 
-		send_slot_card_to_discard(defender_slot)
-		log_msg(defender_label + " " + defender_card.card_name + " was destroyed.")
-		add_aurion("player", 1, "Destroyed " + defender_card.card_name + " in combat.")
+	button.anchor_left = 1.0
+	button.anchor_right = 1.0
+	button.anchor_top = 0.0
+	button.anchor_bottom = 0.0
+
+	button.offset_left = -150.0
+	button.offset_right = -20.0
+
+	# Moved lower so it does not overlap the Player Status panel.
+	button.offset_top = 265.0
+	button.offset_bottom = 309.0
+
+	button.pressed.connect(_on_debug_add_tp_pressed)
+	$UI.add_child(button)
+
+
+func _on_debug_add_tp_pressed() -> void:
+	if tribute_manager == null:
+		return
+	tribute_manager.add_debug_tribute_points(1)
+	update_tribute_counter()
+	log_msg("Debug added +1 TP. " + tribute_manager.get_status_text())
+
+
+func confirm_pending_spell_placement(place_face_down: bool) -> void:
+	if pending_spell_slot == null:
+		hide_spell_choice_panel()
+		cancel_selected_card()
 		return
 
-	log_msg(defender_label + " " + defender_card.card_name + " survived the attack.")
-	
+	if selected_card_data == null:
+		hide_spell_choice_panel()
+		cancel_selected_card()
+		return
+
+	if not is_spell_like_card(selected_card_data):
+		hide_spell_choice_panel()
+		cancel_selected_card()
+		return
+
+	if not is_valid_slot_for_selected_card(pending_spell_slot):
+		log_msg("Invalid placement for " + selected_card_data.card_name)
+		hide_spell_choice_panel()
+		cancel_selected_card()
+		return
+
+	if not tribute_manager.can_afford(selected_card_data.tribute_cost):
+		log_msg("Not enough Tribute Points. Need " + str(selected_card_data.tribute_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
+
+		if pending_spell_card_ui != null:
+			return_card_to_hand_safely(pending_spell_card_ui)
+
+		hide_spell_choice_panel()
+		cancel_selected_card()
+		return
+
+	var placed_successfully: bool = pending_spell_slot.place_card(TEST_CARD_SCENE, selected_card_data, place_face_down)
+
+	if placed_successfully:
+		tribute_manager.spend_tribute(selected_card_data.tribute_cost)
+		log_msg("Spent " + str(selected_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
+
+		if pending_spell_card_ui != null:
+			play_player_hand_to_node_animation(selected_card_data, pending_spell_slot, place_face_down)
+			hand.consume_dragged_card(pending_spell_card_ui)
+
+		handle_card_deployed(selected_card_data)
+	else:
+		if pending_spell_card_ui != null:
+			return_card_to_hand_safely(pending_spell_card_ui)
+
+	hide_spell_choice_panel()
+	cancel_selected_card()
 
 
-func spawn_random_opponent_cards() -> void:
-	# Old test-spawn disabled.
-	# AI must deploy through hand + TP + phase rules.
-	log_msg("Old opponent test spawn is disabled. AI uses legal deployment now.")
+func log_msg(message: String) -> void:
+	if game_log != null and game_log.has_method("add_log"):
+		game_log.add_log(message)
+	else:
+		print("LOG FALLBACK: " + message)
