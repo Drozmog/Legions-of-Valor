@@ -11,6 +11,7 @@ race = "neutral"
 card_type = "spell"
 rarity = "common"
 tribute_cost = 1
+dp = 3
 ability_text = "Test spell card. When offered to Tribute, gives +2 temporary TP."
 lore_text = "A placeholder spell used for testing temporary tribute.
 card_art: empty for now"

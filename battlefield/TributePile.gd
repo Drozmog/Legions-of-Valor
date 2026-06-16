@@ -79,11 +79,15 @@ func build_stack() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(0.7, 0.55, 0.25)
 
+	# Lift the first tribute card above the base slab so it does not phase into it.
+	var base_lift: float = 0.035
+	var stack_gap: float = 0.006
+
 	for i in range(card_count):
 		var card := MeshInstance3D.new()
 		card.mesh = mesh
 		card.material_override = mat
-		card.position = Vector3(0, i * (card_thickness + 0.004), 0)
+		card.position = Vector3(0, base_lift + i * (card_thickness + stack_gap), 0)
 		add_child(card)
 		stacked_cards.append(card)
 

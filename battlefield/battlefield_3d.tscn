@@ -17,6 +17,7 @@
 [ext_resource type="Script" uid="uid://cy62fgjrl70dh" path="res://ui/BattlePlanSelectionScreen.gd" id="12_fcsx3"]
 [ext_resource type="Script" uid="uid://d4enyei8am72a" path="res://battle/BattlePlanManager.gd" id="14_vaox5"]
 [ext_resource type="Script" uid="uid://b620xjxapgjsm" path="res://battlefield/DiscardPile.gd" id="17_daqav"]
+[ext_resource type="Texture2D" uid="uid://bgjff8r7til78" path="res://Textures/World Textures/ParryTable.png" id="18_djscq"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(17.135, 8.34)
@@ -56,8 +57,27 @@ size = Vector3(1.02, 0.5, 1.4)
 [sub_resource type="BoxShape3D" id="BoxShape3D_1fhha"]
 size = Vector3(1.02, 0.5, 1.4)
 
-[node name="Battlefield3D" type="Node3D" unique_id=1594429578]
+[sub_resource type="CylinderMesh" id="CylinderMesh_daqav"]
+top_radius = 0.57
+bottom_radius = 0.0
+height = 0.001
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_moveh"]
+albedo_texture = ExtResource("18_djscq")
+uv1_scale = Vector3(1.845, 1.845, 1.845)
+uv1_offset = Vector3(0.045, -0.895, -0.04)
+texture_repeat = false
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_djscq"]
+height = 0.45
+radius = 0.8
+
+[node name="Battlefield3D" type="Node3D" unique_id=1594429578 node_paths=PackedStringArray("hand", "draw_pile", "tribute_pile", "player_deck")]
 script = ExtResource("1_a265j")
+hand = NodePath("UI/Hand")
+draw_pile = NodePath("DrawPile")
+tribute_pile = NodePath("TributePile")
+player_deck = NodePath("PlayerDeck")
 
 [node name="BoardPlaneGrass" type="MeshInstance3D" parent="." unique_id=1652894338]
 mesh = SubResource("PlaneMesh_lmsbs")
@@ -413,3 +433,20 @@ script = ExtResource("14_vaox5")
 [node name="DiscardPile" type="Node3D" parent="." unique_id=1628121275]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.955, 0.1, 2.2)
 script = ExtResource("17_daqav")
+
+[node name="ParryPit" type="Node3D" parent="." unique_id=2130131975]
+transform = Transform3D(1.11, 0, 0, 0, 1.11, 0, 0, 0, 1.11, 4.19, 0.08, 0.019)
+
+[node name="ParryPitGlow" type="MeshInstance3D" parent="ParryPit" unique_id=1129680907]
+mesh = SubResource("CylinderMesh_daqav")
+surface_material_override/0 = SubResource("StandardMaterial3D_moveh")
+
+[node name="ParryDPCounter" type="Label3D" parent="ParryPit" unique_id=903500747]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 45, 0)
+text = "0/0 DP"
+
+[node name="ParryPitDropArea" type="Area3D" parent="ParryPit" unique_id=1833703348]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="ParryPit/ParryPitDropArea" unique_id=604015528]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
+shape = SubResource("CylinderShape3D_djscq")
