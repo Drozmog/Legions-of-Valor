@@ -1,0 +1,7 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://battlefield/battlefield_3d.tscn" id="1_base"]
+[ext_resource type="Script" path="res://battlefield/BattlefieldManagerPhase3CombatMenu.gd" id="2_rules"]
+
+[node name="Battlefield3D" instance=ExtResource("1_base")]
+script = ExtResource("2_rules")
