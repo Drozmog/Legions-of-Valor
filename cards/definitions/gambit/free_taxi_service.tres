@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cnjuf4qit1emd"]
+
+[ext_resource type="Texture2D" uid="uid://d15ph8g2qjrqv" path="res://cards/images/gambit/free_taxi_service.png" id="1_xmeqm"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_rf0hs"]
+
+[resource]
+script = ExtResource("2_rf0hs")
+card_id = "free_taxi_service"
+card_name = "Free Taxi Service"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 6
+dp = 4
+ability_text = "Swap any two whole lanes with eachother."
+lore_text = "Fat fucking cat."
+card_art = ExtResource("1_xmeqm")
+ability_types = Array[String](["mobility"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -20,9 +20,27 @@ func build_test_deck() -> void:
 		deck_changed.emit(0)
 		return
 
-	# Temporary prototype deck: repeat the available cards until we have 40.
-	for i in range(40):
-		deck.append(pool[i % pool.size()])
+	# Prototype deck rule:
+	# Build a 40-card deck from the full CardDatabase pool.
+	# The old version used pool[i % pool.size()], which means if the pool had more than 40 cards,
+	# anything after the first 40 could never appear in the player deck.
+	# This version shuffles the full pool first, then takes 40, so every database card has a chance.
+	var shuffled_pool: Array[CardData] = pool.duplicate()
+	shuffled_pool.shuffle()
+
+	if shuffled_pool.size() >= 40:
+		for i in range(40):
+			deck.append(shuffled_pool[i])
+	else:
+		# If the pool is smaller than 40, repeat shuffled copies until the deck reaches 40.
+		while deck.size() < 40:
+			var refill: Array[CardData] = pool.duplicate()
+			refill.shuffle()
+
+			for card_data in refill:
+				if deck.size() >= 40:
+					break
+				deck.append(card_data)
 
 	deck.shuffle()
 	deck_changed.emit(deck.size())
