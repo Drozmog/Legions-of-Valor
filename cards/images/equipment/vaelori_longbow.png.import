@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bvc01xtd01b4"
-path="res://.godot/imported/grave_crossers_pack_a.png-e88822e95ea4bb410753dbe73e91d51f.ctex"
+uid="uid://dr8nodsp6rpn3"
+path="res://.godot/imported/vaelori_longbow.png-cc800554b6501b0a628f3e93e3e7f751.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/equipment/grave_crossers_pack_a.png"
-dest_files=["res://.godot/imported/grave_crossers_pack_a.png-e88822e95ea4bb410753dbe73e91d51f.ctex"]
+source_file="res://cards/images/equipment/vaelori_longbow.png"
+dest_files=["res://.godot/imported/vaelori_longbow.png-cc800554b6501b0a628f3e93e3e7f751.ctex"]
 
 [params]
 

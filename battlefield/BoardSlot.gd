@@ -15,6 +15,7 @@ var slot_material: StandardMaterial3D
 var default_color: Color = Color(1.0, 1.0, 1.0, 1.0)
 var valid_color: Color = Color(0.35, 1.0, 0.35, 1.0)
 var invalid_color: Color = Color(1.0, 0.25, 0.25, 1.0)
+var promotion_color: Color = Color(1.0, 0.84, 0.12, 1.0)
 
 var highlight_outline: Node3D
 var glow_outline: Node3D
@@ -42,12 +43,13 @@ func _ready() -> void:
 	click_area.input_ray_pickable = true
 	click_area.input_event.connect(_on_click_area_input_event)
 
+
 func set_highlight(active: bool) -> void:
 	if highlight_outline == null or glow_outline == null:
 		return
 
 	if active:
-		set_outline_color(Color(0.35, 1.0, 0.35, 1.0))
+		set_outline_color(valid_color)
 		highlight_outline.visible = true
 		glow_outline.visible = true
 	else:
@@ -60,7 +62,20 @@ func set_invalid_highlight(active: bool) -> void:
 		return
 
 	if active:
-		set_outline_color(Color(1.0, 0.2, 0.2, 1.0))
+		set_outline_color(invalid_color)
+		highlight_outline.visible = true
+		glow_outline.visible = true
+	else:
+		highlight_outline.visible = false
+		glow_outline.visible = false
+
+
+func set_promotion_highlight(active: bool) -> void:
+	if highlight_outline == null or glow_outline == null:
+		return
+
+	if active:
+		set_outline_color(promotion_color)
 		highlight_outline.visible = true
 		glow_outline.visible = true
 	else:
@@ -76,6 +91,7 @@ func set_outline_color(color: Color) -> void:
 	if glow_material != null:
 		glow_material.albedo_color = Color(color.r, color.g, color.b, 0.18)
 		glow_material.emission = color
+
 
 func _on_click_area_input_event(
 	_camera: Node,
@@ -176,7 +192,7 @@ func clear_slot() -> void:
 	set_meta("face_down", false)
 
 	print("Cleared slot: ", get_meta("slot_id"))
-	
+
 
 func get_placed_card_data() -> CardData:
 	if placed_card == null:
@@ -186,8 +202,8 @@ func get_placed_card_data() -> CardData:
 		return placed_card.get_card_data()
 
 	return null
-	
-	
+
+
 func reveal_card() -> void:
 	if placed_card == null:
 		return
@@ -196,7 +212,7 @@ func reveal_card() -> void:
 		placed_card.reveal_card()
 
 	set_meta("face_down", false)
-	
+
 
 func set_slot_ability_icons_visible(show_icons: bool) -> void:
 	if placed_card != null and is_instance_valid(placed_card):
@@ -226,6 +242,7 @@ func setup_slot_material() -> void:
 		slot_material.albedo_color = default_color
 		material_override = slot_material
 
+
 func setup_highlight_outline() -> void:
 	# Crisp inner outline
 	highlight_outline = Node3D.new()
@@ -234,9 +251,9 @@ func setup_highlight_outline() -> void:
 
 	outline_material = StandardMaterial3D.new()
 	outline_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	outline_material.albedo_color = Color(0.35, 1.0, 0.35, 1.0)
+	outline_material.albedo_color = valid_color
 	outline_material.emission_enabled = true
-	outline_material.emission = Color(0.35, 1.0, 0.35, 1.0)
+	outline_material.emission = valid_color
 	outline_material.emission_energy_multiplier = 1.2
 	outline_material.no_depth_test = true
 
@@ -251,7 +268,7 @@ func setup_highlight_outline() -> void:
 	glow_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	glow_material.albedo_color = Color(0.35, 1.0, 0.35, 0.18)
 	glow_material.emission_enabled = true
-	glow_material.emission = Color(0.35, 1.0, 0.35, 1.0)
+	glow_material.emission = valid_color
 	glow_material.emission_energy_multiplier = 2.5
 	glow_material.no_depth_test = true
 
@@ -324,8 +341,7 @@ func setup_highlight_outline() -> void:
 	highlight_outline.visible = false
 	glow_outline.visible = false
 
-	highlight_outline.visible = false
-	
+
 func create_outline_bar(
 	parent_node: Node3D,
 	bar_name: String,

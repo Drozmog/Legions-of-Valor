@@ -38,8 +38,8 @@ const ORKHAEL_OUTCAST: CardData = preload("res://cards/definitions/unit/orc/orkh
 # EQUIPMENT
 # =========================
 
-const GRAVE_CROSSERS_PACK_A: CardData = preload("res://cards/definitions/equipment/grave_crossers_pack_a.tres")
-const VAELORI_LONGBOW_M: CardData = preload("res://cards/definitions/equipment/vaelori_longbow_m.tres")
+const GRAVE_CROSSERS_PACK: CardData = preload("res://cards/definitions/equipment/grave_crossers_pack.tres")
+const VAELORI_LONGBOW: CardData = preload("res://cards/definitions/equipment/vaelori_longbow.tres")
 
 
 # =========================
@@ -64,8 +64,8 @@ static func get_all_test_cards() -> Array[CardData]:
 		UPPER_HALL_PROSPECTOR,
 		IVAAN_THE_BONE_CRUSHER,
 		ORKHAEL_OUTCAST,
-		GRAVE_CROSSERS_PACK_A,
-		VAELORI_LONGBOW_M,
+		GRAVE_CROSSERS_PACK,
+		VAELORI_LONGBOW,
 		BLACKMAIL,
 		WITHERING_OF_THE_VEIL,
 	]

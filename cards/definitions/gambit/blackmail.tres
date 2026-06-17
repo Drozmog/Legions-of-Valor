@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://caq7u4lmy0rbh"]
 
-[ext_resource type="Texture2D" uid="uid://bcprw7jvcw6e7" path="res://cards/images/gambit/blackmail.png" id="1_degnq"]
+[ext_resource type="Texture2D" uid="uid://dm22mbewme2op" path="res://cards/images/gambit/blackmail.png" id="1_degnq"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_1dl7v"]
 
 [resource]

@@ -606,6 +606,7 @@ func start_next_round() -> void:
 		log_msg("Resolve the parry prompt before ending combat.")
 		return
 
+	resolve_dominance_before_cleanup()
 	cleanup_battlefield_spells()
 
 	if tribute_manager != null:
@@ -2663,6 +2664,42 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 			return_card_to_hand_safely(spell_card_ui)
 
 	cancel_selected_card()
+
+
+func resolve_dominance_before_cleanup() -> void:
+	if current_phase != BattlePhase.COMBAT:
+		return
+
+	var checked_lanes: Array[String] = ["left", "right"]
+	var dominance_awarded: bool = false
+
+	for lane in checked_lanes:
+		var player_ap: int = get_front_lane_ap_total("player", lane)
+		var ai_ap: int = get_front_lane_ap_total("enemy", lane)
+
+		if player_ap > ai_ap:
+			add_aurion("player", 1, lane.capitalize() + " lane Dominance: Player AP " + str(player_ap) + " vs AI AP " + str(ai_ap) + ".")
+			dominance_awarded = true
+		elif ai_ap > player_ap:
+			add_aurion("ai", 1, lane.capitalize() + " lane Dominance: AI AP " + str(ai_ap) + " vs Player AP " + str(player_ap) + ".")
+			dominance_awarded = true
+		else:
+			log_msg(lane.capitalize() + " lane Dominance: tied at " + str(player_ap) + " AP. No Aurion gained.")
+
+	if dominance_awarded:
+		log_msg("Dominance resolved for side lanes before cleanup.")
+	else:
+		log_msg("Dominance resolved. No side-lane advantage gained.")
+
+
+func get_front_lane_ap_total(owner_name: String, lane: String) -> int:
+	var slot: Node = find_slot_by_owner_row_lane(owner_name, "front", lane)
+	var card_data: CardData = get_slot_card_data(slot)
+
+	if not is_unit_card(card_data):
+		return 0
+
+	return max(0, card_data.ap)
 
 
 func cleanup_battlefield_spells() -> void:

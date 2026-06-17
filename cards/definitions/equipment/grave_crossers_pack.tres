@@ -1,10 +1,10 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b7ytlxkly84yi"]
 
-[ext_resource type="Texture2D" uid="uid://cqpsknxrgg4qt" path="res://cards/images/gambit/withering_of_the_veil.png" id="1_6q470"]
-[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_v07ig"]
+[ext_resource type="Texture2D" uid="uid://bvc01xtd01b4" path="res://cards/images/equipment/grave_crossers_pack.png" id="1_an4ie"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_mndvo"]
 
 [resource]
-script = ExtResource("2_v07ig")
+script = ExtResource("2_mndvo")
 card_id = "grave_crossers_pack"
 card_name = "Grave-Crosser’s Pack (A)"
 race = "neutral"
@@ -14,6 +14,6 @@ tribute_cost = 1
 dp = 1
 ability_text = "Gain +3 AP for this clash; if you do, destroy this unit after combat"
 lore_text = "The Equipment of Soren, a revered Human Legend."
-card_art = ExtResource("1_6q470")
-ability_types = Array[String](["attrition"])
+card_art = ExtResource("1_an4ie")
+ability_types = Array[String](["assault"])
 metadata/_custom_type_script = "uid://20ngslec6o41"
