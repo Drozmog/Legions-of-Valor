@@ -6,21 +6,66 @@ signal draw_drag_moved(screen_position: Vector2)
 signal draw_drag_released(screen_position: Vector2)
 
 @export var card_count: int = 40
-@export var card_thickness: float = 0.005
+@export var card_width: float = 1.02
+@export var card_height: float = 1.34
+@export var card_thickness: float = 0.006
+@export var max_visible_cards: int = 14
+@export var card_gap: float = 0.008
 
-@onready var click_area: Area3D = $ClickArea
+@export var counter_side_offset: float = 0.3
+@export var counter_height: float = 0.55
+@export var counter_forward_offset: float = -0.85
+@export var counter_pixel_size: float = 0.006
+
+@onready var click_area: Area3D = get_node_or_null("ClickArea") as Area3D
 
 var is_dragging_from_pile: bool = false
-var stacked_cards: Array[MeshInstance3D] = []
+var stacked_cards: Array[Node3D] = []
+var base_node: MeshInstance3D = null
+var counter_label: Label3D = null
 
 
 func _ready() -> void:
+	create_base()
+	create_counter_label()
 	build_stack()
 
-	click_area.input_ray_pickable = true
-	click_area.input_event.connect(_on_click_area_input_event)
+	if click_area != null:
+		click_area.input_ray_pickable = true
+		click_area.input_event.connect(_on_click_area_input_event)
 
 	set_process(false)
+
+
+func create_base() -> void:
+	if base_node != null:
+		return
+
+	base_node = CardPileVisual.create_pile_base("DrawPileBase")
+	add_child(base_node)
+
+
+func create_counter_label() -> void:
+	if counter_label != null:
+		return
+
+	counter_label = CardPileVisual.create_counter_label(
+		"DrawPileCounter",
+		"Deck: " + str(card_count),
+		Vector3(counter_side_offset, counter_height, counter_forward_offset),
+		counter_pixel_size,
+		20
+	)
+
+	add_child(counter_label)
+
+
+func update_counter_label() -> void:
+	if counter_label == null:
+		return
+
+	counter_label.position = Vector3(counter_side_offset, counter_height, counter_forward_offset)
+	counter_label.text = "Deck: " + str(card_count)
 
 
 func set_card_count(new_count: int) -> void:
@@ -31,24 +76,21 @@ func set_card_count(new_count: int) -> void:
 func build_stack() -> void:
 	clear_stack()
 
-	var card_mesh := BoxMesh.new()
-	card_mesh.size = Vector3(1.0, card_thickness, 1.4)
+	var visible_count: int = mini(card_count, max_visible_cards)
 
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.82, 0.74, 0.55)
-
-	for i in range(card_count):
-		var card := MeshInstance3D.new()
-		card.mesh = card_mesh
-		card.material_override = mat
-		card.position = Vector3(0, i * card_thickness + 0.004, 0)
+	for i in range(visible_count):
+		var card := CardPileVisual.create_card_back_visual(card_width, card_height)
+		card.position = Vector3(0, 0.025 + float(i) * (card_thickness + card_gap), 0)
+		card.rotation_degrees = Vector3(0, float(i % 4) * 1.5, 0)
 		add_child(card)
 		stacked_cards.append(card)
+
+	update_counter_label()
 
 
 func clear_stack() -> void:
 	for card in stacked_cards:
-		if is_instance_valid(card):
+		if card != null and is_instance_valid(card):
 			card.queue_free()
 
 	stacked_cards.clear()
@@ -91,11 +133,4 @@ func consume_top_card() -> void:
 		return
 
 	card_count -= 1
-
-	if stacked_cards.is_empty():
-		return
-
-	var top_card: MeshInstance3D = stacked_cards.pop_back() as MeshInstance3D
-
-	if is_instance_valid(top_card):
-		top_card.queue_free()
+	build_stack()

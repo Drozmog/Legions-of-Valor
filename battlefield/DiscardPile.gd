@@ -1,34 +1,58 @@
 class_name DiscardPile
 extends Node3D
 
+@export var card_scale: float = 1.0
 @export var card_thickness: float = 0.012
-@export var card_back_texture: Texture2D
+@export var max_visible_cards: int = 14
+@export var stack_gap: float = 0.008
+
+@export var counter_side_offset: float = 0.55
+@export var counter_height: float = 0.55
+@export var counter_forward_offset: float = -0.85
+@export var counter_pixel_size: float = 0.006
 
 var discarded_cards: Array[CardData] = []
-var stacked_cards: Array[MeshInstance3D] = []
+var stacked_cards: Array[Node3D] = []
+
+var counter_label: Label3D = null
+var base_node: MeshInstance3D = null
 
 
 func _ready() -> void:
 	create_base()
+	create_counter_label()
 	build_stack()
 
 
 func create_base() -> void:
-	var base := MeshInstance3D.new()
-	base.name = "DiscardBase"
+	if base_node != null:
+		return
 
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(1.1, 0.02, 1.5)
+	base_node = CardPileVisual.create_pile_base("DiscardBase")
+	add_child(base_node)
 
-	base.mesh = mesh
 
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.18, 0.16, 0.13, 1.0)
+func create_counter_label() -> void:
+	if counter_label != null:
+		return
 
-	base.material_override = mat
-	base.position = Vector3.ZERO
+	counter_label = CardPileVisual.create_counter_label(
+		"DiscardCounter",
+		"Discard: 0",
+		Vector3(counter_side_offset, counter_height, counter_forward_offset),
+		counter_pixel_size,
+		20
+	)
 
-	add_child(base)
+	add_child(counter_label)
+
+
+func update_counter_label() -> void:
+	if counter_label == null:
+		return
+
+	counter_label.position = Vector3(counter_side_offset, counter_height, counter_forward_offset)
+	counter_label.text = "Discard: " + str(discarded_cards.size())
 
 
 func add_card(card_data: CardData) -> void:
@@ -60,26 +84,29 @@ func cards_count() -> int:
 
 
 func build_stack() -> void:
-	for card in stacked_cards:
-		if is_instance_valid(card):
-			card.queue_free()
+	for card_node in stacked_cards:
+		if card_node != null and is_instance_valid(card_node):
+			card_node.queue_free()
 
 	stacked_cards.clear()
 
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(1.0, card_thickness, 1.4)
+	var start_index: int = max(0, discarded_cards.size() - max_visible_cards)
+	var visible_cards: Array[CardData] = discarded_cards.slice(start_index, discarded_cards.size())
 
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.10, 0.08, 0.05, 1.0)
+	for i in range(visible_cards.size()):
+		var card_data: CardData = visible_cards[i]
+		var card_node := CardPileVisual.create_face_up_card_visual(card_data, card_scale)
 
-	if card_back_texture != null:
-		mat.albedo_texture = card_back_texture
-		mat.albedo_color = Color.WHITE
+		# Same clean style as tribute pile.
+		card_node.position = Vector3(
+			float(i) * 0.025,
+			0.045 + float(i) * (card_thickness + stack_gap),
+			float(i) * 0.018
+		)
 
-	for i in range(discarded_cards.size()):
-		var card := MeshInstance3D.new()
-		card.mesh = mesh
-		card.material_override = mat
-		card.position = Vector3(0, i * (card_thickness + 0.003) + 0.02, 0)
-		add_child(card)
-		stacked_cards.append(card)
+		card_node.rotation_degrees = Vector3(0.0, float(i) * 1.0, 0.0)
+
+		add_child(card_node)
+		stacked_cards.append(card_node)
+
+	update_counter_label()

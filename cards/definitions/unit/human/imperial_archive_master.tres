@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dvm8i7f1ksqma"]
+
+[ext_resource type="Texture2D" uid="uid://llh4qg2c6yrh" path="res://cards/images/unit/human/imperial_archive_master.png" id="1_v4h3m"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_ibvd5"]
+
+[resource]
+script = ExtResource("2_ibvd5")
+card_id = "imperial_archive_master"
+card_name = "Imperial Archive-Master"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 3
+ability_text = "Resilience : Draw 1 card for every card you discard from your hand while this unit is deployed."
+lore_text = "“Isolate their strongholds. Cut the ancient supply routes, and their magic simply withers.”"
+card_art = ExtResource("1_v4h3m")
+ability_types = Array[String](["economy"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

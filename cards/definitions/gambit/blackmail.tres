@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://caq7u4lmy0rbh"]
+
+[ext_resource type="Texture2D" uid="uid://bcprw7jvcw6e7" path="res://cards/images/gambit/blackmail.png" id="1_degnq"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_1dl7v"]
+
+[resource]
+script = ExtResource("2_1dl7v")
+card_id = "blackmail"
+card_name = "Blackmail"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 3
+dp = 3
+ability_text = "Targeted unit cannot attack or use ability this turn."
+lore_text = "\"I have an idea! Replace the sky with human made steal for 3 long heartbeats and watch their morale.\" - Dame Valen of Calith"
+card_art = ExtResource("1_degnq")
+ability_types = Array[String](["control"])
+metadata/_custom_type_script = "uid://20ngslec6o41"
