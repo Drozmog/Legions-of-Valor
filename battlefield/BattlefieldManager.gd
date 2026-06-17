@@ -2011,7 +2011,14 @@ func update_parry_counter_visual(current_dp: int, required_dp: int) -> void:
 	if parry_dp_counter == null:
 		return
 
-	var counter_text := "%d/%d DP" % [current_dp, required_dp]
+	var counter_text := "Parry: 0 / 0"
+
+	if parry_defender_card != null and required_dp > 0:
+		var current_total: int = max(0, parry_defender_card.ap) + max(0, current_dp)
+		var target_total: int = max(1, parry_defender_card.ap + required_dp)
+		counter_text = "Parry: %d / %d" % [current_total, target_total]
+	else:
+		counter_text = "Parry: %d / %d" % [max(0, current_dp), max(0, required_dp)]
 
 	if parry_dp_counter is Label3D:
 		parry_dp_counter.text = counter_text
@@ -2074,7 +2081,10 @@ func begin_parry_prompt(
 	parry_attacker_card = attacker_card
 	parry_defender_slot = defender_slot
 	parry_defender_card = defender_card
-	parry_required_dp = max(1, attacker_card.ap)
+	# Phase 9 parry formula:
+	# Required pit DP = attacking/threatening AP - endangered unit AP.
+	# The visible counter shows endangered unit AP + pit DP / threatening AP.
+	parry_required_dp = max(1, attacker_card.ap - defender_card.ap)
 	parry_gathered_dp = 0
 
 	show_parry_pit(parry_required_dp)
@@ -2088,14 +2098,30 @@ func begin_parry_prompt(
 			+ defender_card.card_name
 			+ " must survive against "
 			+ attacker_card.card_name
-			+ ".\nDrop hand cards into the glowing pit to gather DP, or let the unit die."
-			+ "\nRequired DP: "
+			+ ".\nDrop hand cards into the glowing pit to add DP, or let the unit die."
+			+ "\nParry target: "
+			+ str(defender_card.ap)
+			+ " + pit DP / "
+			+ str(attacker_card.ap)
+			+ " AP"
+			+ "\nNeeded from pit: "
 			+ str(parry_required_dp)
+			+ " DP"
 		)
 
 	update_parry_counter_label()
 
-	log_msg("Parry prompt: sacrifice hand cards into the pit. Required DP: " + str(parry_required_dp))
+	log_msg(
+		"Parry prompt: "
+		+ defender_card.card_name
+		+ " needs "
+		+ str(parry_required_dp)
+		+ " pit DP. "
+		+ "Parry: "
+		+ str(defender_card.ap)
+		+ " / "
+		+ str(attacker_card.ap)
+	)
 
 
 func disable_keyboard_focus_for_all_buttons(root: Node) -> void:
@@ -2147,7 +2173,23 @@ func sacrifice_card_to_parry(card_ui: CardUI) -> void:
 	if hand != null:
 		hand.consume_dragged_card(card_ui)
 
-	log_msg("Parry sacrifice: " + sacrificed_card.card_name + " added " + str(gained_dp) + " DP.")
+	var parry_total_after_sacrifice: int = 0
+	var parry_target_total: int = 0
+
+	if parry_defender_card != null:
+		parry_total_after_sacrifice = parry_defender_card.ap + parry_gathered_dp
+		parry_target_total = parry_defender_card.ap + parry_required_dp
+
+	log_msg(
+		"Parry sacrifice: "
+		+ sacrificed_card.card_name
+		+ " added "
+		+ str(gained_dp)
+		+ " DP. Parry: "
+		+ str(parry_total_after_sacrifice)
+		+ " / "
+		+ str(parry_target_total)
+	)
 	update_parry_counter_label()
 	cancel_selected_card()
 
@@ -2159,14 +2201,21 @@ func complete_parry_success() -> void:
 	if not parry_active:
 		return
 
+	var final_parry_total: int = parry_gathered_dp
+	var final_parry_target: int = parry_required_dp
+
+	if parry_defender_card != null:
+		final_parry_total = parry_defender_card.ap + parry_gathered_dp
+		final_parry_target = parry_defender_card.ap + parry_required_dp
+
 	log_msg(
 		"Parry successful. "
 		+ parry_defender_card.card_name
-		+ " survives with "
-		+ str(parry_gathered_dp)
-		+ "/"
-		+ str(parry_required_dp)
-		+ " DP."
+		+ " survives with Parry "
+		+ str(final_parry_total)
+		+ " / "
+		+ str(final_parry_target)
+		+ "."
 	)
 
 	end_parry_prompt()
