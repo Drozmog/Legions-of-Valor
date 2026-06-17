@@ -5,3 +5,10 @@
 # Godot temporary scene/resource save files
 *.tmp
 *.tscn*.tmp
+
+# Godot export/build outputs
+LegionsOfValor.console.exe
+LegionsOfValor.exe
+LegionsOfValor.pck
+Trials/
+export_presets.cfg
