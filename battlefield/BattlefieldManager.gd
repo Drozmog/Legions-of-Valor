@@ -717,6 +717,26 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 
 		var card_type: String = get_clean_card_type(selected_card_data)
 
+		if can_promote_selected_card_on_slot(target_slot):
+			if card != null and is_instance_valid(card):
+				card.visible = false
+
+			await play_player_hand_to_node_animation(dragged_card_data, target_slot, false)
+
+			var promoted: bool = try_promote_selected_card_on_slot(target_slot)
+
+			if promoted:
+				if hand != null:
+					hand.consume_dragged_card(card)
+			else:
+				if card != null and is_instance_valid(card):
+					card.visible = true
+
+				return_card_to_hand_safely(card)
+
+			cancel_selected_card()
+			return
+
 		if card_type == "equipment":
 			if card != null and is_instance_valid(card):
 				card.visible = false
@@ -1012,6 +1032,9 @@ func try_place_selected_card_on_slot(slot: Node) -> bool:
 	var slot_row: String = String(slot.get_meta("row", ""))
 	var card_type: String = get_clean_card_type(selected_card_data)
 
+	if can_promote_selected_card_on_slot(slot):
+		return try_promote_selected_card_on_slot(slot)
+
 	if card_type == "equipment":
 		return try_attach_selected_equipment_to_slot(slot)
 
@@ -1074,6 +1097,89 @@ func try_sacrifice_selected_card_to_tribute() -> bool:
 	return true
 
 
+
+func get_clean_card_race(card_data: CardData) -> String:
+	if card_data == null:
+		return ""
+
+	return card_data.race.to_lower().strip_edges()
+
+
+func can_promote_selected_card_on_slot(slot: Node) -> bool:
+	if current_phase != BattlePhase.DEPLOYMENT:
+		return false
+
+	if not has_selected_card or selected_card_data == null:
+		return false
+
+	if slot == null:
+		return false
+
+	if String(slot.get_meta("owner", "")) != "player":
+		return false
+
+	if String(slot.get_meta("row", "")) != "front":
+		return false
+
+	if not bool(slot.get_meta("occupied", false)):
+		return false
+
+	if bool(slot.get_meta("face_down", false)):
+		return false
+
+	if not is_unit_card(selected_card_data):
+		return false
+
+	var old_unit: CardData = get_slot_card_data(slot)
+
+	if not is_unit_card(old_unit):
+		return false
+
+	var new_race: String = get_clean_card_race(selected_card_data)
+	var old_race: String = get_clean_card_race(old_unit)
+
+	if new_race == "" or old_race == "":
+		return false
+
+	if new_race != old_race:
+		return false
+
+	if selected_card_data.tribute_cost <= old_unit.tribute_cost:
+		return false
+
+	return true
+
+
+func try_promote_selected_card_on_slot(slot: Node) -> bool:
+	if not can_promote_selected_card_on_slot(slot):
+		log_msg("Invalid promotion target.")
+		return false
+
+	if tribute_manager == null:
+		return false
+
+	var old_unit: CardData = get_slot_card_data(slot)
+	var new_unit: CardData = selected_card_data
+	var promotion_cost: int = new_unit.tribute_cost
+
+	if not tribute_manager.can_afford(promotion_cost):
+		log_msg("Not enough Tribute Points to promote. Need " + str(promotion_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
+		return false
+
+	send_slot_card_to_discard(slot)
+
+	var placed_successfully: bool = slot.place_card(TEST_CARD_SCENE, new_unit, false)
+
+	if not placed_successfully:
+		log_msg("Promotion failed. Could not place " + new_unit.card_name + " after discarding " + old_unit.card_name + ".")
+		return false
+
+	tribute_manager.spend_tribute(promotion_cost)
+	log_msg("Promoted " + old_unit.card_name + " into " + new_unit.card_name + " for full cost: " + str(promotion_cost) + " TP.")
+	log_msg("Spent " + str(promotion_cost) + " TP. " + tribute_manager.get_status_text())
+	handle_card_deployed(new_unit)
+	return true
+
 func is_valid_slot_for_selected_card(slot: Node) -> bool:
 	if current_phase != BattlePhase.DEPLOYMENT:
 		return false
@@ -1120,18 +1226,34 @@ func is_valid_slot_for_selected_card(slot: Node) -> bool:
 func update_slot_highlights() -> void:
 	if board_slots == null:
 		return
+
 	for slot in board_slots.get_children():
 		if not slot.has_method("set_highlight") or not slot.has_method("set_invalid_highlight"):
 			continue
+
+		var has_promotion_highlight: bool = slot.has_method("set_promotion_highlight")
+
+		slot.set_highlight(false)
+		slot.set_invalid_highlight(false)
+
+		if has_promotion_highlight:
+			slot.set_promotion_highlight(false)
+
 		if not has_selected_card or current_phase != BattlePhase.DEPLOYMENT:
-			slot.set_highlight(false)
-			slot.set_invalid_highlight(false)
 			continue
-		if is_valid_slot_for_selected_card(slot):
+
+		if can_promote_selected_card_on_slot(slot):
+			if has_promotion_highlight:
+				slot.set_promotion_highlight(true)
+			else:
+				slot.set_highlight(true)
+
+				if slot.has_method("set_outline_color"):
+					slot.set_outline_color(Color(1.0, 0.82, 0.12, 1.0))
+		elif is_valid_slot_for_selected_card(slot):
 			slot.set_highlight(true)
 		else:
 			slot.set_invalid_highlight(true)
-
 
 func handle_card_deployed(card_data: CardData) -> void:
 	if card_data == null:
@@ -2862,6 +2984,28 @@ func ai_try_deploy_one_card() -> bool:
 
 		return false
 
+	if action_type == "promotion":
+		var old_unit: CardData = get_slot_card_data(target_slot)
+
+		if not ai_can_promote_card_to_slot(card_data, target_slot):
+			return false
+
+		await play_enemy_hand_to_node_animation(card_data, target_slot, false)
+		send_slot_card_to_discard(target_slot)
+
+		if target_slot.has_method("place_card"):
+			success = target_slot.place_card(TEST_CARD_SCENE, card_data, false)
+
+		if success:
+			ai_hand.pop_at(card_index)
+			ai_spend_tp(card_data.tribute_cost)
+			log_msg("AI promoted " + old_unit.card_name + " into " + card_data.card_name + " for full cost: " + str(card_data.tribute_cost) + " TP.")
+			log_msg("AI TP after promotion: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
+			update_ai_visuals()
+			return true
+
+		return false
+
 	if action_type == "unit" or action_type == "gambit":
 		await play_enemy_hand_to_node_animation(card_data, target_slot, face_down)
 
@@ -2890,6 +3034,7 @@ func ai_try_deploy_one_card() -> bool:
 func ai_choose_deployment_action() -> Dictionary:
 	var equipment_action: Dictionary = ai_find_equipment_action()
 	var spell_action: Dictionary = ai_find_spell_action()
+	var promotion_action: Dictionary = ai_find_promotion_action()
 	var unit_action: Dictionary = ai_find_unit_action()
 
 	# Testing behavior:
@@ -2902,6 +3047,9 @@ func ai_choose_deployment_action() -> Dictionary:
 
 	if roll < 55 and not spell_action.is_empty():
 		return spell_action
+
+	if not promotion_action.is_empty():
+		return promotion_action
 
 	if not unit_action.is_empty():
 		return unit_action
@@ -2922,6 +3070,71 @@ func ai_make_deployment_action(card_index: int, slot: Node, action_type: String,
 		"action_type": action_type,
 		"face_down": face_down
 	}
+
+
+
+func ai_find_promotion_action() -> Dictionary:
+	for card_index in range(ai_hand.size()):
+		var card_data: CardData = ai_hand[card_index]
+
+		if card_data == null:
+			continue
+
+		if not is_unit_card(card_data):
+			continue
+
+		if card_data.tribute_cost > ai_current_tp:
+			continue
+
+		for lane in ["left", "middle", "right"]:
+			var slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+
+			if ai_can_promote_card_to_slot(card_data, slot):
+				return ai_make_deployment_action(card_index, slot, "promotion", false)
+
+	return {}
+
+
+func ai_can_promote_card_to_slot(new_unit: CardData, slot: Node) -> bool:
+	if new_unit == null:
+		return false
+
+	if not is_unit_card(new_unit):
+		return false
+
+	if slot == null:
+		return false
+
+	if String(slot.get_meta("owner", "")) != "enemy":
+		return false
+
+	if String(slot.get_meta("row", "")) != "front":
+		return false
+
+	if not bool(slot.get_meta("occupied", false)):
+		return false
+
+	if bool(slot.get_meta("face_down", false)):
+		return false
+
+	var old_unit: CardData = get_slot_card_data(slot)
+
+	if not is_unit_card(old_unit):
+		return false
+
+	var new_race: String = get_clean_card_race(new_unit)
+	var old_race: String = get_clean_card_race(old_unit)
+
+	if new_race == "" or old_race == "":
+		return false
+
+	if new_race != old_race:
+		return false
+
+	if new_unit.tribute_cost <= old_unit.tribute_cost:
+		return false
+
+	return true
 
 
 func ai_find_unit_action() -> Dictionary:
@@ -3948,17 +4161,20 @@ func resolve_player_attack_lane_with_visuals(lane: String) -> void:
 		combat_resolution_running = false
 		return
 
+	if enemy_back_is_face_down:
+		# Attacking a lane with a hidden enemy back-row card always resolves the bluff first.
+		# If it is not a Gambit, the decoy is discarded and the player keeps priority,
+		# then the player may right-click again to attack the front row or Monarch.
+		await resolve_attack_into_face_down_backrow(lane, player_card, enemy_front_slot, enemy_back_slot, enemy_back_card)
+		combat_resolution_running = false
+		return
+
 	if enemy_front_card == null:
-		# Back-row cards do not protect the Monarch without a front-row unit.
+		# Back-row cards do not protect the Monarch once there is no hidden card to resolve.
 		# If the player has the only front unit in this lane, the player gets Monarch Strike.
 		resolve_monarch_strike(lane, player_card)
 		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
 		await advance_combat_lane_after_resolution()
-		combat_resolution_running = false
-		return
-
-	if enemy_back_is_face_down:
-		await resolve_attack_into_face_down_backrow(lane, player_card, enemy_front_slot, enemy_back_slot, enemy_back_card)
 		combat_resolution_running = false
 		return
 
@@ -4048,20 +4264,22 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 		await resolve_ai_pass_lane_with_visuals(lane)
 		return
 
-	if player_front_card == null:
-		# Back-row cards do not protect the Monarch without a front-row unit.
-		# If AI has the only front unit in this lane, AI must take the Monarch Strike.
-		resolve_ai_monarch_strike(lane, ai_card)
-		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-		await advance_combat_lane_after_resolution()
-		return
-
 	if player_back_is_face_down and ai_should_check_hidden_backrow(lane, player_back_card):
 		await resolve_ai_check_lane_with_visuals(lane)
 		return
 
 	if player_back_is_face_down:
+		# AI also resolves the hidden back-row bluff before any Monarch Strike.
+		# If it correctly attacks a non-Gambit decoy, the decoy is discarded and AI keeps priority.
 		await resolve_ai_attack_lane_with_visuals(lane)
+		return
+
+	if player_front_card == null:
+		# Back-row cards do not protect the Monarch once there is no hidden card to resolve.
+		# If AI has the only front unit in this lane, AI must take the Monarch Strike.
+		resolve_ai_monarch_strike(lane, ai_card)
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		await advance_combat_lane_after_resolution()
 		return
 
 	if player_front_card != null:
