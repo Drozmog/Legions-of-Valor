@@ -1022,6 +1022,7 @@ func cancel_selected_card() -> void:
 	update_slot_highlights()
 
 
+
 func try_place_selected_card_on_slot(slot: Node) -> bool:
 	if slot == null:
 		return false
@@ -1032,6 +1033,15 @@ func try_place_selected_card_on_slot(slot: Node) -> bool:
 	var slot_id: String = String(slot.get_meta("slot_id", ""))
 	var slot_row: String = String(slot.get_meta("row", ""))
 	var card_type: String = get_clean_card_type(selected_card_data)
+	var place_face_down: bool = false
+
+	if card_type == "unit" and slot_row == "back":
+		place_face_down = true
+
+	if is_gambit_card(selected_card_data):
+		# Front row Gambits are always face up.
+		# Back row Gambits should normally come through confirm_pending_spell_placement().
+		place_face_down = false
 
 	if can_promote_selected_card_on_slot(slot):
 		return try_promote_selected_card_on_slot(slot)
@@ -1043,30 +1053,32 @@ func try_place_selected_card_on_slot(slot: Node) -> bool:
 		log_msg("Invalid placement for " + selected_card_data.card_name + " on " + slot_id)
 		return false
 
-	if not tribute_manager.can_afford(selected_card_data.tribute_cost):
-		log_msg("Not enough Tribute Points. Need " + str(selected_card_data.tribute_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
+	# Face-down cards ignore Faction Gate. Face-up cards still need access.
+	if not place_face_down:
+		if not player_card_passes_faction_gate(selected_card_data, true):
+			return false
+
+	var deployment_cost: int = get_player_face_down_card_deployment_cost(selected_card_data, place_face_down)
+
+	if not tribute_manager.can_afford(deployment_cost):
+		var cost_reason: String = "Shadowtax face-down setup cost" if place_face_down else "printed cost"
+		log_msg("Not enough Tribute Points. Need " + str(deployment_cost) + " TP for " + cost_reason + ", have " + str(tribute_manager.current_tribute_points) + ".")
 		return false
-
-	var place_face_down: bool = false
-
-	if card_type == "unit" and slot_row == "back":
-		place_face_down = true
-
-	if is_gambit_card(selected_card_data):
-		# Front row spells are always face up.
-		# Back row spells should normally come through confirm_pending_spell_placement().
-		place_face_down = false
 
 	var placed_successfully: bool = slot.place_card(TEST_CARD_SCENE, selected_card_data, place_face_down)
 
 	if placed_successfully:
-		tribute_manager.spend_tribute(selected_card_data.tribute_cost)
-		log_msg("Spent " + str(selected_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
+		tribute_manager.spend_tribute(deployment_cost)
+
+		if place_face_down:
+			player_face_down_gambits_this_round += 1
+			log_msg("Shadowtax paid for face-down card: " + selected_card_data.card_name + ".")
+
+		log_msg("Spent " + str(deployment_cost) + " TP. " + tribute_manager.get_status_text())
 		handle_card_deployed(selected_card_data)
 		return true
 
 	return false
-
 
 func try_sacrifice_selected_card_to_tribute() -> bool:
 	if not has_selected_card or selected_card_data == null:
@@ -1106,6 +1118,84 @@ func get_clean_card_race(card_data: CardData) -> String:
 	return card_data.race.to_lower().strip_edges()
 
 
+func should_skip_player_faction_gate_for_slot(card_data: CardData, slot: Node) -> bool:
+	if card_data == null or slot == null:
+		return false
+
+	# Face-down cards do not need faction access.
+	# Current prototype face-down placements happen in the back row.
+	var slot_row: String = String(slot.get_meta("row", ""))
+	if slot_row != "back":
+		return false
+
+	# Units placed in the back row are face down.
+	if is_unit_card(card_data):
+		return true
+
+	# Gambits in the back row can be chosen face down from the visibility prompt,
+	# so the slot should remain legal even without faction access.
+	if is_gambit_card(card_data):
+		return true
+
+	return false
+
+
+
+func player_card_passes_faction_gate(card_data: CardData, show_log: bool = false) -> bool:
+	if card_data == null:
+		return false
+
+	var clean_race: String = get_clean_card_race(card_data)
+
+	if clean_race == "" or clean_race == "neutral":
+		return true
+
+	if tribute_manager == null:
+		if show_log:
+			log_msg("Faction Gate blocked " + card_data.card_name + ": TributeManager is missing.")
+		return false
+
+	if tribute_manager.has_method("has_faction_access"):
+		var has_access: bool = tribute_manager.has_faction_access(clean_race)
+
+		if not has_access and show_log:
+			log_msg("Faction Gate locked: need at least 1 " + clean_race.capitalize() + " card in permanent Tribute to play " + card_data.card_name + ".")
+
+		return has_access
+
+	if show_log:
+		log_msg("Faction Gate could not check " + card_data.card_name + ". TributeManager has no has_faction_access method.")
+
+	return true
+
+
+func ai_card_passes_faction_gate(card_data: CardData, show_log: bool = false) -> bool:
+	if card_data == null:
+		return false
+
+	var clean_race: String = get_clean_card_race(card_data)
+
+	if clean_race == "" or clean_race == "neutral":
+		return true
+
+	for tribute_card in ai_tribute:
+		if tribute_card == null:
+			continue
+
+		# AI Gambits are temporary Tribute, so they do not unlock faction access.
+		if is_gambit_card(tribute_card):
+			continue
+
+		if get_clean_card_race(tribute_card) == clean_race:
+			return true
+
+	if show_log:
+		log_msg("AI Faction Gate locked: AI needs at least 1 " + clean_race.capitalize() + " card in permanent Tribute to play " + card_data.card_name + ".")
+
+	return false
+
+
+
 func can_promote_selected_card_on_slot(slot: Node) -> bool:
 	if current_phase != BattlePhase.DEPLOYMENT:
 		return false
@@ -1131,6 +1221,9 @@ func can_promote_selected_card_on_slot(slot: Node) -> bool:
 	if not is_unit_card(selected_card_data):
 		return false
 
+	if not player_card_passes_faction_gate(selected_card_data, false):
+		return false
+
 	var old_unit: CardData = get_slot_card_data(slot)
 
 	if not is_unit_card(old_unit):
@@ -1152,6 +1245,9 @@ func can_promote_selected_card_on_slot(slot: Node) -> bool:
 
 
 func try_promote_selected_card_on_slot(slot: Node) -> bool:
+	if not player_card_passes_faction_gate(selected_card_data, true):
+		return false
+
 	if not can_promote_selected_card_on_slot(slot):
 		log_msg("Invalid promotion target.")
 		return false
@@ -1191,6 +1287,10 @@ func is_valid_slot_for_selected_card(slot: Node) -> bool:
 
 	if String(slot.get_meta("owner", "")) != "player":
 		return false
+
+	if not should_skip_player_faction_gate_for_slot(selected_card_data, slot):
+		if not player_card_passes_faction_gate(selected_card_data, false):
+			return false
 
 	var slot_row: String = String(slot.get_meta("row", ""))
 	var slot_occupied: bool = bool(slot.get_meta("occupied", false))
@@ -1465,36 +1565,28 @@ func resolve_directed_clash(
 		add_aurion("player", 1, "Destroyed " + defender_card.card_name + " in combat.")
 		return
 
-	# The attacker chose to fight into a stronger unit.
-	# The lower-AP attacker cannot leave safely; it must survive the counterstrike or die.
-	if player_is_attacker:
-		log_msg(
-			"Counterstrike: "
-			+ defender_label
-			+ " "
-			+ defender_card.card_name
-			+ " has higher AP. "
-			+ attacker_label
-			+ " "
-			+ attacker_card.card_name
-			+ " must Parry or die."
-		)
-		begin_parry_prompt(lane, defender_slot, defender_card, _attacker_slot, attacker_card)
-		return
-
+	# The attacker knowingly chose to fight into a stronger unit.
+	# Voluntary lower-AP attacks are suicide and do not open the Parry Chain.
 	send_slot_card_to_discard(_attacker_slot)
 	log_msg(
-		"Counterstrike: "
-		+ defender_label
-		+ " "
-		+ defender_card.card_name
-		+ " overpowered "
+		"Suicide attack: "
 		+ attacker_label
 		+ " "
 		+ attacker_card.card_name
-		+ "."
+		+ " AP "
+		+ str(attacker_card.ap)
+		+ " attacked into "
+		+ defender_label
+		+ " "
+		+ defender_card.card_name
+		+ " AP "
+		+ str(defender_card.ap)
+		+ " and was destroyed."
 	)
-	add_aurion("player", 1, "Destroyed " + attacker_card.card_name + " after it attacked a higher-AP unit.")
+
+	var defender_score_owner: String = "ai" if player_is_attacker else "player"
+	add_aurion(defender_score_owner, 1, "Destroyed " + attacker_card.card_name + " after it knowingly attacked a higher-AP unit.")
+	return
 
 
 func get_slot_card_data(slot: Node) -> CardData:
@@ -2449,13 +2541,13 @@ func show_spell_choice_panel(card_ui: CardUI, slot: Node) -> void:
 
 	if spell_choice_label != null and selected_card_data != null:
 		var face_up_cost: int = selected_card_data.tribute_cost
-		var face_down_cost: int = get_player_next_face_down_gambit_setup_cost()
+		var face_down_cost: int = get_player_next_face_down_card_setup_cost()
 		spell_choice_label.text = (
 			"Place "
 			+ selected_card_data.card_name
 			+ " as:\nFace Up: "
 			+ str(face_up_cost)
-			+ " TP | Face Down Setup: "
+			+ " TP | Face Down Shadowtax: "
 			+ str(face_down_cost)
 			+ " TP"
 		)
@@ -2521,36 +2613,52 @@ func is_spell_card(card_data: CardData) -> bool:
 	return is_gambit_card(card_data)
 
 
-func get_face_down_gambit_setup_cost(count_already_set_this_round: int) -> int:
+func get_face_down_card_setup_cost(count_already_set_this_round: int) -> int:
+	# Generic Shadowtax / Subterfuge cost.
+	# Applies to ANY card type placed face down, not only Gambits.
+	# 1st face-down card this round = 1 TP, 2nd = 3 TP, 3rd = 5 TP, etc.
 	return 1 + max(0, count_already_set_this_round) * 2
 
 
-func get_player_next_face_down_gambit_setup_cost() -> int:
-	return get_face_down_gambit_setup_cost(player_face_down_gambits_this_round)
+func get_player_next_face_down_card_setup_cost() -> int:
+	return get_face_down_card_setup_cost(player_face_down_gambits_this_round)
 
 
-func get_ai_next_face_down_gambit_setup_cost() -> int:
-	return get_face_down_gambit_setup_cost(ai_face_down_gambits_this_round)
+func get_ai_next_face_down_card_setup_cost() -> int:
+	return get_face_down_card_setup_cost(ai_face_down_gambits_this_round)
+
+
+func get_player_face_down_card_deployment_cost(card_data: CardData, place_face_down: bool) -> int:
+	if card_data == null:
+		return 0
+
+	if place_face_down:
+		return get_player_next_face_down_card_setup_cost()
+
+	return card_data.tribute_cost
+
+
+func get_ai_face_down_card_deployment_cost(card_data: CardData, place_face_down: bool) -> int:
+	if card_data == null:
+		return 0
+
+	if place_face_down:
+		return get_ai_next_face_down_card_setup_cost()
+
+	return card_data.tribute_cost
+
+
+# Legacy wrappers kept so older code still works.
+func get_face_down_gambit_setup_cost(count_already_set_this_round: int) -> int:
+	return get_face_down_card_setup_cost(count_already_set_this_round)
 
 
 func get_player_gambit_deployment_cost(card_data: CardData, place_face_down: bool) -> int:
-	if card_data == null:
-		return 0
-
-	if place_face_down:
-		return get_player_next_face_down_gambit_setup_cost()
-
-	return card_data.tribute_cost
+	return get_player_face_down_card_deployment_cost(card_data, place_face_down)
 
 
 func get_ai_gambit_deployment_cost(card_data: CardData, place_face_down: bool) -> int:
-	if card_data == null:
-		return 0
-
-	if place_face_down:
-		return get_ai_next_face_down_gambit_setup_cost()
-
-	return card_data.tribute_cost
+	return get_ai_face_down_card_deployment_cost(card_data, place_face_down)
 
 
 func reset_face_down_gambit_setup_counters() -> void:
@@ -2583,6 +2691,9 @@ func try_attach_selected_equipment_to_slot(slot: Node) -> bool:
 		return false
 
 	if not is_equipment_card(selected_card_data):
+		return false
+
+	if not player_card_passes_faction_gate(selected_card_data, true):
 		return false
 
 	if String(slot.get_meta("owner", "")) != "player":
@@ -2643,6 +2754,13 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 		cancel_selected_card()
 		return
 
+	# Face-down Gambits ignore Faction Gate. Face-up Gambits still need access.
+	if not place_face_down:
+		if not player_card_passes_faction_gate(selected_card_data, true):
+			hide_spell_choice_panel()
+			cancel_selected_card()
+			return
+
 	if current_phase != BattlePhase.DEPLOYMENT:
 		log_msg("Spells can only be placed during the Deployment Phase.")
 		hide_spell_choice_panel()
@@ -2667,10 +2785,10 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 		cancel_selected_card()
 		return
 
-	var deployment_cost: int = get_player_gambit_deployment_cost(selected_card_data, place_face_down)
+	var deployment_cost: int = get_player_face_down_card_deployment_cost(selected_card_data, place_face_down)
 
 	if not tribute_manager.can_afford(deployment_cost):
-		var cost_reason: String = "face-down setup cost" if place_face_down else "printed cost"
+		var cost_reason: String = "Shadowtax face-down setup cost" if place_face_down else "printed cost"
 		log_msg("Not enough Tribute Points. Need " + str(deployment_cost) + " TP for " + cost_reason + ", have " + str(tribute_manager.current_tribute_points) + ".")
 		hide_spell_choice_panel()
 		cancel_selected_card()
@@ -2694,9 +2812,10 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 
 		if place_face_down:
 			player_face_down_gambits_this_round += 1
+			log_msg("Shadowtax paid for face-down card: " + spell_card_data.card_name + ".")
 
 		var visibility_text: String = "face down" if place_face_down else "face up"
-		var cost_text: String = "setup cost" if place_face_down else "printed cost"
+		var cost_text: String = "Shadowtax setup cost" if place_face_down else "printed cost"
 		log_msg("Placed Gambit " + spell_card_data.card_name + " " + visibility_text + ".")
 		log_msg("Spent " + str(deployment_cost) + " TP " + cost_text + ". " + tribute_manager.get_status_text())
 
@@ -2714,7 +2833,6 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 			return_card_to_hand_safely(spell_card_ui)
 
 	cancel_selected_card()
-
 
 func resolve_dominance_before_cleanup() -> void:
 	if current_phase != BattlePhase.COMBAT:
@@ -3095,9 +3213,12 @@ func ai_try_deploy_one_card() -> bool:
 	if card_data == null:
 		return false
 
-	var deployment_cost: int = card_data.tribute_cost
-	if action_type == "gambit" and face_down:
-		deployment_cost = get_ai_gambit_deployment_cost(card_data, true)
+	# Face-down AI cards ignore Faction Gate. Face-up cards, equipment, and promotions still need access.
+	if not face_down:
+		if not ai_card_passes_faction_gate(card_data, true):
+			return false
+
+	var deployment_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down)
 
 	if deployment_cost > ai_current_tp:
 		return false
@@ -3156,12 +3277,12 @@ func ai_try_deploy_one_card() -> bool:
 			ai_hand.pop_at(card_index)
 			ai_spend_tp(deployment_cost)
 
-			if action_type == "gambit" and face_down:
+			if face_down:
 				ai_face_down_gambits_this_round += 1
 
 			var visibility_text: String = "face down" if face_down else "face up"
 			var row_text: String = String(target_slot.get_meta("row", "unknown row"))
-			var cost_text: String = "setup cost" if action_type == "gambit" and face_down else "printed cost"
+			var cost_text: String = "Shadowtax setup cost" if face_down else "printed cost"
 
 			log_msg("AI placed " + card_data.card_name + " " + visibility_text + " in enemy " + row_text + " row.")
 			log_msg("AI spent " + str(deployment_cost) + " TP " + cost_text + ". AI TP after deployment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
@@ -3169,7 +3290,6 @@ func ai_try_deploy_one_card() -> bool:
 			return true
 
 	return false
-
 
 func ai_choose_deployment_action() -> Dictionary:
 	var equipment_action: Dictionary = ai_find_equipment_action()
@@ -3221,6 +3341,9 @@ func ai_find_promotion_action() -> Dictionary:
 			continue
 
 		if not is_unit_card(card_data):
+			continue
+
+		if not ai_card_passes_faction_gate(card_data, false):
 			continue
 
 		if card_data.tribute_cost > ai_current_tp:
@@ -3278,37 +3401,47 @@ func ai_can_promote_card_to_slot(new_unit: CardData, slot: Node) -> bool:
 
 
 func ai_find_unit_action() -> Dictionary:
-	var unit_index: int = ai_find_best_affordable_unit_index()
+	var best_action: Dictionary = {}
+	var best_score: int = -999999
+	var lanes: Array[String] = ["left", "middle", "right"]
 
-	if unit_index < 0:
-		return {}
+	for card_index in range(ai_hand.size()):
+		var card_data: CardData = ai_hand[card_index]
 
-	var front_slot: Node = ai_find_empty_enemy_slot("front")
-	var back_slot: Node = ai_find_empty_enemy_slot("back")
+		if card_data == null:
+			continue
 
-	if front_slot == null and back_slot == null:
-		return {}
+		if not is_unit_card(card_data):
+			continue
 
-	var chosen_slot: Node = null
-	var face_down: bool = false
+		for lane in lanes:
+			var front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+			var back_slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
 
-	if front_slot != null and back_slot != null:
-		# Mostly prefer front row, but sometimes use back row face-down.
-		if randi() % 100 < 65:
-			chosen_slot = front_slot
-			face_down = false
-		else:
-			chosen_slot = back_slot
-			face_down = true
-	elif front_slot != null:
-		chosen_slot = front_slot
-		face_down = false
-	else:
-		chosen_slot = back_slot
-		face_down = true
+			if front_slot != null and not bool(front_slot.get_meta("occupied", false)):
+				var face_down_front: bool = false
+				var front_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down_front)
 
-	return ai_make_deployment_action(unit_index, chosen_slot, "unit", face_down)
+				if front_cost <= ai_current_tp and ai_card_passes_faction_gate(card_data, false):
+					var front_score: int = ai_score_front_slot_for_card(card_data, lane) + card_data.ap * 2
 
+					if front_score > best_score:
+						best_score = front_score
+						best_action = ai_make_deployment_action(card_index, front_slot, "unit", face_down_front)
+
+			if back_slot != null and not bool(back_slot.get_meta("occupied", false)):
+				var face_down_back: bool = true
+				var back_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down_back)
+
+				# Face-down cards ignore Faction Gate and use Shadowtax instead of printed cost.
+				if back_cost <= ai_current_tp:
+					var back_score: int = ai_score_front_slot_for_card(card_data, lane) + card_data.ap - 8
+
+					if back_score > best_score:
+						best_score = back_score
+						best_action = ai_make_deployment_action(card_index, back_slot, "unit", face_down_back)
+
+	return best_action
 
 func ai_find_best_affordable_unit_index() -> int:
 	var best_index: int = -1
@@ -3321,6 +3454,9 @@ func ai_find_best_affordable_unit_index() -> int:
 			continue
 
 		if not is_unit_card(card_data):
+			continue
+
+		if not ai_card_passes_faction_gate(card_data, false):
 			continue
 
 		if card_data.tribute_cost > ai_current_tp:
@@ -3388,7 +3524,12 @@ func ai_find_affordable_gambit_index_for_visibility(face_down: bool) -> int:
 		if not is_gambit_card(card_data):
 			continue
 
-		var deployment_cost: int = get_ai_gambit_deployment_cost(card_data, face_down)
+		# Face-down Gambits ignore Faction Gate. Face-up Gambits still need access.
+		if not face_down:
+			if not ai_card_passes_faction_gate(card_data, false):
+				continue
+
+		var deployment_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down)
 
 		if deployment_cost > ai_current_tp:
 			continue
@@ -3396,7 +3537,6 @@ func ai_find_affordable_gambit_index_for_visibility(face_down: bool) -> int:
 		return i
 
 	return -1
-
 
 func ai_find_affordable_spell_index() -> int:
 	for i in range(ai_hand.size()):
@@ -3429,6 +3569,9 @@ func ai_find_equipment_action() -> Dictionary:
 			continue
 
 		if not is_equipment_card(card_data):
+			continue
+
+		if not ai_card_passes_faction_gate(card_data, false):
 			continue
 
 		if card_data.tribute_cost > ai_current_tp:
@@ -4404,36 +4547,27 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 		await resolve_ai_pass_lane_with_visuals(lane)
 		return
 
-	if player_back_is_face_down and ai_should_check_hidden_backrow(lane, player_back_card):
-		await resolve_ai_check_lane_with_visuals(lane)
-		return
-
-	if player_back_is_face_down:
-		# AI also resolves the hidden back-row bluff before any Monarch Strike.
-		# If it correctly attacks a non-Gambit decoy, the decoy is discarded and AI keeps priority.
-		await resolve_ai_attack_lane_with_visuals(lane)
-		return
-
+	# Phase 13: if AI has a unit and the player's front row is empty,
+	# AI must take the open-lane Monarch Strike instead of passing.
+	# If a face-down player back-row card exists, resolve that hidden card first.
 	if player_front_card == null:
-		# Back-row cards do not protect the Monarch once there is no hidden card to resolve.
-		# If AI has the only front unit in this lane, AI must take the Monarch Strike.
+		if player_back_is_face_down:
+			await resolve_ai_attack_lane_with_visuals(lane)
+			return
+
+		log_msg("AI takes open-lane Monarch Strike in the " + lane + " lane.")
 		resolve_ai_monarch_strike(lane, ai_card)
 		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
 		await advance_combat_lane_after_resolution()
 		return
 
-	if player_front_card != null:
-		resolve_lane_combat(lane, player_front_slot, ai_front_slot)
-
-		if parry_active:
-			return
-
-		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-		await advance_combat_lane_after_resolution()
+	if player_back_is_face_down and ai_should_check_hidden_backrow(lane, player_back_card):
+		await resolve_ai_check_lane_with_visuals(lane)
 		return
 
-	await resolve_ai_pass_lane_with_visuals(lane)
-
+	# If AI does not Check the hidden card, it attacks into the lane.
+	# resolve_ai_attack_lane_with_visuals handles hidden back-row bluff first.
+	await resolve_ai_attack_lane_with_visuals(lane)
 
 func resolve_ai_pass_lane_with_visuals(lane: String) -> void:
 	set_active_combat_lane_highlight(lane)
@@ -4503,14 +4637,7 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 		await resolve_ai_pass_lane_with_visuals(lane)
 		return
 
-	if player_front_card == null:
-		# Back-row cards do not protect the Monarch without a front-row unit.
-		# If AI has the only front unit in this lane, AI must take the Monarch Strike.
-		resolve_ai_monarch_strike(lane, ai_card)
-		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-		await advance_combat_lane_after_resolution()
-		return
-
+	# Hidden back-row cards must be resolved before AI can hit the Monarch.
 	if player_back_is_face_down:
 		player_back_slot.set_meta("interacted_this_round", true)
 
@@ -4536,17 +4663,22 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 		await resolve_ai_current_priority_lane(lane)
 		return
 
-	if player_front_card != null:
-		resolve_lane_combat(lane, player_front_slot, ai_front_slot)
-
-		if parry_active:
-			return
-
+	# Phase 13: once no hidden back row protects the lane, an empty player front row is an open Monarch.
+	if player_front_card == null:
+		log_msg("AI takes open-lane Monarch Strike in the " + lane + " lane.")
+		resolve_ai_monarch_strike(lane, ai_card)
 		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
 		await advance_combat_lane_after_resolution()
 		return
 
-	await resolve_ai_pass_lane_with_visuals(lane)
+	# AI is the active attacker here, regardless of who had the original Battleplan initiative.
+	resolve_directed_clash(lane, ai_front_slot, ai_card, player_front_slot, player_front_card, false)
+
+	if parry_active:
+		return
+
+	await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+	await advance_combat_lane_after_resolution()
 
 func set_active_combat_lane_highlight(lane: String) -> void:
 	if lane == "":

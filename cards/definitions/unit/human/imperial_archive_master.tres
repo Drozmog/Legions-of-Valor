@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dvm8i7f1ksqma"]
 
-[ext_resource type="Texture2D" uid="uid://llh4qg2c6yrh" path="res://cards/images/unit/human/imperial_archive_master.png" id="1_v4h3m"]
+[ext_resource type="Texture2D" uid="uid://cs1kyo4hsh0gd" path="res://cards/images/unit/human/imperial_archive_master.png" id="1_v4h3m"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_ibvd5"]
 
 [resource]
