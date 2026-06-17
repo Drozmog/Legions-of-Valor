@@ -18,7 +18,7 @@ const UPPER_HALL_PROSPECTOR: CardData = CardDatabase.UPPER_HALL_PROSPECTOR
 
 const BLACKMAIL: CardData = CardDatabase.BLACKMAIL
 
-const VAELORI_LONGBOW_M: CardData = CardDatabase.VAELORI_LONGBOW_M
+const VAELORI_LONGBOW: CardData = CardDatabase.VAELORI_LONGBOW
 
 const OPPONENT_TEST_CARDS: Array[CardData] = [
 	ARCH_WIZARD_MAELCOR,
@@ -947,7 +947,7 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_5:
 			select_card(UPPER_HALL_PROSPECTOR)
 		if event.keycode == KEY_6:
-			select_card(VAELORI_LONGBOW_M)
+			select_card(VAELORI_LONGBOW)
 		if event.keycode == KEY_7:
 			select_card(BLACKMAIL)
 		if event.keycode == KEY_ESCAPE:
