@@ -1,5 +1,15 @@
 class_name PhaseShared
-extends "res://battlefield/BattlefieldManagerPhase4BluffCombat.gd"
+extends "res://battlefield/BattlefieldManagerPhase35CombatReadability.gd"
+
+const BOARD_ACTION_CHECK: int = 3
+const BLUFF_REVEAL_DELAY: float = 0.30
+
+var enemy_fortified_lanes: Dictionary = {}
+
+
+func reset_combat_state() -> void:
+	super.reset_combat_state()
+	enemy_fortified_lanes.clear()
 
 
 func return_setup_card(slot: Node, card_data: CardData, owner_name: String) -> void:
