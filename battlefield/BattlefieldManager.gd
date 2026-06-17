@@ -3608,10 +3608,18 @@ func can_player_attack_lane_from_menu(lane: String) -> bool:
 	if not can_player_take_priority_action_in_lane(lane):
 		return false
 
-	# Attack can be chosen for any legal priority lane:
-	# player-only = player Monarch Strike, enemy-only = AI Monarch Strike after you choose that lane,
-	# both units = normal combat, no units = glow/pause skip.
-	return true
+	# Before combat direction is chosen, Attack is also the way the player selects
+	# the starting flank lane. That lane may be empty or enemy-only; resolving it
+	# sets the lane order and applies the proper Monarch Strike / skip result.
+	if not combat_direction_selected:
+		return true
+
+	# After lane order is active, the player can only choose Attack if they have
+	# a real front-row unit in the current lane. If AI passes in an enemy-only lane,
+	# the player may Pass back, but cannot attack without a unit.
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var player_card: CardData = get_slot_card_data(player_front_slot)
+	return is_unit_card(player_card)
 
 
 func can_player_check_lane_from_menu(lane: String) -> bool:
@@ -3684,7 +3692,20 @@ func set_lane_priority_to_player(lane: String, reason: String = "") -> void:
 	set_active_combat_lane_highlight(lane)
 	if reason != "":
 		log_msg(reason)
-	log_msg("Player has priority in the " + lane + " lane. Right-click and choose Attack, Check, or Pass.")
+
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var enemy_back_slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
+	var player_card: CardData = get_slot_card_data(player_front_slot)
+	var enemy_back_card: CardData = get_slot_card_data(enemy_back_slot)
+	var enemy_back_face_down: bool = enemy_back_card != null and enemy_back_slot != null and bool(enemy_back_slot.get_meta("face_down", false))
+
+	if is_unit_card(player_card):
+		if enemy_back_face_down:
+			log_msg("Player has priority in the " + lane + " lane. Right-click and choose Attack, Check, or Pass.")
+		else:
+			log_msg("Player has priority in the " + lane + " lane. Right-click and choose Attack or Pass.")
+	else:
+		log_msg("Player has priority in the " + lane + " lane, but has no front-row unit. Right-click and choose Pass.")
 
 
 func set_lane_priority_to_ai(lane: String, reason: String = "") -> void:
@@ -3841,15 +3862,17 @@ func resolve_player_attack_lane_with_visuals(lane: String) -> void:
 		combat_resolution_running = false
 		return
 
-	if enemy_back_is_face_down:
-		await resolve_attack_into_face_down_backrow(lane, player_card, enemy_front_slot, enemy_back_slot, enemy_back_card)
-		combat_resolution_running = false
-		return
-
-	if enemy_front_card == null and enemy_back_card == null:
+	if enemy_front_card == null:
+		# Back-row cards do not protect the Monarch without a front-row unit.
+		# If the player has the only front unit in this lane, the player gets Monarch Strike.
 		resolve_monarch_strike(lane, player_card)
 		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
 		await advance_combat_lane_after_resolution()
+		combat_resolution_running = false
+		return
+
+	if enemy_back_is_face_down:
+		await resolve_attack_into_face_down_backrow(lane, player_card, enemy_front_slot, enemy_back_slot, enemy_back_card)
 		combat_resolution_running = false
 		return
 
@@ -3939,18 +3962,20 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 		await resolve_ai_pass_lane_with_visuals(lane)
 		return
 
+	if player_front_card == null:
+		# Back-row cards do not protect the Monarch without a front-row unit.
+		# If AI has the only front unit in this lane, AI must take the Monarch Strike.
+		resolve_ai_monarch_strike(lane, ai_card)
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		await advance_combat_lane_after_resolution()
+		return
+
 	if player_back_is_face_down and ai_should_check_hidden_backrow(lane, player_back_card):
 		await resolve_ai_check_lane_with_visuals(lane)
 		return
 
 	if player_back_is_face_down:
 		await resolve_ai_attack_lane_with_visuals(lane)
-		return
-
-	if player_front_card == null and player_back_card == null:
-		resolve_ai_monarch_strike(lane, ai_card)
-		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-		await advance_combat_lane_after_resolution()
 		return
 
 	if player_front_card != null:
@@ -4032,6 +4057,14 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 		await resolve_ai_pass_lane_with_visuals(lane)
 		return
 
+	if player_front_card == null:
+		# Back-row cards do not protect the Monarch without a front-row unit.
+		# If AI has the only front unit in this lane, AI must take the Monarch Strike.
+		resolve_ai_monarch_strike(lane, ai_card)
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		await advance_combat_lane_after_resolution()
+		return
+
 	if player_back_is_face_down:
 		player_back_slot.set_meta("interacted_this_round", true)
 
@@ -4055,12 +4088,6 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
 		set_lane_priority_to_ai(lane)
 		await resolve_ai_current_priority_lane(lane)
-		return
-
-	if player_front_card == null and player_back_card == null:
-		resolve_ai_monarch_strike(lane, ai_card)
-		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-		await advance_combat_lane_after_resolution()
 		return
 
 	if player_front_card != null:
