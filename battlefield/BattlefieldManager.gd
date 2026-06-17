@@ -120,6 +120,10 @@ var ai_deployed_this_deployment_phase: bool = false
 
 var used_battle_plan_keys: Dictionary = {}
 
+var player_face_down_gambits_this_round: int = 0
+
+var ai_face_down_gambits_this_round: int = 0
+
 var pending_spell_card_ui: CardUI = null
 
 var pending_spell_slot: Node = null
@@ -596,6 +600,7 @@ func _on_next_phase_pressed() -> void:
 
 func start_next_round() -> void:
 	clear_active_combat_lane_highlight()
+	reset_face_down_gambit_setup_counters()
 	if parry_active:
 		log_msg("Resolve the parry prompt before ending combat.")
 		return
@@ -2215,7 +2220,17 @@ func show_spell_choice_panel(card_ui: CardUI, slot: Node) -> void:
 		create_spell_choice_panel()
 
 	if spell_choice_label != null and selected_card_data != null:
-		spell_choice_label.text = "Place " + selected_card_data.card_name + " as:"
+		var face_up_cost: int = selected_card_data.tribute_cost
+		var face_down_cost: int = get_player_next_face_down_gambit_setup_cost()
+		spell_choice_label.text = (
+			"Place "
+			+ selected_card_data.card_name
+			+ " as:\nFace Up: "
+			+ str(face_up_cost)
+			+ " TP | Face Down Setup: "
+			+ str(face_down_cost)
+			+ " TP"
+		)
 
 	spell_choice_panel.visible = true
 
@@ -2276,6 +2291,43 @@ func is_event_card(_card_data: CardData) -> bool:
 
 func is_spell_card(card_data: CardData) -> bool:
 	return is_gambit_card(card_data)
+
+
+func get_face_down_gambit_setup_cost(count_already_set_this_round: int) -> int:
+	return 1 + max(0, count_already_set_this_round) * 2
+
+
+func get_player_next_face_down_gambit_setup_cost() -> int:
+	return get_face_down_gambit_setup_cost(player_face_down_gambits_this_round)
+
+
+func get_ai_next_face_down_gambit_setup_cost() -> int:
+	return get_face_down_gambit_setup_cost(ai_face_down_gambits_this_round)
+
+
+func get_player_gambit_deployment_cost(card_data: CardData, place_face_down: bool) -> int:
+	if card_data == null:
+		return 0
+
+	if place_face_down:
+		return get_player_next_face_down_gambit_setup_cost()
+
+	return card_data.tribute_cost
+
+
+func get_ai_gambit_deployment_cost(card_data: CardData, place_face_down: bool) -> int:
+	if card_data == null:
+		return 0
+
+	if place_face_down:
+		return get_ai_next_face_down_gambit_setup_cost()
+
+	return card_data.tribute_cost
+
+
+func reset_face_down_gambit_setup_counters() -> void:
+	player_face_down_gambits_this_round = 0
+	ai_face_down_gambits_this_round = 0
 
 
 func return_card_to_hand_safely(card: CardUI) -> void:
@@ -2387,8 +2439,11 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 		cancel_selected_card()
 		return
 
-	if not tribute_manager.can_afford(selected_card_data.tribute_cost):
-		log_msg("Not enough Tribute Points. Need " + str(selected_card_data.tribute_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
+	var deployment_cost: int = get_player_gambit_deployment_cost(selected_card_data, place_face_down)
+
+	if not tribute_manager.can_afford(deployment_cost):
+		var cost_reason: String = "face-down setup cost" if place_face_down else "printed cost"
+		log_msg("Not enough Tribute Points. Need " + str(deployment_cost) + " TP for " + cost_reason + ", have " + str(tribute_manager.current_tribute_points) + ".")
 		hide_spell_choice_panel()
 		cancel_selected_card()
 		return
@@ -2407,11 +2462,15 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 	var placed: bool = spell_slot.place_card(TEST_CARD_SCENE, spell_card_data, place_face_down)
 
 	if placed:
-		tribute_manager.spend_tribute(spell_card_data.tribute_cost)
+		tribute_manager.spend_tribute(deployment_cost)
+
+		if place_face_down:
+			player_face_down_gambits_this_round += 1
 
 		var visibility_text: String = "face down" if place_face_down else "face up"
-		log_msg("Placed spell " + spell_card_data.card_name + " " + visibility_text + ".")
-		log_msg("Spent " + str(spell_card_data.tribute_cost) + " TP. " + tribute_manager.get_status_text())
+		var cost_text: String = "setup cost" if place_face_down else "printed cost"
+		log_msg("Placed Gambit " + spell_card_data.card_name + " " + visibility_text + ".")
+		log_msg("Spent " + str(deployment_cost) + " TP " + cost_text + ". " + tribute_manager.get_status_text())
 
 		if spell_card_ui != null and hand != null:
 			hand.consume_dragged_card(spell_card_ui)
@@ -2770,7 +2829,11 @@ func ai_try_deploy_one_card() -> bool:
 	if card_data == null:
 		return false
 
-	if card_data.tribute_cost > ai_current_tp:
+	var deployment_cost: int = card_data.tribute_cost
+	if action_type == "gambit" and face_down:
+		deployment_cost = get_ai_gambit_deployment_cost(card_data, true)
+
+	if deployment_cost > ai_current_tp:
 		return false
 
 	var success: bool = false
@@ -2806,13 +2869,17 @@ func ai_try_deploy_one_card() -> bool:
 
 		if success:
 			ai_hand.pop_at(card_index)
-			ai_spend_tp(card_data.tribute_cost)
+			ai_spend_tp(deployment_cost)
+
+			if action_type == "gambit" and face_down:
+				ai_face_down_gambits_this_round += 1
 
 			var visibility_text: String = "face down" if face_down else "face up"
 			var row_text: String = String(target_slot.get_meta("row", "unknown row"))
+			var cost_text: String = "setup cost" if action_type == "gambit" and face_down else "printed cost"
 
 			log_msg("AI placed " + card_data.card_name + " " + visibility_text + " in enemy " + row_text + " row.")
-			log_msg("AI TP after deployment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
+			log_msg("AI spent " + str(deployment_cost) + " TP " + cost_text + ". AI TP after deployment: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp))
 			update_ai_visuals()
 			return true
 
@@ -2913,11 +2980,6 @@ func ai_find_best_affordable_unit_index() -> int:
 
 
 func ai_find_spell_action() -> Dictionary:
-	var spell_index: int = ai_find_affordable_spell_index()
-
-	if spell_index < 0:
-		return {}
-
 	var front_slot: Node = ai_find_empty_enemy_slot("front")
 	var back_slot: Node = ai_find_empty_enemy_slot("back")
 
@@ -2928,9 +2990,9 @@ func ai_find_spell_action() -> Dictionary:
 	var face_down: bool = false
 
 	if front_slot != null and back_slot != null:
-		# Spells can go front or back.
-		# Front is always face up.
-		# Back can be face up or face down.
+		# Gambits can go front or back.
+		# Front is face up and pays printed cost.
+		# Back can be face up or face down; face down pays setup cost.
 		if randi() % 100 < 45:
 			chosen_slot = front_slot
 			face_down = false
@@ -2944,7 +3006,42 @@ func ai_find_spell_action() -> Dictionary:
 		chosen_slot = back_slot
 		face_down = randi() % 100 < 50
 
-	return ai_make_deployment_action(spell_index, chosen_slot, "gambit", face_down)
+	var gambit_index: int = ai_find_affordable_gambit_index_for_visibility(face_down)
+
+	# If the first chosen back-row visibility is not affordable, try the other back-row visibility.
+	if gambit_index < 0 and chosen_slot == back_slot:
+		face_down = !face_down
+		gambit_index = ai_find_affordable_gambit_index_for_visibility(face_down)
+
+	# If back-row options are not affordable but front-row face-up is available, try front.
+	if gambit_index < 0 and front_slot != null:
+		chosen_slot = front_slot
+		face_down = false
+		gambit_index = ai_find_affordable_gambit_index_for_visibility(false)
+
+	if gambit_index < 0:
+		return {}
+
+	return ai_make_deployment_action(gambit_index, chosen_slot, "gambit", face_down)
+
+func ai_find_affordable_gambit_index_for_visibility(face_down: bool) -> int:
+	for i in range(ai_hand.size()):
+		var card_data: CardData = ai_hand[i]
+
+		if card_data == null:
+			continue
+
+		if not is_gambit_card(card_data):
+			continue
+
+		var deployment_cost: int = get_ai_gambit_deployment_cost(card_data, face_down)
+
+		if deployment_cost > ai_current_tp:
+			continue
+
+		return i
+
+	return -1
 
 
 func ai_find_affordable_spell_index() -> int:
