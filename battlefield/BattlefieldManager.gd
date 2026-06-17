@@ -204,6 +204,8 @@ var player_fortified_lanes: Dictionary = {}
 
 var combat_priority_owner: String = ""
 
+var original_combat_priority_owner: String = ""
+
 var player_passed_current_lane: bool = false
 
 var ai_passed_current_lane: bool = false
@@ -547,12 +549,11 @@ func begin_combat_phase() -> void:
 	clear_active_combat_lane_highlight()
 
 	if player_has_initiative:
-		log_msg("Phase: Combat. Player has initiative. Right-click the leftmost or rightmost lane, then choose Attack.")
+		log_msg("Phase: Combat. Player has initiative. Right-click the leftmost or rightmost lane, then choose Attack, Check, or Pass.")
 	else:
-		log_msg("Phase: Combat. AI has initiative. Combat will resolve lane by lane visually.")
+		log_msg("Phase: Combat. AI has initiative. AI chooses combat direction and gets first priority in each lane.")
 		await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
 		await ai_take_combat_initiative()
-
 
 func update_phase_ui() -> void:
 	if phase_label == null or next_phase_button == null:
@@ -622,14 +623,14 @@ func reset_combat_state() -> void:
 	combat_direction_selected = false
 	combat_lane_order.clear()
 	combat_next_lane_index = 0
-	combat_priority_owner = get_initiative_priority_owner()
+	original_combat_priority_owner = get_initiative_priority_owner()
+	combat_priority_owner = original_combat_priority_owner
 	player_passed_current_lane = false
 	ai_passed_current_lane = false
 	enemy_fortified_lanes.clear()
 	player_fortified_lanes.clear()
 	combat_resolution_running = false
 	active_combat_lane = ""
-
 
 func connect_all_slots() -> void:
 	if board_slots == null:
@@ -1173,31 +1174,43 @@ func handle_combat_lane_click(slot: Node) -> void:
 	if slot == null:
 		return
 
-	if not player_has_initiative:
-		log_msg("AI has initiative this combat. You cannot choose the attack lane.")
+	if current_phase != BattlePhase.COMBAT:
 		return
-		
+
+	if parry_active:
+		log_msg("Resolve the current parry prompt first.")
+		return
+
 	var lane: String = get_slot_lane(slot)
 
 	if lane == "":
 		return
 
+	# Phase 7: combat actions must come from the right-click dropdown.
+	# A normal left-click can choose the first flank lane only; it does not auto-resolve combat.
 	if not combat_direction_selected:
+		if combat_priority_owner != "player":
+			log_msg("AI has priority. You can choose the starting lane only after AI passes.")
+			return
+
 		if lane == "left":
 			set_combat_lane_order_from_left()
-			resolve_next_combat_lane(lane)
+			set_lane_priority_to_player(lane, "Starting lane selected. Choose Attack, Check, or Pass from the dropdown.")
 			return
 
 		if lane == "right":
 			set_combat_lane_order_from_right()
-			resolve_next_combat_lane(lane)
+			set_lane_priority_to_player(lane, "Starting lane selected. Choose Attack, Check, or Pass from the dropdown.")
 			return
 
 		log_msg("Choose the leftmost or rightmost lane first to set combat direction.")
 		return
 
-	resolve_next_combat_lane(lane)
+	if lane != current_combat_lane():
+		log_msg("Next combat must resolve in the " + current_combat_lane() + " lane.")
+		return
 
+	log_msg("Use the right-click dropdown to Attack, Check, Pass, or Inspect.")
 
 func set_combat_lane_order_from_left() -> void:
 	combat_direction_selected = true
@@ -1206,10 +1219,12 @@ func set_combat_lane_order_from_left() -> void:
 	combat_lane_order.append("middle")
 	combat_lane_order.append("right")
 	combat_next_lane_index = 0
+	if original_combat_priority_owner == "":
+		original_combat_priority_owner = get_initiative_priority_owner()
 	reset_priority_for_current_lane()
+	set_active_combat_lane_highlight(current_combat_lane())
 
 	log_msg("Combat direction selected: left to right.")
-
 
 func set_combat_lane_order_from_right() -> void:
 	combat_direction_selected = true
@@ -1218,10 +1233,12 @@ func set_combat_lane_order_from_right() -> void:
 	combat_lane_order.append("middle")
 	combat_lane_order.append("left")
 	combat_next_lane_index = 0
+	if original_combat_priority_owner == "":
+		original_combat_priority_owner = get_initiative_priority_owner()
 	reset_priority_for_current_lane()
+	set_active_combat_lane_highlight(current_combat_lane())
 
 	log_msg("Combat direction selected: right to left.")
-
 
 func resolve_next_combat_lane(clicked_lane: String) -> void:
 	if parry_active:
@@ -1238,18 +1255,10 @@ func resolve_next_combat_lane(clicked_lane: String) -> void:
 		log_msg("Next combat must resolve in the " + expected_lane + " lane.")
 		return
 
-	var player_slot: Node = find_slot_by_owner_row_lane("player", "front", expected_lane)
-	var opponent_slot: Node = find_slot_by_owner_row_lane("enemy", "front", expected_lane)
-
-	resolve_lane_combat(expected_lane, player_slot, opponent_slot)
-
-	# If parry started, do NOT advance lane yet.
-	# Parry will advance the lane after success or Let Die.
-	if parry_active:
-		return
-
-	await advance_combat_lane_after_resolution()
-
+	if combat_priority_owner == "ai":
+		await resolve_ai_current_priority_lane(expected_lane)
+	else:
+		set_lane_priority_to_player(expected_lane, "Player has priority. Use the right-click dropdown to act or pass.")
 
 func resolve_lane_combat(lane: String, player_slot: Node, opponent_slot: Node) -> void:
 	var player_card: CardData = get_slot_card_data(player_slot)
@@ -2041,9 +2050,6 @@ func complete_parry_success() -> void:
 	end_parry_prompt()
 	await advance_combat_lane_after_resolution()
 
-	if not player_has_initiative:
-		ai_resolve_combat_sequence()
-
 
 func _on_parry_let_die_pressed() -> void:
 	if not parry_active:
@@ -2190,13 +2196,13 @@ func advance_combat_lane_after_resolution() -> void:
 
 	reset_priority_for_current_lane()
 	var next_lane: String = combat_lane_order[combat_next_lane_index]
+	set_active_combat_lane_highlight(next_lane)
 
 	if combat_priority_owner == "ai":
-		log_msg("AI has priority in the " + next_lane + " lane.")
+		log_msg("Next lane: " + next_lane + ". Initiative returns to AI.")
+		await resolve_ai_current_priority_lane(next_lane)
 	else:
-		log_msg("Combat action ready in the " + next_lane + " lane. Right-click and choose Attack, Check, or Pass.")
-
-	set_active_combat_lane_highlight(next_lane)
+		set_lane_priority_to_player(next_lane, "Next lane: " + next_lane + ". Initiative returns to Player.")
 
 func skip_empty_combat_lanes_with_pause() -> void:
 	while current_phase == BattlePhase.COMBAT and combat_next_lane_index < combat_lane_order.size():
@@ -2639,14 +2645,6 @@ func ai_choose_tribute_card_index() -> int:
 
 
 func ai_take_combat_initiative() -> void:
-	if not ai_should_attack_this_combat():
-		log_msg("AI passes combat initiative. Player may choose the starting lane.")
-		combat_direction_selected = false
-		combat_lane_order.clear()
-		combat_next_lane_index = 0
-		combat_priority_owner = "player"
-		return
-
 	var start_lane: String = ai_choose_combat_start_lane()
 
 	if start_lane == "right":
@@ -2654,8 +2652,11 @@ func ai_take_combat_initiative() -> void:
 	else:
 		set_combat_lane_order_from_left()
 
-	combat_priority_owner = "ai"
-	log_msg("AI chooses to attack from the " + start_lane + " lane.")
+	original_combat_priority_owner = "ai"
+	reset_priority_for_current_lane()
+	set_active_combat_lane_highlight(current_combat_lane())
+
+	log_msg("AI chooses combat direction from the " + start_lane + " lane.")
 	await ai_resolve_combat_sequence()
 
 func ai_should_attack_this_combat() -> bool:
@@ -2740,7 +2741,7 @@ func ai_resolve_combat_sequence() -> void:
 		if parry_active:
 			break
 
-		if combat_priority_owner == "player":
+		if combat_priority_owner != "ai":
 			break
 
 		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
@@ -3705,19 +3706,12 @@ func can_player_attack_lane_from_menu(lane: String) -> bool:
 	if not can_player_take_priority_action_in_lane(lane):
 		return false
 
-	# Before combat direction is chosen, Attack is also the way the player selects
-	# the starting flank lane. That lane may be empty or enemy-only; resolving it
-	# sets the lane order and applies the proper Monarch Strike / skip result.
-	if not combat_direction_selected:
-		return true
-
-	# After lane order is active, the player can only choose Attack if they have
-	# a real front-row unit in the current lane. If AI passes in an enemy-only lane,
-	# the player may Pass back, but cannot attack without a unit.
 	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
 	var player_card: CardData = get_slot_card_data(player_front_slot)
-	return is_unit_card(player_card)
 
+	# Phase 7: Attack is only legal when the player has a front-row unit in that lane.
+	# Empty/playerless lanes can still be selected with Pass to let the opponent act.
+	return is_unit_card(player_card)
 
 func can_player_check_lane_from_menu(lane: String) -> bool:
 	if not can_player_take_priority_action_in_lane(lane):
@@ -3772,10 +3766,11 @@ func get_initiative_priority_owner() -> String:
 
 
 func reset_priority_for_current_lane() -> void:
-	combat_priority_owner = get_initiative_priority_owner()
+	if original_combat_priority_owner == "":
+		original_combat_priority_owner = get_initiative_priority_owner()
+	combat_priority_owner = original_combat_priority_owner
 	player_passed_current_lane = false
 	ai_passed_current_lane = false
-
 
 func current_combat_lane() -> String:
 	if combat_next_lane_index < 0 or combat_next_lane_index >= combat_lane_order.size():
@@ -3949,13 +3944,7 @@ func resolve_player_attack_lane_with_visuals(lane: String) -> void:
 		return
 
 	if not is_unit_card(player_card):
-		if is_unit_card(enemy_front_card):
-			log_msg(lane.capitalize() + " lane: you have no unit. Enemy attacks your Monarch uncontested.")
-			resolve_ai_monarch_strike(lane, enemy_front_card)
-			await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-			await advance_combat_lane_after_resolution()
-		else:
-			log_msg(lane.capitalize() + " lane: you have no front-row unit to attack with.")
+		log_msg(lane.capitalize() + " lane: you have no front-row unit to attack with. Use Pass instead.")
 		combat_resolution_running = false
 		return
 
