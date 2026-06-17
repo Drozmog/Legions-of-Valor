@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dfidpwsn6qspj"]
+
+[ext_resource type="Texture2D" uid="uid://7ovv14sqkwhx" path="res://cards/images/gambit/elyndell_arrow_volley.png" id="1_0rdgw"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_wsgjt"]
+
+[resource]
+script = ExtResource("2_wsgjt")
+card_id = "elyndell_arrow_volley"
+card_name = "Elyndell Arrow Volley"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 2
+dp = 1
+ability_text = "All enemy units have -1 AP this turn."
+lore_text = "\"I have an idea! Replace the sky with human made steal for 3 long heartbeats and watch their morale.\" - Dame Valen of Calith"
+card_art = ExtResource("1_0rdgw")
+ability_types = Array[String](["attrition"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

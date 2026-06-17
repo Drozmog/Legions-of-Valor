@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://oxyu7ugc8x40"]
+
+[ext_resource type="Texture2D" uid="uid://bpcyqd5rdaw8e" path="res://cards/images/gambit/war_paint.png" id="1_0xb3q"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_fiifw"]
+
+[resource]
+script = ExtResource("2_fiifw")
+card_id = "war_paint"
+card_name = "War Paint"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 1
+dp = 1
+ability_text = "All units gain +1 AP when attacking (not on defense) for this turn."
+lore_text = "“The paint doesn't stop the steal nor does it make my club hit harder but it makes me look bloody scary\" - Ivaan Bone Crusher"
+card_art = ExtResource("1_0xb3q")
+ability_types = Array[String](["assault"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

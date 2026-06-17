@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://434m1i0itys5"]
+
+[ext_resource type="Texture2D" uid="uid://b736mp03lf8r3" path="res://cards/images/unit/orc/cave_crawl_grunt.png" id="1_6uk6j"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_qrlre"]
+
+[resource]
+script = ExtResource("2_qrlre")
+card_id = "cave_crawl_grunt"
+card_name = "Cave-Crawl Grunt"
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 1
+ap = 3
+dp = 1
+lore_text = "\"I can't very well do my job if you don't stop yelling at me, captain\""
+card_art = ExtResource("1_6uk6j")
+metadata/_custom_type_script = "uid://20ngslec6o41"

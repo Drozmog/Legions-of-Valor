@@ -1167,9 +1167,7 @@ func try_promote_selected_card_on_slot(slot: Node) -> bool:
 		log_msg("Not enough Tribute Points to promote. Need " + str(promotion_cost) + ", have " + str(tribute_manager.current_tribute_points) + ".")
 		return false
 
-	send_slot_card_to_discard(slot)
-
-	var placed_successfully: bool = slot.place_card(TEST_CARD_SCENE, new_unit, false)
+	var placed_successfully: bool = promote_slot_unit_preserving_equipment(slot, new_unit, "player")
 
 	if not placed_successfully:
 		log_msg("Promotion failed. Could not place " + new_unit.card_name + " after discarding " + old_unit.card_name + ".")
@@ -1551,6 +1549,58 @@ func get_slot_lane(slot: Node) -> String:
 		return column
 
 	return ""
+
+
+func promote_slot_unit_preserving_equipment(slot: Node, new_unit: CardData, slot_owner: String) -> bool:
+	if slot == null or new_unit == null:
+		return false
+
+	var old_unit: CardData = get_slot_card_data(slot)
+	var equipment_cards: Array[CardData] = []
+
+	if slot.has_method("get_equipment_cards"):
+		var raw_equipment_cards: Array = slot.get_equipment_cards()
+
+		for equipment_card in raw_equipment_cards:
+			if equipment_card == null:
+				continue
+
+			equipment_cards.append(equipment_card as CardData)
+
+	if old_unit != null:
+		play_card_to_discard_animation(old_unit, slot, slot_owner)
+
+		if slot_owner == "enemy":
+			ai_discard.append(old_unit)
+		elif discard_pile != null:
+			discard_pile.add_card(old_unit)
+
+	if slot.has_method("clear_slot"):
+		slot.clear_slot()
+
+	if not slot.has_method("place_card"):
+		return false
+
+	var placed_successfully: bool = slot.place_card(TEST_CARD_SCENE, new_unit, false)
+
+	if not placed_successfully:
+		update_ai_visuals()
+		return false
+
+	for equipment_card in equipment_cards:
+		if equipment_card == null:
+			continue
+
+		if not slot.has_method("attach_equipment"):
+			continue
+
+		if slot.has_method("can_attach_equipment") and not slot.can_attach_equipment():
+			continue
+
+		slot.attach_equipment(TEST_CARD_SCENE, equipment_card)
+
+	update_ai_visuals()
+	return true
 
 
 func send_slot_card_to_discard(slot: Node) -> void:
@@ -2671,23 +2721,30 @@ func resolve_dominance_before_cleanup() -> void:
 		return
 
 	var checked_lanes: Array[String] = ["left", "right"]
-	var dominance_awarded: bool = false
+	var player_has_dominance: bool = false
+	var ai_has_dominance: bool = false
 
 	for lane in checked_lanes:
 		var player_ap: int = get_front_lane_ap_total("player", lane)
 		var ai_ap: int = get_front_lane_ap_total("enemy", lane)
 
 		if player_ap > ai_ap:
-			add_aurion("player", 1, lane.capitalize() + " lane Dominance: Player AP " + str(player_ap) + " vs AI AP " + str(ai_ap) + ".")
-			dominance_awarded = true
+			player_has_dominance = true
+			log_msg(lane.capitalize() + " lane Dominance: Player AP " + str(player_ap) + " vs AI AP " + str(ai_ap) + ".")
 		elif ai_ap > player_ap:
-			add_aurion("ai", 1, lane.capitalize() + " lane Dominance: AI AP " + str(ai_ap) + " vs Player AP " + str(player_ap) + ".")
-			dominance_awarded = true
+			ai_has_dominance = true
+			log_msg(lane.capitalize() + " lane Dominance: AI AP " + str(ai_ap) + " vs Player AP " + str(player_ap) + ".")
 		else:
 			log_msg(lane.capitalize() + " lane Dominance: tied at " + str(player_ap) + " AP. No Aurion gained.")
 
-	if dominance_awarded:
-		log_msg("Dominance resolved for side lanes before cleanup.")
+	if player_has_dominance:
+		add_aurion("player", 1, "Dominance: controlled at least one side lane this turn.")
+
+	if ai_has_dominance:
+		add_aurion("ai", 1, "Dominance: controlled at least one side lane this turn.")
+
+	if player_has_dominance or ai_has_dominance:
+		log_msg("Dominance resolved. Each side can gain at most +1 Aurion from Dominance this turn.")
 	else:
 		log_msg("Dominance resolved. No side-lane advantage gained.")
 
@@ -3077,10 +3134,7 @@ func ai_try_deploy_one_card() -> bool:
 			return false
 
 		await play_enemy_hand_to_node_animation(card_data, target_slot, false)
-		send_slot_card_to_discard(target_slot)
-
-		if target_slot.has_method("place_card"):
-			success = target_slot.place_card(TEST_CARD_SCENE, card_data, false)
+		success = promote_slot_unit_preserving_equipment(target_slot, card_data, "enemy")
 
 		if success:
 			ai_hand.pop_at(card_index)
@@ -4427,6 +4481,8 @@ func resolve_ai_check_lane_with_visuals(lane: String) -> void:
 
 	add_aurion("player", 1, "AI failed Check: " + back_card.card_name + " was a decoy.")
 	player_fortified_lanes[lane] = true
+	# Failed Check spends the checker’s lane action. If Player declines to attack and passes, the lane ends.
+	ai_passed_current_lane = true
 	log_msg("AI Check failed. Your decoy returns to hand. Player is fortified and gains priority in this lane.")
 	return_setup_card(back_slot, back_card, "player")
 	await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
@@ -4602,6 +4658,8 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 
 	add_aurion("ai", 1, "Failed Check: " + back_card.card_name + " was a decoy.")
 	enemy_fortified_lanes[lane] = true
+	# Failed Check spends the checker’s lane action. If AI declines to attack and passes, the lane ends.
+	player_passed_current_lane = true
 	log_msg("Check failed. Decoy returns to enemy hand. Enemy is fortified and gains priority in this lane.")
 	return_setup_card(back_slot, back_card, "enemy")
 	await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout

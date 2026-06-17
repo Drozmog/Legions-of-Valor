@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dssr5nts3qduj"]
+
+[ext_resource type="Texture2D" uid="uid://2axd31w43ug2" path="res://cards/images/unit/orc/slaughter_veteran_vigo.png" id="1_hacb1"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_hjcff"]
+
+[resource]
+script = ExtResource("2_hjcff")
+card_id = "slaughter_veteran_vigo"
+card_name = "Slaughter Veteran, Vigo"
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 5
+dp = 2
+lore_text = "\"Skin turns to leather when you've been cut a thousand times. Can't say I had a choice\""
+card_art = ExtResource("1_hacb1")
+metadata/_custom_type_script = "uid://20ngslec6o41"

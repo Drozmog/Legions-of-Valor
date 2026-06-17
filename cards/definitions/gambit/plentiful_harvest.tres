@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://4ppv1ayu8gue"]
+
+[ext_resource type="Texture2D" uid="uid://de83o1pho04e6" path="res://cards/images/gambit/plentiful_harvest.png" id="1_6vt65"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_x2jgr"]
+
+[resource]
+script = ExtResource("2_x2jgr")
+card_id = "plentiful_harvest"
+card_name = "Plentiful Harvest"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 5
+dp = 3
+ability_text = "Take the top 2 card of your deck and add them to your tribute pile."
+lore_text = "\"The Dwarves might come down to fight if they find out they're missing out on this inside their ironholds.\" -Vaelori Scout"
+card_art = ExtResource("1_6vt65")
+ability_types = Array[String](["economy"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

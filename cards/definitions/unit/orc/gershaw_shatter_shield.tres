@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cxw0oi6o6bfwh"]
+
+[ext_resource type="Texture2D" uid="uid://dud7it3ejqhq2" path="res://cards/images/unit/orc/gershaw_shatter_shield.png" id="1_cgsxe"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_q37wr"]
+
+[resource]
+script = ExtResource("2_q37wr")
+card_id = "gershaw_shatter_shield"
+card_name = "Gershaw Shatter-Shield "
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 5
+ap = 7
+ability_text = "Cleave : When this unit wins a clash → Opponent must discard a card from his hand.
+
+Loyalty : Costs 1 less Mana if placed on same race."
+lore_text = "\"Hurt me? Oh sweet thing, you sound so serious behind that steel plate, allow me to cut that cake of an armor\""
+card_art = ExtResource("1_cgsxe")
+ability_types = Array[String](["attrition", "economy"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://d3m1kqbxlk7nj"]
+
+[ext_resource type="Texture2D" uid="uid://cp6jyxklvvtha" path="res://cards/images/unit/orc/urmog_brugos_chosen.png" id="1_mlc4w"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_mqf4l"]
+
+[resource]
+script = ExtResource("2_mqf4l")
+card_id = "urmog_brugos_chosen"
+card_name = "Urmog, Brugo’s Chosen"
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 5
+ap = 7
+dp = 1
+ability_text = "Shielded : Gain +2AP if Defending (Not while attacking).
+
+Aegis : Unit cannot be targeted/destroyed by Events."
+lore_text = "\"Tell the humans they have pushed far enough into our northern foothills. Tell your Fabled Marshal we're ready\""
+card_art = ExtResource("1_mlc4w")
+ability_types = Array[String](["protection", "protection"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

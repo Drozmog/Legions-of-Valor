@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c34pg1pbfqu2e"]
+
+[ext_resource type="Texture2D" uid="uid://bev60qy31sgk2" path="res://cards/images/gambit/soul_salvage.png" id="1_121vg"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_xro16"]
+
+[resource]
+script = ExtResource("2_xro16")
+card_id = "soul_salvage"
+card_name = "Soul Salvage"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 1
+dp = 1
+ability_text = "Opponent loses 1 Tribute Temporarily for this turn."
+lore_text = "“In the dark, intuition is worth more than a map. One wrong swing brings wealth; one more brings the deep madness.” - Deep Tier Miner"
+card_art = ExtResource("1_121vg")
+ability_types = Array[String](["attrition"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

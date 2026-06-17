@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://d1vkdet7h5j88"]
+
+[ext_resource type="Texture2D" uid="uid://due6u0qiue8g1" path="res://cards/images/unit/orc/siege_breaker_orc.png" id="1_q1c6c"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_dcgwl"]
+
+[resource]
+script = ExtResource("2_dcgwl")
+card_id = "siege_breaker_orc"
+card_name = "Siege-Breaker Orc"
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 4
+dp = 1
+ability_text = "Unequality : Gain +1 AP for every unit on your battlefield that is not an orc."
+lore_text = "\"The bigger the wall. the crunchier the fall tahaha\""
+card_art = ExtResource("1_q1c6c")
+ability_types = Array[String](["assault"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

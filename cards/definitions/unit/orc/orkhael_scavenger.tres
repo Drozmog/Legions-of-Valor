@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://242c80exxldl"]
+
+[ext_resource type="Texture2D" uid="uid://dq8140ff1vl4e" path="res://cards/images/unit/orc/orkhael_scavenger.png" id="1_n7l1g"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_hg3lf"]
+
+[resource]
+script = ExtResource("2_hg3lf")
+card_id = "orkhael_scavenger"
+card_name = "Orkhael Scavenger"
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 3
+ability_text = "Cleave : When this unit wins a clash → Opponent must discard a card from his hand."
+lore_text = "\"Sift through the wreckage of The Impact. The oldest gold carries the strongest surge.\""
+card_art = ExtResource("1_n7l1g")
+ability_types = Array[String](["attrition"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

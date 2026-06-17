@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cb50qo7eb0wtd"]
+
+[ext_resource type="Texture2D" uid="uid://bjx51ix74p6fx" path="res://cards/images/unit/orc/zarkhan_the_primeval.png" id="1_0d1j6"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_y6h5a"]
+
+[resource]
+script = ExtResource("2_y6h5a")
+card_id = "zarkhan_the_primeval"
+card_name = "Zarkhan, The Primeval Orkhael"
+race = "orc"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 6
+ap = 9
+dp = 2
+ability_text = "Hard Bargain : If a clash is won→gain +1 Aurion. If this unit is destroyed→lose 2 Aurion.
+
+Aegis : Cannot be targeted/destroyed by Events."
+lore_text = "\"I was the best of the elves and they cast me away. I am the best of the orcs but I dare not say. The Sylvian courts will answer for their injustice and so will the guild\""
+card_art = ExtResource("1_0d1j6")
+ability_types = Array[String](["economy", "protection"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

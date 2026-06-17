@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://3flekdq5k0s3"]
 
-[ext_resource type="Texture2D" uid="uid://dj5l786lpl3jf" path="res://cards/images/unit/orc/orkhael_outcast.png" id="1_djxtq"]
+[ext_resource type="Texture2D" uid="uid://c5e5kvfgkyll7" path="res://cards/images/unit/orc/orkhael_outcast.png" id="1_djxtq"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_260mi"]
 
 [resource]

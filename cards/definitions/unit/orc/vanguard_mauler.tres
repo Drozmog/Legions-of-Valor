@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://da8ad8gcipnsm"]
+
+[ext_resource type="Texture2D" uid="uid://byrebgifkd0g5" path="res://cards/images/unit/orc/vanguard_mauler.png" id="1_w8fg5"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_ne1yc"]
+
+[resource]
+script = ExtResource("2_ne1yc")
+card_id = "vanguard_mauler"
+card_name = "Vanguard Mauler"
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 4
+dp = 1
+ability_text = "Cleave : When this unit wins a clash → Opponent must discard a card from his hand."
+lore_text = "\"Press the human lines back into the river valleys!
+Give them no room to form lines!\""
+card_art = ExtResource("1_w8fg5")
+ability_types = Array[String](["attrition"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

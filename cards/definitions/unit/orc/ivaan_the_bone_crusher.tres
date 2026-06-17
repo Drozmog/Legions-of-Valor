@@ -1,12 +1,12 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cc8bxdp2ornko"]
 
-[ext_resource type="Texture2D" uid="uid://cuklmd2w6qfsp" path="res://cards/images/unit/orc/ivaan_the_bone_crusher.png" id="1_i4nl5"]
+[ext_resource type="Texture2D" uid="uid://mfdyj2orpuru" path="res://cards/images/unit/orc/ivaan_the_bone_crusher.png" id="1_i4nl5"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_mxpaj"]
 
 [resource]
 script = ExtResource("2_mxpaj")
 card_id = "ivaan_the_bone_crusher"
-card_name = "Ivaan, Bone Crusher"
+card_name = "Ivaan the Bone Crusher"
 race = "orc"
 card_type = "unit"
 rarity = "normal"

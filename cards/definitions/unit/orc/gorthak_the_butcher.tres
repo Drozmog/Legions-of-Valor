@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b27amc8oxs87g"]
+
+[ext_resource type="Texture2D" uid="uid://dkclc2fsei0ne" path="res://cards/images/unit/orc/brugo_the_bold.png" id="1_47h1t"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_lxydd"]
+
+[resource]
+script = ExtResource("2_lxydd")
+card_id = "gorthak_the_butcher"
+card_name = "Gorthak the Butcher"
+race = "orc"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 7
+ap = 10
+ability_text = "Wrath : On deploy → Destroy ALL equipment cards in play.
+
+Bloodthirst : If this unit destroys an enemy unit, it can attack a second time this turn."
+lore_text = "\"Rodry would have made a good commander, the best and I would finally set my sword aside. Gorthak is what they call him, the beast who ate his heart. He will be my last mark\" - Commander Rykard "
+card_art = ExtResource("1_47h1t")
+ability_types = Array[String](["attrition", "assault"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

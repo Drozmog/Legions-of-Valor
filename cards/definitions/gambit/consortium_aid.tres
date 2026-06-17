@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b22itd16wltco"]
+
+[ext_resource type="Texture2D" uid="uid://cia8lraf48nec" path="res://cards/images/gambit/consortium_aid.png" id="1_fpj12"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_b80ac"]
+
+[resource]
+script = ExtResource("2_b80ac")
+card_id = "consortium_aid"
+card_name = "Consortium Aid"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 2
+dp = 2
+ability_text = "Draw 2 cards."
+lore_text = "“The war does not stop when the rations run out; it simply shifts in favor of those who can still afford to pay Lewin.”"
+card_art = ExtResource("1_fpj12")
+ability_types = Array[String](["economy"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

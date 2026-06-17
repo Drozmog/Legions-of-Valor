@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ctipc6rrkn7vs"]
+
+[ext_resource type="Texture2D" uid="uid://cuo5yx5hxqhf5" path="res://cards/images/gambit/pickpocket.png" id="1_1nbi0"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_xs1k4"]
+
+[resource]
+script = ExtResource("2_xs1k4")
+card_id = "pickpocket"
+card_name = "Pickpocket"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 2
+dp = 2
+ability_text = "Remove 1 equipment from any enemy unit."
+lore_text = "“I could have sworn me goblet was in me bag. Darn it” - Boric Coinpacker"
+card_art = ExtResource("1_1nbi0")
+ability_types = Array[String](["attrition"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

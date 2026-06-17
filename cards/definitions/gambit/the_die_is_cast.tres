@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dsh2wqn46mpu5"]
+
+[ext_resource type="Texture2D" uid="uid://doa2jja3jrqyo" path="res://cards/images/gambit/the_die_is_cast.png" id="1_5w74n"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_8jgqw"]
+
+[resource]
+script = ExtResource("2_8jgqw")
+card_id = "the_die_is_cast"
+card_name = "The Die is Cast"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 3
+dp = 2
+ability_text = "All your units gain +2 AP this turn."
+lore_text = "“They lack the discipline of Leonard's legions, but they possess a momentum that turns iron armor into iron coffins.\" - Velgrum the Gatekeeper"
+card_art = ExtResource("1_5w74n")
+ability_types = Array[String](["assault"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cyrgig4djvx8k"]
+
+[ext_resource type="Texture2D" uid="uid://br4u6lbodwahg" path="res://cards/images/unit/orc/orcish_militia.png" id="1_rsu45"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_wkb7r"]
+
+[resource]
+script = ExtResource("2_wkb7r")
+card_id = "orcish_militia"
+card_name = "Orcish Militia"
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 1
+ap = 2
+ability_text = "Volley : Can attack diagonal lanes."
+lore_text = "\"We lack their Grand Marshal’s discipline, but we got Brugo to show em we also lack a spine\""
+card_art = ExtResource("1_rsu45")
+ability_types = Array[String](["mobility"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

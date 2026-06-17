@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bhugojovsa0p0"]
+
+[ext_resource type="Texture2D" uid="uid://dsfw02sse6d0d" path="res://cards/images/equipment/bracers_of_the_depth.png" id="1_k2ysd"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_loj4f"]
+
+[resource]
+script = ExtResource("2_loj4f")
+card_id = "bracers_of_the_depth"
+card_name = "Bracers of the Depth"
+race = "neutral"
+card_type = "equipment"
+rarity = "normal"
+tribute_cost = 2
+dp = 2
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+lore_text = "A crude but effective tool of the Orkhael Scavengers."
+card_art = ExtResource("1_k2ysd")
+ability_types = Array[String](["protection"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

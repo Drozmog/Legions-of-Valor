@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b5g85de2imprm"]
+
+[ext_resource type="Texture2D" uid="uid://d1ppif11f6gmh" path="res://cards/images/unit/orc/high_chieftain_grog.png" id="1_jmsgi"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_7ixin"]
+
+[resource]
+script = ExtResource("2_7ixin")
+card_id = "high_chieftain_grog"
+card_name = "High Chieftain, Grog"
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 6
+ap = 8
+dp = 2
+ability_text = "Halt : Enemy units  cannot trigger Volley while this unit is deployed.
+
+Chain-Link : 2nd in Parry Chain → Add to Tribute"
+lore_text = "\"The golden light is a divine entity meant to transform our race into the ultimate masters.I can hardly fault the Humans for their hysteria\""
+card_art = ExtResource("1_jmsgi")
+ability_types = Array[String](["control", "economy"])
+metadata/_custom_type_script = "uid://20ngslec6o41"
