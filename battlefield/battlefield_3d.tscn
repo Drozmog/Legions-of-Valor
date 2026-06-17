@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dp6yeqqg78j3r"]
 
-[ext_resource type="Script" uid="uid://d1bxaxrw4bbx1" path="res://battlefield/BattlefieldManager.gd" id="1_a265j"]
+[ext_resource type="Script" uid="uid://d1bxaxrw4bbx1" path="res://battlefield/BattlefieldManager.gd" id="1_xm46m"]
 [ext_resource type="Script" uid="uid://08vh6g385ekw" path="res://battlefield/BoardSlot.gd" id="2_do6fa"]
 [ext_resource type="Texture2D" uid="uid://dnwcw2smdpix6" path="res://Textures/World Textures/Grassy Field.png" id="2_rn43s"]
 [ext_resource type="Script" uid="uid://mrjpnlt8klf1" path="res://battlefield/GameLog.gd" id="3_rdvt6"]
@@ -75,7 +75,7 @@ height = 0.45
 radius = 0.8
 
 [node name="Battlefield3D" type="Node3D" unique_id=1594429578 node_paths=PackedStringArray("hand", "draw_pile", "tribute_pile", "player_deck")]
-script = ExtResource("1_a265j")
+script = ExtResource("1_xm46m")
 hand = NodePath("UI/Hand")
 draw_pile = NodePath("DrawPile")
 tribute_pile = NodePath("TributePile")
