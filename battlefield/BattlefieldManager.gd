@@ -190,9 +190,19 @@ var combat_resolution_running: bool = false
 
 const BOARD_ACTION_CHECK: int = 3
 
+const BOARD_ACTION_PASS: int = 4
+
 const BLUFF_REVEAL_DELAY: float = 0.30
 
 var enemy_fortified_lanes: Dictionary = {}
+
+var player_fortified_lanes: Dictionary = {}
+
+var combat_priority_owner: String = ""
+
+var player_passed_current_lane: bool = false
+
+var ai_passed_current_lane: bool = false
 
 
 # === Functions ===
@@ -537,7 +547,7 @@ func begin_combat_phase() -> void:
 	else:
 		log_msg("Phase: Combat. AI has initiative. Combat will resolve lane by lane visually.")
 		await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
-		ai_take_combat_initiative()
+		await ai_take_combat_initiative()
 
 
 func update_phase_ui() -> void:
@@ -607,7 +617,11 @@ func reset_combat_state() -> void:
 	combat_direction_selected = false
 	combat_lane_order.clear()
 	combat_next_lane_index = 0
+	combat_priority_owner = get_initiative_priority_owner()
+	player_passed_current_lane = false
+	ai_passed_current_lane = false
 	enemy_fortified_lanes.clear()
+	player_fortified_lanes.clear()
 	combat_resolution_running = false
 	active_combat_lane = ""
 
@@ -864,7 +878,7 @@ func _on_slot_clicked(slot: Node) -> void:
 		# after resolving Attack / Check from the board action menu.
 		var lane: String = get_slot_lane(slot)
 		if lane != "":
-			log_msg("Combat action ready in the " + lane + " lane. Right-click and choose Attack or Check.")
+			log_msg("Combat action ready in the " + lane + " lane. Right-click and choose Attack, Check, or Pass.")
 		else:
 			log_msg("Combat actions use the right-click menu.")
 		return
@@ -1187,6 +1201,7 @@ func set_combat_lane_order_from_left() -> void:
 	combat_lane_order.append("middle")
 	combat_lane_order.append("right")
 	combat_next_lane_index = 0
+	reset_priority_for_current_lane()
 
 	log_msg("Combat direction selected: left to right.")
 
@@ -1198,6 +1213,7 @@ func set_combat_lane_order_from_right() -> void:
 	combat_lane_order.append("middle")
 	combat_lane_order.append("left")
 	combat_next_lane_index = 0
+	reset_priority_for_current_lane()
 
 	log_msg("Combat direction selected: right to left.")
 
@@ -1304,7 +1320,7 @@ func resolve_directed_clash(
 
 		return
 
-	if attacker_card.ap >= defender_card.ap:
+	if attacker_card.ap > defender_card.ap:
 		if not player_is_attacker:
 			begin_parry_prompt(lane, _attacker_slot, attacker_card, defender_slot, defender_card)
 			return
@@ -1314,7 +1330,36 @@ func resolve_directed_clash(
 		add_aurion("player", 1, "Destroyed " + defender_card.card_name + " in combat.")
 		return
 
-	log_msg(defender_label + " " + defender_card.card_name + " survived the attack.")
+	# The attacker chose to fight into a stronger unit.
+	# The lower-AP attacker cannot leave safely; it must survive the counterstrike or die.
+	if player_is_attacker:
+		log_msg(
+			"Counterstrike: "
+			+ defender_label
+			+ " "
+			+ defender_card.card_name
+			+ " has higher AP. "
+			+ attacker_label
+			+ " "
+			+ attacker_card.card_name
+			+ " must Parry or die."
+		)
+		begin_parry_prompt(lane, defender_slot, defender_card, _attacker_slot, attacker_card)
+		return
+
+	send_slot_card_to_discard(_attacker_slot)
+	log_msg(
+		"Counterstrike: "
+		+ defender_label
+		+ " "
+		+ defender_card.card_name
+		+ " overpowered "
+		+ attacker_label
+		+ " "
+		+ attacker_card.card_name
+		+ "."
+	)
+	add_aurion("player", 1, "Destroyed " + attacker_card.card_name + " after it attacked a higher-AP unit.")
 
 
 func get_slot_card_data(slot: Node) -> CardData:
@@ -1905,9 +1950,9 @@ func begin_parry_prompt(
 		parry_prompt_label.text = (
 			"Your "
 			+ defender_card.card_name
-			+ " is being attacked by "
+			+ " must survive against "
 			+ attacker_card.card_name
-			+ ".\nDrop hand cards into the glowing pit to gather DP."
+			+ ".\nDrop hand cards into the glowing pit to gather DP, or let the unit die."
 			+ "\nRequired DP: "
 			+ str(parry_required_dp)
 		)
@@ -2122,6 +2167,8 @@ func create_spell_choice_panel() -> void:
 func advance_combat_lane_after_resolution() -> void:
 	clear_active_combat_lane_highlight()
 	combat_next_lane_index += 1
+	player_passed_current_lane = false
+	ai_passed_current_lane = false
 
 	if current_phase != BattlePhase.COMBAT:
 		return
@@ -2132,13 +2179,19 @@ func advance_combat_lane_after_resolution() -> void:
 	await skip_empty_combat_lanes_with_pause()
 
 	if combat_next_lane_index >= combat_lane_order.size():
+		combat_priority_owner = ""
 		log_msg("All combat lanes resolved. Press End Combat / Next Round when ready.")
 		return
 
+	reset_priority_for_current_lane()
 	var next_lane: String = combat_lane_order[combat_next_lane_index]
-	log_msg("Combat action ready in the " + next_lane + " lane. Right-click and choose Attack or Check.")
-	set_active_combat_lane_highlight(next_lane)
 
+	if combat_priority_owner == "ai":
+		log_msg("AI has priority in the " + next_lane + " lane.")
+	else:
+		log_msg("Combat action ready in the " + next_lane + " lane. Right-click and choose Attack, Check, or Pass.")
+
+	set_active_combat_lane_highlight(next_lane)
 
 func skip_empty_combat_lanes_with_pause() -> void:
 	while current_phase == BattlePhase.COMBAT and combat_next_lane_index < combat_lane_order.size():
@@ -2528,10 +2581,11 @@ func ai_choose_tribute_card_index() -> int:
 
 func ai_take_combat_initiative() -> void:
 	if not ai_should_attack_this_combat():
-		log_msg("AI chooses not to attack this combat.")
-		combat_direction_selected = true
+		log_msg("AI passes combat initiative. Player may choose the starting lane.")
+		combat_direction_selected = false
 		combat_lane_order.clear()
 		combat_next_lane_index = 0
+		combat_priority_owner = "player"
 		return
 
 	var start_lane: String = ai_choose_combat_start_lane()
@@ -2541,9 +2595,9 @@ func ai_take_combat_initiative() -> void:
 	else:
 		set_combat_lane_order_from_left()
 
+	combat_priority_owner = "ai"
 	log_msg("AI chooses to attack from the " + start_lane + " lane.")
-	ai_resolve_combat_sequence()
-
+	await ai_resolve_combat_sequence()
 
 func ai_should_attack_this_combat() -> bool:
 	var ai_units: int = ai_count_front_units("enemy")
@@ -2618,11 +2672,21 @@ func ai_resolve_combat_sequence() -> void:
 
 	while current_phase == BattlePhase.COMBAT and not parry_active and combat_next_lane_index < combat_lane_order.size():
 		var next_lane: String = combat_lane_order[combat_next_lane_index]
-		await resolve_ai_combat_lane_with_visuals(next_lane)
+
+		if combat_priority_owner != "ai":
+			break
+
+		await resolve_ai_current_priority_lane(next_lane)
+
+		if parry_active:
+			break
+
+		if combat_priority_owner == "player":
+			break
+
 		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
 
 	combat_resolution_running = false
-
 
 func ai_count_front_units(owner_name: String) -> int:
 	var count: int = 0
@@ -3422,9 +3486,10 @@ func show_board_slot_action_menu(slot: Node) -> void:
 	var card_data: CardData = get_slot_card_data(slot)
 	var can_attack: bool = can_player_attack_lane_from_menu(lane)
 	var can_check: bool = can_player_check_lane_from_menu(lane)
+	var can_pass: bool = can_player_pass_lane_from_menu(lane)
 	var enemy_back_slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
 	var enemy_back_card: CardData = get_slot_card_data(enemy_back_slot)
-	var has_hidden_back: bool = enemy_back_card != null and bool(enemy_back_slot.get_meta("face_down", false))
+	var has_hidden_back: bool = enemy_back_card != null and enemy_back_slot != null and bool(enemy_back_slot.get_meta("face_down", false))
 	var added_action: bool = false
 
 	if current_phase == BattlePhase.COMBAT:
@@ -3443,6 +3508,13 @@ func show_board_slot_action_menu(slot: Node) -> void:
 			else:
 				board_action_menu.set_item_disabled(check_index, true)
 
+		board_action_menu.add_item("Pass", BOARD_ACTION_PASS)
+		var pass_index: int = board_action_menu.get_item_count() - 1
+		if can_pass:
+			added_action = true
+		else:
+			board_action_menu.set_item_disabled(pass_index, true)
+
 	if card_data != null:
 		board_action_menu.add_item("Inspect", BOARD_ACTION_INSPECT)
 	elif not added_action:
@@ -3457,13 +3529,14 @@ func show_board_slot_action_menu(slot: Node) -> void:
 	board_action_menu.position = Vector2i(int(mouse_position.x), int(mouse_position.y))
 	board_action_menu.popup()
 
-
 func _on_board_slot_action_selected(action_id: int) -> void:
 	match action_id:
 		BOARD_ACTION_ATTACK:
 			await attack_from_board_action_menu(board_action_target_slot)
 		BOARD_ACTION_CHECK:
 			await check_from_board_action_menu(board_action_target_slot)
+		BOARD_ACTION_PASS:
+			await pass_from_board_action_menu(board_action_target_slot)
 		BOARD_ACTION_INSPECT:
 			inspect_board_slot(board_action_target_slot)
 		BOARD_ACTION_CANCEL:
@@ -3532,41 +3605,17 @@ func find_card_inspect_panel(node: Node) -> CardInspectPanel:
 
 
 func can_player_attack_lane_from_menu(lane: String) -> bool:
-	if current_phase != BattlePhase.COMBAT:
+	if not can_player_take_priority_action_in_lane(lane):
 		return false
 
-	if parry_active:
-		return false
-
-	if not player_has_initiative:
-		return false
-
-	if lane == "":
-		return false
-
-	if not is_lane_current_or_valid_combat_start(lane):
-		return false
-
-	# Attack can be chosen for any legal lane:
-	# player-only = player Monarch Strike, enemy-only = AI Monarch Strike,
+	# Attack can be chosen for any legal priority lane:
+	# player-only = player Monarch Strike, enemy-only = AI Monarch Strike after you choose that lane,
 	# both units = normal combat, no units = glow/pause skip.
 	return true
 
 
 func can_player_check_lane_from_menu(lane: String) -> bool:
-	if current_phase != BattlePhase.COMBAT:
-		return false
-
-	if parry_active:
-		return false
-
-	if not player_has_initiative:
-		return false
-
-	if lane == "":
-		return false
-
-	if not is_lane_current_or_valid_combat_start(lane):
+	if not can_player_take_priority_action_in_lane(lane):
 		return false
 
 	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
@@ -3574,6 +3623,29 @@ func can_player_check_lane_from_menu(lane: String) -> bool:
 
 	# Checking a hidden back-row card requires your front-row unit in that lane.
 	return is_unit_card(player_card)
+
+
+func can_player_pass_lane_from_menu(lane: String) -> bool:
+	return can_player_take_priority_action_in_lane(lane)
+
+
+func can_player_take_priority_action_in_lane(lane: String) -> bool:
+	if current_phase != BattlePhase.COMBAT:
+		return false
+
+	if parry_active:
+		return false
+
+	if lane == "":
+		return false
+
+	if not is_lane_current_or_valid_combat_start(lane):
+		return false
+
+	if not combat_direction_selected:
+		return player_has_initiative or combat_priority_owner == "player"
+
+	return combat_priority_owner == "player"
 
 
 func is_lane_current_or_valid_combat_start(lane: String) -> bool:
@@ -3589,6 +3661,38 @@ func is_lane_current_or_valid_combat_start(lane: String) -> bool:
 	var expected_lane: String = combat_lane_order[combat_next_lane_index]
 	return lane == expected_lane
 
+
+func get_initiative_priority_owner() -> String:
+	return "player" if player_has_initiative else "ai"
+
+
+func reset_priority_for_current_lane() -> void:
+	combat_priority_owner = get_initiative_priority_owner()
+	player_passed_current_lane = false
+	ai_passed_current_lane = false
+
+
+func current_combat_lane() -> String:
+	if combat_next_lane_index < 0 or combat_next_lane_index >= combat_lane_order.size():
+		return ""
+
+	return combat_lane_order[combat_next_lane_index]
+
+
+func set_lane_priority_to_player(lane: String, reason: String = "") -> void:
+	combat_priority_owner = "player"
+	set_active_combat_lane_highlight(lane)
+	if reason != "":
+		log_msg(reason)
+	log_msg("Player has priority in the " + lane + " lane. Right-click and choose Attack, Check, or Pass.")
+
+
+func set_lane_priority_to_ai(lane: String, reason: String = "") -> void:
+	combat_priority_owner = "ai"
+	set_active_combat_lane_highlight(lane)
+	if reason != "":
+		log_msg(reason)
+	log_msg("AI has priority in the " + lane + " lane.")
 
 func attack_from_board_action_menu(slot: Node) -> void:
 	if combat_resolution_running:
@@ -3606,8 +3710,32 @@ func attack_from_board_action_menu(slot: Node) -> void:
 		log_msg("Resolve the current parry prompt first.")
 		return
 
-	if not player_has_initiative:
-		log_msg("AI has initiative this combat. You cannot attack from the menu yet.")
+	var lane: String = get_slot_lane(slot)
+
+	if lane == "":
+		return
+
+	if not can_player_attack_lane_from_menu(lane):
+		log_msg("You do not have priority to attack in this lane.")
+		return
+
+	await resolve_player_attack_lane_with_visuals(lane)
+
+
+func pass_from_board_action_menu(slot: Node) -> void:
+	if combat_resolution_running:
+		log_msg("Combat is already resolving. Wait for the current lane.")
+		return
+
+	if slot == null:
+		return
+
+	if current_phase != BattlePhase.COMBAT:
+		log_msg("Pass is only available during Combat.")
+		return
+
+	if parry_active:
+		log_msg("Resolve the current parry prompt first.")
 		return
 
 	var lane: String = get_slot_lane(slot)
@@ -3615,8 +3743,11 @@ func attack_from_board_action_menu(slot: Node) -> void:
 	if lane == "":
 		return
 
-	await resolve_player_attack_lane_with_visuals(lane)
+	if not can_player_pass_lane_from_menu(lane):
+		log_msg("You do not have priority to pass in this lane.")
+		return
 
+	await resolve_player_pass_lane_with_visuals(lane)
 
 func resolve_monarch_strike(lane: String, attacker_card: CardData) -> void:
 	if attacker_card == null:
@@ -3678,8 +3809,9 @@ func resolve_player_attack_lane_with_visuals(lane: String) -> void:
 		combat_resolution_running = false
 		return
 
+	player_passed_current_lane = false
 	set_active_combat_lane_highlight(lane)
-	log_msg("Resolving attack in the " + lane + " lane.")
+	log_msg("Resolving player attack in the " + lane + " lane.")
 	await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
 
 	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
@@ -3737,8 +3869,40 @@ func resolve_player_attack_lane_with_visuals(lane: String) -> void:
 	combat_resolution_running = false
 
 
+func resolve_player_pass_lane_with_visuals(lane: String) -> void:
+	if combat_resolution_running:
+		return
+
+	combat_resolution_running = true
+
+	if not prepare_player_lane_action(lane):
+		combat_resolution_running = false
+		return
+
+	set_active_combat_lane_highlight(lane)
+	player_passed_current_lane = true
+	log_msg("Player passes priority in the " + lane + " lane.")
+	await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
+
+	if ai_passed_current_lane:
+		log_msg("Both players passed in the " + lane + " lane. Moving to next lane.")
+		await advance_combat_lane_after_resolution()
+		combat_resolution_running = false
+		return
+
+	set_lane_priority_to_ai(lane, "Priority passes to AI.")
+	await resolve_ai_current_priority_lane(lane)
+	combat_resolution_running = false
+
 func resolve_ai_combat_lane_with_visuals(lane: String) -> void:
+	await resolve_ai_current_priority_lane(lane)
+
+
+func resolve_ai_current_priority_lane(lane: String) -> void:
 	if current_phase != BattlePhase.COMBAT:
+		return
+
+	if parry_active:
 		return
 
 	if combat_next_lane_index >= combat_lane_order.size():
@@ -3749,21 +3913,167 @@ func resolve_ai_combat_lane_with_visuals(lane: String) -> void:
 	if lane != expected_lane:
 		return
 
-	set_active_combat_lane_highlight(lane)
-	log_msg("AI resolving " + lane + " lane.")
-	await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
-
-	var player_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
-	var opponent_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
-
-	resolve_lane_combat(lane, player_slot, opponent_slot)
-
-	if parry_active:
+	if combat_priority_owner != "ai":
 		return
 
-	await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-	await advance_combat_lane_after_resolution()
+	set_active_combat_lane_highlight(lane)
+	log_msg("AI considers action in the " + lane + " lane.")
+	await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
 
+	if not lane_has_any_front_unit(lane):
+		log_msg(lane.capitalize() + " lane has no front-row units on either side. Skipping after a short pause.")
+		await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
+		await advance_combat_lane_after_resolution()
+		return
+
+	var ai_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+
+	var ai_card: CardData = get_slot_card_data(ai_front_slot)
+	var player_front_card: CardData = get_slot_card_data(player_front_slot)
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var player_back_is_face_down: bool = player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	if not is_unit_card(ai_card):
+		await resolve_ai_pass_lane_with_visuals(lane)
+		return
+
+	if player_back_is_face_down and ai_should_check_hidden_backrow(lane, player_back_card):
+		await resolve_ai_check_lane_with_visuals(lane)
+		return
+
+	if player_back_is_face_down:
+		await resolve_ai_attack_lane_with_visuals(lane)
+		return
+
+	if player_front_card == null and player_back_card == null:
+		resolve_ai_monarch_strike(lane, ai_card)
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		await advance_combat_lane_after_resolution()
+		return
+
+	if player_front_card != null:
+		resolve_lane_combat(lane, player_front_slot, ai_front_slot)
+
+		if parry_active:
+			return
+
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		await advance_combat_lane_after_resolution()
+		return
+
+	await resolve_ai_pass_lane_with_visuals(lane)
+
+
+func resolve_ai_pass_lane_with_visuals(lane: String) -> void:
+	set_active_combat_lane_highlight(lane)
+	ai_passed_current_lane = true
+	log_msg("AI passes priority in the " + lane + " lane.")
+	await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
+
+	if player_passed_current_lane:
+		log_msg("Both players passed in the " + lane + " lane. Moving to next lane.")
+		await advance_combat_lane_after_resolution()
+		return
+
+	set_lane_priority_to_player(lane, "Priority passes to Player.")
+
+
+func ai_should_check_hidden_backrow(_lane: String, _hidden_card: CardData) -> bool:
+	# Prototype AI does not know what the hidden card is. It sometimes Checks and sometimes Attacks.
+	return (randi() % 100) < 40
+
+
+func resolve_ai_check_lane_with_visuals(lane: String) -> void:
+	var back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+	var back_card: CardData = get_slot_card_data(back_slot)
+
+	if back_slot == null or back_card == null or not bool(back_slot.get_meta("face_down", false)):
+		await resolve_ai_pass_lane_with_visuals(lane)
+		return
+
+	back_slot.set_meta("interacted_this_round", true)
+
+	if back_slot.has_method("reveal_card"):
+		back_slot.reveal_card()
+
+	log_msg("AI checks your hidden back-row card in the " + lane + " lane.")
+	await get_tree().create_timer(BLUFF_REVEAL_DELAY).timeout
+
+	if is_gambit_card(back_card):
+		add_aurion("ai", 1, "Successful Check: " + back_card.card_name + " was a Gambit.")
+		log_msg("AI Check successful. Your Gambit is denied and discarded. AI keeps priority in this lane.")
+		send_slot_card_to_discard(back_slot)
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		set_lane_priority_to_ai(lane)
+		await resolve_ai_current_priority_lane(lane)
+		return
+
+	add_aurion("player", 1, "AI failed Check: " + back_card.card_name + " was a decoy.")
+	player_fortified_lanes[lane] = true
+	log_msg("AI Check failed. Your decoy returns to hand. Player is fortified and gains priority in this lane.")
+	return_setup_card(back_slot, back_card, "player")
+	await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+	set_lane_priority_to_player(lane)
+
+
+func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
+	var ai_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+
+	var ai_card: CardData = get_slot_card_data(ai_front_slot)
+	var player_front_card: CardData = get_slot_card_data(player_front_slot)
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var player_back_is_face_down: bool = player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	if not is_unit_card(ai_card):
+		await resolve_ai_pass_lane_with_visuals(lane)
+		return
+
+	if player_back_is_face_down:
+		player_back_slot.set_meta("interacted_this_round", true)
+
+		if player_back_slot.has_method("reveal_card"):
+			player_back_slot.reveal_card()
+
+		log_msg("AI attacks into your hidden back-row card in the " + lane + " lane.")
+		await get_tree().create_timer(BLUFF_REVEAL_DELAY).timeout
+
+		if is_gambit_card(player_back_card):
+			log_msg("AI Attack failed: " + player_back_card.card_name + " was your hidden Gambit.")
+			resolve_immediate_hidden_gambit_cast(player_back_card, "player", lane)
+			send_slot_card_to_discard(player_back_slot)
+			await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+			await advance_combat_lane_after_resolution()
+			return
+
+		add_aurion("ai", 1, "Successful Attack read: " + player_back_card.card_name + " was not a Gambit.")
+		log_msg("AI Attack read correctly. Your decoy is discarded. AI keeps priority in this lane.")
+		send_slot_card_to_discard(player_back_slot)
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		set_lane_priority_to_ai(lane)
+		await resolve_ai_current_priority_lane(lane)
+		return
+
+	if player_front_card == null and player_back_card == null:
+		resolve_ai_monarch_strike(lane, ai_card)
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		await advance_combat_lane_after_resolution()
+		return
+
+	if player_front_card != null:
+		resolve_lane_combat(lane, player_front_slot, ai_front_slot)
+
+		if parry_active:
+			return
+
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		await advance_combat_lane_after_resolution()
+		return
+
+	await resolve_ai_pass_lane_with_visuals(lane)
 
 func set_active_combat_lane_highlight(lane: String) -> void:
 	if lane == "":
@@ -3823,21 +4133,16 @@ func check_from_board_action_menu(slot: Node) -> void:
 		log_msg("Resolve the current parry prompt first.")
 		return
 
-	if not player_has_initiative:
-		log_msg("AI has initiative this combat. You cannot check from the menu yet.")
-		return
-
 	var lane: String = get_slot_lane(slot)
 
 	if lane == "":
 		return
 
 	if not can_player_check_lane_from_menu(lane):
-		log_msg("Check requires your front-row unit in the current combat lane.")
+		log_msg("Check requires your front-row unit and player priority in the current combat lane.")
 		return
 
 	await resolve_player_check_lane_with_visuals(lane)
-
 
 func resolve_player_check_lane_with_visuals(lane: String) -> void:
 	if combat_resolution_running:
@@ -3849,6 +4154,7 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 		combat_resolution_running = false
 		return
 
+	player_passed_current_lane = false
 	set_active_combat_lane_highlight(lane)
 	log_msg("Checking hidden back-row card in the " + lane + " lane.")
 	await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
@@ -3870,28 +4176,31 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 
 	if is_gambit_card(back_card):
 		add_aurion("player", 1, "Successful Check: " + back_card.card_name + " was a Gambit.")
-		log_msg("Check successful. Gambit is denied and discarded. The " + lane + " lane stays active.")
+		log_msg("Check successful. Gambit is denied and discarded. Player keeps priority in this lane.")
 		send_slot_card_to_discard(back_slot)
 		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-		set_active_combat_lane_highlight(lane)
-		log_msg("Right-click the " + lane + " lane again to attack the front row or Monarch.")
+		set_lane_priority_to_player(lane)
 		combat_resolution_running = false
 		return
 
 	add_aurion("ai", 1, "Failed Check: " + back_card.card_name + " was a decoy.")
 	enemy_fortified_lanes[lane] = true
-	log_msg("Check failed. Decoy returns to enemy hand. Enemy is fortified in this lane.")
+	log_msg("Check failed. Decoy returns to enemy hand. Enemy is fortified and gains priority in this lane.")
 	return_setup_card(back_slot, back_card, "enemy")
 	await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-	await advance_combat_lane_after_resolution()
+	set_lane_priority_to_ai(lane)
+	await resolve_ai_current_priority_lane(lane)
 	combat_resolution_running = false
-
 
 func prepare_player_lane_action(lane: String) -> bool:
 	if lane == "":
 		return false
 
 	if not combat_direction_selected:
+		if not player_has_initiative and combat_priority_owner != "player":
+			log_msg("AI has initiative. You cannot choose the starting lane yet.")
+			return false
+
 		if lane == "left":
 			set_combat_lane_order_from_left()
 		elif lane == "right":
@@ -3910,21 +4219,11 @@ func prepare_player_lane_action(lane: String) -> bool:
 		log_msg("Next combat must resolve in the " + expected_lane + " lane.")
 		return false
 
-	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
-	var player_card: CardData = get_slot_card_data(player_front_slot)
-
-	if not is_unit_card(player_card):
-		if lane_has_front_unit("enemy", lane):
-			return true
-
-		if not lane_has_any_front_unit(lane):
-			return true
-
-		log_msg(lane.capitalize() + " lane: you have no front-row unit to act with.")
+	if combat_priority_owner != "player":
+		log_msg("AI has priority in the " + lane + " lane. You can act after AI passes or resolves its action.")
 		return false
 
 	return true
-
 
 func return_setup_card(slot: Node, card_data: CardData, owner_name: String) -> void:
 	if slot == null or card_data == null:
@@ -3983,8 +4282,9 @@ func resolve_attack_into_face_down_backrow(
 		await advance_combat_lane_after_resolution()
 		return
 
-	log_msg("Attack read correctly: " + enemy_back_card.card_name + " was not a Gambit. Decoy is discarded. The " + lane + " lane stays active.")
+	add_aurion("player", 1, "Successful Attack read: " + enemy_back_card.card_name + " was not a Gambit.")
+	log_msg("Attack read correctly: " + enemy_back_card.card_name + " was not a Gambit. Decoy is discarded. Player keeps priority in this lane.")
 	send_slot_card_to_discard(enemy_back_slot)
 	await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-	set_active_combat_lane_highlight(lane)
-	log_msg("Right-click the " + lane + " lane again to attack the front row or Monarch.")
+	set_lane_priority_to_player(lane)
+	log_msg("Right-click the " + lane + " lane again to attack the front row, Monarch, or Pass.")
