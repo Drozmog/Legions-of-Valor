@@ -1,0 +1,146 @@
+[gd_scene format=3 uid="uid://d226xmh0gjdy3"]
+
+[ext_resource type="Script" uid="uid://covct7wrxca8x" path="res://ui/DeckBuilder.gd" id="1_builder"]
+[ext_resource type="Texture2D" uid="uid://c5sxw3n3uqrml" path="res://Textures/Deck Builder/heavy_wooden_deck_builder_table (2).png" id="3_lltvm"]
+[ext_resource type="Texture2D" uid="uid://cy34hadl7kml0" path="res://Textures/Deck Builder/red_cloth.png" id="3_mn2kh"]
+[ext_resource type="Texture2D" uid="uid://dnkwi7uhean6a" path="res://Textures/Deck Builder/rack_surface.png" id="4_mn2kh"]
+[ext_resource type="Texture2D" uid="uid://ye7aq3rbl0p3" path="res://Textures/Deck Builder/rack_sidewalls.png" id="5_1vvxd"]
+
+[sub_resource type="Environment" id="Environment_uy14w"]
+ambient_light_energy = 0.25
+
+[sub_resource type="BoxMesh" id="Mesh_TableTrim"]
+size = Vector3(17, 0.035, 8.35)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Gold"]
+albedo_texture = ExtResource("3_lltvm")
+roughness = 0.0
+uv1_scale = Vector3(3.02, 1.98, 1.98)
+uv1_offset = Vector3(-1.015, -0.985, -0.05)
+texture_repeat = false
+
+[sub_resource type="BoxMesh" id="Mesh_LeftSurface"]
+size = Vector3(8.9, 0.04, 5.45)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Surface"]
+albedo_texture = ExtResource("3_mn2kh")
+roughness = 0.0
+uv1_scale = Vector3(2.98, 1.984, -0.445)
+uv1_offset = Vector3(-0.99, -0.99, 0)
+texture_repeat = false
+
+[sub_resource type="BoxMesh" id="Mesh_RackBase"]
+size = Vector3(3.025, 0.12, 5.665)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Rack"]
+albedo_texture = ExtResource("4_mn2kh")
+roughness = 0.0
+uv1_scale = Vector3(2.99, 2, 1)
+uv1_offset = Vector3(-0.995, 0, 0)
+
+[sub_resource type="BoxMesh" id="Mesh_RackWallLong"]
+size = Vector3(0.08, 0.42, 5.72)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i8q6e"]
+albedo_texture = ExtResource("5_1vvxd")
+roughness = 0.0
+uv1_scale = Vector3(3.03, 2.01, 1)
+uv1_offset = Vector3(-0.005, 0, 0)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7s2lj"]
+albedo_texture = ExtResource("5_1vvxd")
+roughness = 0.0
+uv1_scale = Vector3(3.03, 2.01, 1)
+uv1_offset = Vector3(-0.005, 0, 0)
+
+[sub_resource type="BoxMesh" id="Mesh_RackWallShort"]
+size = Vector3(3.16, 0.42, 0.08)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Wall"]
+albedo_color = Color(0.33, 0.17, 0.07, 1)
+roughness = 0.72
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0mkf5"]
+albedo_texture = ExtResource("5_1vvxd")
+roughness = 0.0
+uv1_scale = Vector3(2.98, 2.01, 1)
+uv1_offset = Vector3(0.005, 0, 0)
+
+[node name="DeckBuilder" type="Node3D" unique_id=120904735]
+script = ExtResource("1_builder")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=179726442]
+environment = SubResource("Environment_uy14w")
+
+[node name="DeckBuilderCamera" type="Camera3D" parent="." unique_id=614418254]
+transform = Transform3D(1, 0, 0, 0, 0.26218924, 0.9650165, 0, -0.9650165, 0.26218924, 0, 4.8, 2.125)
+current = true
+
+[node name="WarmOverheadLight" type="DirectionalLight3D" parent="." unique_id=1695227764]
+transform = Transform3D(0.8480481, 0.44939703, -0.28081444, 0, 0.52991927, 0.8480481, 0.52991927, -0.7191856, 0.44939703, 0, 0, 0)
+light_energy = 2.65
+shadow_enabled = true
+
+[node name="SoftTableGlow" type="OmniLight3D" parent="." unique_id=851797473]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5800055, 3.4658313, 0.24974799)
+light_energy = 1.15
+omni_range = 9.0
+
+[node name="RackWarmGlow" type="OmniLight3D" parent="." unique_id=2003527016]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.481923, 1.3682015, 0.21564755)
+light_energy = 0.7
+
+[node name="WoodenTable" type="MeshInstance3D" parent="." unique_id=4332425]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.005, 0)
+mesh = SubResource("Mesh_TableTrim")
+surface_material_override/0 = SubResource("Mat_Gold")
+
+[node name="RedClothCollectionTable" type="MeshInstance3D" parent="." unique_id=1070043322]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1564276, 0.012, 0.59011257)
+mesh = SubResource("Mesh_LeftSurface")
+surface_material_override/0 = SubResource("Mat_Surface")
+
+[node name="LibraryTitle3D" type="Label3D" parent="." unique_id=770178002]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -5.8564277, 0.08, -2.0598874)
+pixel_size = 0.01
+offset = Vector2(158.425, -46.31)
+modulate = Color(0.96, 0.79, 0.34, 1)
+text = "OWNED CARD LIBRARY"
+font_size = 34
+
+[node name="RightPhysicalDeckRack" type="MeshInstance3D" parent="." unique_id=1694474229]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.979156, 0.035, 0.49011254)
+mesh = SubResource("Mesh_RackBase")
+surface_material_override/0 = SubResource("Mat_Rack")
+
+[node name="RackLeftWall" type="MeshInstance3D" parent="." unique_id=711139567]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.456284, 0.22, 0.49011254)
+mesh = SubResource("Mesh_RackWallLong")
+surface_material_override/0 = SubResource("StandardMaterial3D_i8q6e")
+
+[node name="RackRightWall" type="MeshInstance3D" parent="." unique_id=1624099856]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5360518, 0.22, 0.49011254)
+mesh = SubResource("Mesh_RackWallLong")
+surface_material_override/0 = SubResource("StandardMaterial3D_7s2lj")
+
+[node name="RackTopWall" type="MeshInstance3D" parent="." unique_id=1857012900]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.996, 0.22, -2.3698874)
+mesh = SubResource("Mesh_RackWallShort")
+surface_material_override/0 = SubResource("Mat_Wall")
+
+[node name="RackBottomWall" type="MeshInstance3D" parent="." unique_id=1734884484]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.996, 0.22, 3.3501124)
+mesh = SubResource("Mesh_RackWallShort")
+surface_material_override/0 = SubResource("StandardMaterial3D_0mkf5")
+
+[node name="RackTitle3D" type="Label3D" parent="." unique_id=1968342843]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 3.306284, 0.16, -2.0598874)
+pixel_size = 0.01
+offset = Vector2(69.125, -22.29)
+modulate = Color(0.96, 0.79, 0.34, 1)
+text = "DECK RACK"
+font_size = 44
+
+[node name="LibraryCards" type="Node3D" parent="." unique_id=1014809837]
+
+[node name="DeckRackCards" type="Node3D" parent="." unique_id=1633634401]

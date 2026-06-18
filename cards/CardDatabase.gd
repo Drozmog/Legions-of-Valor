@@ -76,7 +76,6 @@ const BLACKMAIL: CardData = preload("res://cards/definitions/gambit/blackmail.tr
 const CONSORTIUM_AID: CardData = preload("res://cards/definitions/gambit/consortium_aid.tres")
 const ELYNDELL_ARROW_VOLLEY: CardData = preload("res://cards/definitions/gambit/elyndell_arrow_volley.tres")
 const FOG_OF_WAR: CardData = preload("res://cards/definitions/gambit/fog_of_war.tres")
-const FREE_TAXI_SERVICE: CardData = preload("res://cards/definitions/gambit/free_taxi_service.tres")
 const GRIDLOCK: CardData = preload("res://cards/definitions/gambit/gridlock.tres")
 const PICKPOCKET: CardData = preload("res://cards/definitions/gambit/pickpocket.tres")
 const PLENTIFUL_HARVEST: CardData = preload("res://cards/definitions/gambit/plentiful_harvest.tres")
@@ -167,7 +166,6 @@ static func get_all_gambit_cards() -> Array[CardData]:
 		CONSORTIUM_AID,
 		ELYNDELL_ARROW_VOLLEY,
 		FOG_OF_WAR,
-		FREE_TAXI_SERVICE,
 		GRIDLOCK,
 		PICKPOCKET,
 		PLENTIFUL_HARVEST,

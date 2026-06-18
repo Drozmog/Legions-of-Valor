@@ -2,11 +2,11 @@
 
 [ext_resource type="Script" uid="uid://d1bxaxrw4bbx1" path="res://battlefield/BattlefieldManager.gd" id="1_xm46m"]
 [ext_resource type="Script" uid="uid://08vh6g385ekw" path="res://battlefield/BoardSlot.gd" id="2_do6fa"]
-[ext_resource type="Texture2D" uid="uid://dnwcw2smdpix6" path="res://Textures/World Textures/Grassy Field.png" id="2_rn43s"]
-[ext_resource type="Script" uid="uid://mrjpnlt8klf1" path="res://battlefield/GameLog.gd" id="3_rdvt6"]
-[ext_resource type="Texture2D" uid="uid://bkikjm1frjevl" path="res://Textures/World Textures/Wooden Tile.png" id="4_1fhha"]
+[ext_resource type="Texture2D" uid="uid://dnwcw2smdpix6" path="res://Textures/Battlefield/Grassy Field.png" id="2_rn43s"]
+[ext_resource type="Script" uid="uid://dgms62rwac6hr" path="res://battlefield/GameLog.gd" id="3_rdvt6"]
+[ext_resource type="Texture2D" uid="uid://bkikjm1frjevl" path="res://Textures/Battlefield/Wooden Tile.png" id="4_1fhha"]
 [ext_resource type="Script" uid="uid://do8rfvsttcccj" path="res://battlefield/TributeManager.gd" id="4_rn43s"]
-[ext_resource type="Texture2D" uid="uid://dlcuxga8mdox5" path="res://Textures/World Textures/Snowy Path.png" id="4_yr2pt"]
+[ext_resource type="Texture2D" uid="uid://dlcuxga8mdox5" path="res://Textures/Battlefield/Snowy Path.png" id="4_yr2pt"]
 [ext_resource type="Script" uid="uid://brfudyn18b5kf" path="res://ui/Hand.gd" id="5_yr2pt"]
 [ext_resource type="Script" uid="uid://d3gtu3v3ewks1" path="res://battlefield/DrawPile.gd" id="6_do6fa"]
 [ext_resource type="Script" uid="uid://di4kmq4hqvt7y" path="res://ui/PlayerStatusPanel.gd" id="9_m3t58"]
@@ -17,18 +17,18 @@
 [ext_resource type="Script" uid="uid://cy62fgjrl70dh" path="res://ui/BattlePlanSelectionScreen.gd" id="12_fcsx3"]
 [ext_resource type="Script" uid="uid://d4enyei8am72a" path="res://battle/BattlePlanManager.gd" id="14_vaox5"]
 [ext_resource type="Script" uid="uid://b620xjxapgjsm" path="res://battlefield/DiscardPile.gd" id="17_daqav"]
-[ext_resource type="Texture2D" uid="uid://bgjff8r7til78" path="res://Textures/World Textures/ParryTable.png" id="18_djscq"]
+[ext_resource type="Texture2D" uid="uid://bgjff8r7til78" path="res://Textures/Battlefield/ParryTable.png" id="18_djscq"]
 [ext_resource type="Script" uid="uid://rpa2sw7oae1o" path="res://battlefield/OpponentVisuals.gd" id="19_moveh"]
 [ext_resource type="Script" uid="uid://bvdqqom8n8net" path="res://battlefield/CardAnimationManager.gd" id="20_xm46m"]
 
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(17.135, 8.34)
 
-[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_rn43s"]
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_xm46m"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rn43s"]
 albedo_texture = ExtResource("2_rn43s")
-normal_texture = SubResource("CompressedTexture2D_rn43s")
+normal_texture = SubResource("CompressedTexture2D_xm46m")
 uv1_scale = Vector3(0.97, 1, 1)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1fhha"]

@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Legions of Valor Base Game"
-run/main_scene="uid://dp6yeqqg78j3r"
+run/main_scene="res://ui/prototype_menu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 config/icon="res://icon.svg"
 

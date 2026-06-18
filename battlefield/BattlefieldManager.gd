@@ -78,6 +78,8 @@ var phase_panel: PanelContainer = null
 
 var phase_label: Label = null
 
+var phase_instruction_label: Label = null
+
 var next_phase_button: Button = null
 
 var spawn_opponent_button: Button = null
@@ -427,14 +429,16 @@ func create_phase_ui() -> void:
 	phase_panel.anchor_top = 0.0
 	phase_panel.anchor_bottom = 0.0
 
-	phase_panel.offset_left = -250.0
+	# Phase 19.2: wider/taller panel so instructions are visible.
+	phase_panel.offset_left = -350.0
 	phase_panel.offset_right = -20.0
 	phase_panel.offset_top = 320.0
-	phase_panel.offset_bottom = 300.0
+	phase_panel.offset_bottom = 400.0
+	phase_panel.custom_minimum_size = Vector2(330.0, 200.0)
 	phase_panel.z_index = 75
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.02, 0.015, 0.005, 0.74)
+	style.bg_color = Color(0.02, 0.015, 0.005, 0.78)
 	style.border_color = Color(1.0, 0.78, 0.22, 1.0)
 	style.border_width_left = 2
 	style.border_width_right = 2
@@ -445,31 +449,47 @@ func create_phase_ui() -> void:
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 12)
 	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
 	phase_panel.add_child(margin)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
+	vbox.add_theme_constant_override("separation", 7)
 	margin.add_child(vbox)
 
 	phase_label = Label.new()
 	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	phase_label.add_theme_font_size_override("font_size", 17)
+	phase_label.add_theme_font_size_override("font_size", 18)
+	phase_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72, 1.0))
 	vbox.add_child(phase_label)
 
 	aurion_label = Label.new()
 	aurion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	aurion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	aurion_label.add_theme_font_size_override("font_size", 14)
+	aurion_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 	vbox.add_child(aurion_label)
 
 	next_phase_button = Button.new()
 	next_phase_button.focus_mode = Control.FOCUS_NONE
-	next_phase_button.custom_minimum_size = Vector2(0, 32)
+	next_phase_button.custom_minimum_size = Vector2(0, 34)
 	next_phase_button.pressed.connect(_on_next_phase_pressed)
 	vbox.add_child(next_phase_button)
+
+	var separator := HSeparator.new()
+	vbox.add_child(separator)
+
+	phase_instruction_label = Label.new()
+	phase_instruction_label.name = "PhaseInstructionLabel"
+	phase_instruction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	phase_instruction_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	phase_instruction_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	phase_instruction_label.add_theme_font_size_override("font_size", 12)
+	phase_instruction_label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.82, 1.0))
+	phase_instruction_label.custom_minimum_size = Vector2(290.0, 55.0)
+	phase_instruction_label.text = ""
+	vbox.add_child(phase_instruction_label)
 
 	# No more separate opponent test button.
 	spawn_opponent_button = null
@@ -558,6 +578,7 @@ func begin_combat_phase() -> void:
 func update_phase_ui() -> void:
 	if phase_label == null or next_phase_button == null:
 		return
+
 	match current_phase:
 		BattlePhase.BATTLEPLAN:
 			phase_label.text = "BATTLEPLAN PHASE"
@@ -571,6 +592,130 @@ func update_phase_ui() -> void:
 		BattlePhase.COMBAT:
 			phase_label.text = "COMBAT PHASE"
 			next_phase_button.text = "End Combat / Next Round"
+
+	update_phase_instruction_ui()
+
+
+func update_phase_instruction_ui() -> void:
+	if phase_instruction_label == null:
+		return
+
+	phase_instruction_label.text = get_phase_instruction_text()
+
+
+func get_phase_instruction_text() -> String:
+	if parry_active:
+		return (
+			"PARRY ACTIVE
+"
+			+ "Drop hand cards into the glowing Parry Pit.
+"
+			+ "Add enough DP to reach the target.
+"
+			+ "Or press Let Unit Die."
+		)
+
+	match current_phase:
+		BattlePhase.BATTLEPLAN:
+			return (
+				"Choose 1 Battle Plan.
+"
+				+ "Initiative decides who acts first.
+"
+				+ "Plans can affect draw, hand size, and rewards."
+			)
+
+		BattlePhase.TRIBUTE:
+			if tribute_manager != null and tribute_manager.tribute_card_used_this_turn:
+				return (
+					"Tribute used this turn.
+"
+					+ "Press Go to Deployment when ready.
+"
+					+ "Permanent TP refreshes each round."
+				)
+
+			return (
+				"Drag exactly 1 card from hand to Tribute.
+"
+				+ "Units/Equipment: +1 permanent TP.
+"
+				+ "Gambits: +2 temporary TP this turn."
+			)
+
+		BattlePhase.DEPLOYMENT:
+			return (
+				"Drag cards to glowing valid slots.
+"
+				+ "Face-down cards use Shadowtax.
+"
+				+ "Face-up race cards require Faction Gate.
+"
+				+ "Equipment attaches to face-up units.
+"
+				+ "Press Go to Combat when done."
+			)
+
+		BattlePhase.COMBAT:
+			if combat_direction_selected and combat_next_lane_index >= combat_lane_order.size():
+				return (
+					"All combat lanes are resolved.
+"
+					+ "Press End Combat / Next Round."
+				)
+
+			if not combat_direction_selected:
+				if player_has_initiative:
+					return (
+						"Right-click the leftmost or rightmost lane.
+"
+						+ "Choose Attack, Check, or Pass.
+"
+						+ "This sets combat direction."
+					)
+
+				return (
+					"AI has initiative.
+"
+					+ "AI chooses direction and acts first.
+"
+					+ "Wait for the active lane."
+				)
+
+			var lane: String = current_combat_lane()
+
+			if lane == "":
+				lane = active_combat_lane
+
+			if combat_priority_owner == "player":
+				return (
+					"Right-click the glowing "
+					+ lane.capitalize()
+					+ " lane.
+"
+					+ "Choose Attack, Check, or Pass.
+"
+					+ "Resolve hidden back row before Monarch Strike."
+				)
+
+			if combat_priority_owner == "ai":
+				return (
+					"AI has priority in the "
+					+ lane.capitalize()
+					+ " lane.
+"
+					+ "Wait for AI to attack, check, or pass."
+				)
+
+			return (
+				"Combat is ready.
+"
+				+ "Right-click the glowing lane.
+"
+				+ "Choose Attack, Check, or Pass."
+			)
+
+	return ""
 
 
 func _on_next_phase_pressed() -> void:
@@ -1023,6 +1168,8 @@ func cancel_selected_card() -> void:
 
 
 
+
+
 func try_place_selected_card_on_slot(slot: Node) -> bool:
 	if slot == null:
 		return false
@@ -1033,15 +1180,6 @@ func try_place_selected_card_on_slot(slot: Node) -> bool:
 	var slot_id: String = String(slot.get_meta("slot_id", ""))
 	var slot_row: String = String(slot.get_meta("row", ""))
 	var card_type: String = get_clean_card_type(selected_card_data)
-	var place_face_down: bool = false
-
-	if card_type == "unit" and slot_row == "back":
-		place_face_down = true
-
-	if is_gambit_card(selected_card_data):
-		# Front row Gambits are always face up.
-		# Back row Gambits should normally come through confirm_pending_spell_placement().
-		place_face_down = false
 
 	if can_promote_selected_card_on_slot(slot):
 		return try_promote_selected_card_on_slot(slot)
@@ -1053,10 +1191,18 @@ func try_place_selected_card_on_slot(slot: Node) -> bool:
 		log_msg("Invalid placement for " + selected_card_data.card_name + " on " + slot_id)
 		return false
 
-	# Face-down cards ignore Faction Gate. Face-up cards still need access.
-	if not place_face_down:
-		if not player_card_passes_faction_gate(selected_card_data, true):
-			return false
+	if not player_card_passes_faction_gate(selected_card_data):
+		return false
+
+	var place_face_down: bool = false
+
+	if card_type == "unit" and slot_row == "back":
+		place_face_down = true
+
+	if is_gambit_card(selected_card_data):
+		# Front row Gambits are always face up.
+		# Back row Gambits should normally come through confirm_pending_spell_placement().
+		place_face_down = false
 
 	var deployment_cost: int = get_player_face_down_card_deployment_cost(selected_card_data, place_face_down)
 
@@ -1816,6 +1962,8 @@ func log_msg(message: String) -> void:
 	else:
 		print("LOG FALLBACK: " + message)
 
+	update_phase_instruction_ui()
+
 
 func get_battle_plan_key(plan: Dictionary) -> String:
 	if plan.is_empty():
@@ -2229,6 +2377,7 @@ func begin_parry_prompt(
 	# The visible counter shows endangered unit AP + pit DP / threatening AP.
 	parry_required_dp = max(1, attacker_card.ap - defender_card.ap)
 	parry_gathered_dp = 0
+	update_phase_instruction_ui()
 
 	show_parry_pit(parry_required_dp)
 
@@ -2382,6 +2531,7 @@ func _on_parry_let_die_pressed() -> void:
 
 func end_parry_prompt() -> void:
 	parry_active = false
+	update_phase_instruction_ui()
 	parry_lane = ""
 	parry_attacker_slot = null
 	parry_attacker_card = null
@@ -2754,7 +2904,6 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 		cancel_selected_card()
 		return
 
-	# Face-down Gambits ignore Faction Gate. Face-up Gambits still need access.
 	if not place_face_down:
 		if not player_card_passes_faction_gate(selected_card_data, true):
 			hide_spell_choice_panel()
@@ -2785,10 +2934,16 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 		cancel_selected_card()
 		return
 
+	if not player_card_passes_faction_gate(selected_card_data):
+		log_msg("Faction Gate locked for " + selected_card_data.card_name + ".")
+		hide_spell_choice_panel()
+		cancel_selected_card()
+		return
+
 	var deployment_cost: int = get_player_face_down_card_deployment_cost(selected_card_data, place_face_down)
 
 	if not tribute_manager.can_afford(deployment_cost):
-		var cost_reason: String = "Shadowtax face-down setup cost" if place_face_down else "printed cost"
+		var cost_reason: String = "face-down setup cost" if place_face_down else "printed cost"
 		log_msg("Not enough Tribute Points. Need " + str(deployment_cost) + " TP for " + cost_reason + ", have " + str(tribute_manager.current_tribute_points) + ".")
 		hide_spell_choice_panel()
 		cancel_selected_card()
@@ -2812,10 +2967,9 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 
 		if place_face_down:
 			player_face_down_gambits_this_round += 1
-			log_msg("Shadowtax paid for face-down card: " + spell_card_data.card_name + ".")
 
 		var visibility_text: String = "face down" if place_face_down else "face up"
-		var cost_text: String = "Shadowtax setup cost" if place_face_down else "printed cost"
+		var cost_text: String = "setup cost" if place_face_down else "printed cost"
 		log_msg("Placed Gambit " + spell_card_data.card_name + " " + visibility_text + ".")
 		log_msg("Spent " + str(deployment_cost) + " TP " + cost_text + ". " + tribute_manager.get_status_text())
 
@@ -2833,6 +2987,7 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 			return_card_to_hand_safely(spell_card_ui)
 
 	cancel_selected_card()
+
 
 func resolve_dominance_before_cleanup() -> void:
 	if current_phase != BattlePhase.COMBAT:
@@ -3213,10 +3368,12 @@ func ai_try_deploy_one_card() -> bool:
 	if card_data == null:
 		return false
 
-	# Face-down AI cards ignore Faction Gate. Face-up cards, equipment, and promotions still need access.
-	if not face_down:
-		if not ai_card_passes_faction_gate(card_data, true):
-			return false
+	if not ai_card_passes_faction_gate(card_data, true):
+		return false
+
+	if not ai_card_passes_faction_gate(card_data):
+		log_msg("AI cannot play " + card_data.card_name + ": faction gate locked.")
+		return false
 
 	var deployment_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down)
 
@@ -3290,6 +3447,7 @@ func ai_try_deploy_one_card() -> bool:
 			return true
 
 	return false
+
 
 func ai_choose_deployment_action() -> Dictionary:
 	var equipment_action: Dictionary = ai_find_equipment_action()
@@ -3401,47 +3559,37 @@ func ai_can_promote_card_to_slot(new_unit: CardData, slot: Node) -> bool:
 
 
 func ai_find_unit_action() -> Dictionary:
-	var best_action: Dictionary = {}
-	var best_score: int = -999999
-	var lanes: Array[String] = ["left", "middle", "right"]
+	var unit_index: int = ai_find_best_affordable_unit_index()
 
-	for card_index in range(ai_hand.size()):
-		var card_data: CardData = ai_hand[card_index]
+	if unit_index < 0:
+		return {}
 
-		if card_data == null:
-			continue
+	var front_slot: Node = ai_find_empty_enemy_slot("front")
+	var back_slot: Node = ai_find_empty_enemy_slot("back")
 
-		if not is_unit_card(card_data):
-			continue
+	if front_slot == null and back_slot == null:
+		return {}
 
-		for lane in lanes:
-			var front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
-			var back_slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
+	var chosen_slot: Node = null
+	var face_down: bool = false
 
-			if front_slot != null and not bool(front_slot.get_meta("occupied", false)):
-				var face_down_front: bool = false
-				var front_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down_front)
+	if front_slot != null and back_slot != null:
+		# Mostly prefer front row, but sometimes use back row face-down.
+		if randi() % 100 < 65:
+			chosen_slot = front_slot
+			face_down = false
+		else:
+			chosen_slot = back_slot
+			face_down = true
+	elif front_slot != null:
+		chosen_slot = front_slot
+		face_down = false
+	else:
+		chosen_slot = back_slot
+		face_down = true
 
-				if front_cost <= ai_current_tp and ai_card_passes_faction_gate(card_data, false):
-					var front_score: int = ai_score_front_slot_for_card(card_data, lane) + card_data.ap * 2
+	return ai_make_deployment_action(unit_index, chosen_slot, "unit", face_down)
 
-					if front_score > best_score:
-						best_score = front_score
-						best_action = ai_make_deployment_action(card_index, front_slot, "unit", face_down_front)
-
-			if back_slot != null and not bool(back_slot.get_meta("occupied", false)):
-				var face_down_back: bool = true
-				var back_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down_back)
-
-				# Face-down cards ignore Faction Gate and use Shadowtax instead of printed cost.
-				if back_cost <= ai_current_tp:
-					var back_score: int = ai_score_front_slot_for_card(card_data, lane) + card_data.ap - 8
-
-					if back_score > best_score:
-						best_score = back_score
-						best_action = ai_make_deployment_action(card_index, back_slot, "unit", face_down_back)
-
-	return best_action
 
 func ai_find_best_affordable_unit_index() -> int:
 	var best_index: int = -1
@@ -3524,10 +3672,8 @@ func ai_find_affordable_gambit_index_for_visibility(face_down: bool) -> int:
 		if not is_gambit_card(card_data):
 			continue
 
-		# Face-down Gambits ignore Faction Gate. Face-up Gambits still need access.
-		if not face_down:
-			if not ai_card_passes_faction_gate(card_data, false):
-				continue
+		if not ai_card_passes_faction_gate(card_data, false):
+			continue
 
 		var deployment_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down)
 
@@ -3537,6 +3683,7 @@ func ai_find_affordable_gambit_index_for_visibility(face_down: bool) -> int:
 		return i
 
 	return -1
+
 
 func ai_find_affordable_spell_index() -> int:
 	for i in range(ai_hand.size()):
