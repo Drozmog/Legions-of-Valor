@@ -10,25 +10,25 @@ const MIN_DECK_SIZE := 10
 const MAX_DECK_SIZE := 50
 const COPY_LIMIT := 2
 
-const CARD_SCALE_LIBRARY := Vector3(0.46, 0.46, 0.46)
-const CARD_SCALE_DRAG := Vector3(0.52, 0.52, 0.52)
-const CARD_SCALE_RACK := Vector3(0.34, 0.34, 0.34)
+const CARD_SCALE_LIBRARY := Vector3(1.4, 1.4, 1.4)
+const CARD_SCALE_DRAG := Vector3(1.05, 1.05, 1.05)
+const CARD_SCALE_RACK := Vector3(0.70, 0.70, 0.70)
 
 const LIBRARY_Y := 0.085
 const RACK_Y := 0.12
 const DRAG_Y := 0.42
 
-const LIBRARY_BASE_X := -5.45
-const LIBRARY_BASE_Z := -0.42
+const LIBRARY_BASE_X := -5.15
+const LIBRARY_BASE_Z := -0.1
 const LIBRARY_COLUMNS_PER_GROUP := 5
 const LIBRARY_ROWS_PER_GROUP := 2
 const LIBRARY_GROUP_SIZE := 10
-const LIBRARY_COLUMN_SPACING := 0.92
-const LIBRARY_ROW_SPACING := 1.18
-const LIBRARY_GROUP_SPACING := 5.35
-const LIBRARY_SCROLL_SPEED := 1.10
-const LIBRARY_MIN_X := -6.15
-const LIBRARY_MAX_X := 1.95
+const LIBRARY_COLUMN_SPACING := 1.55
+const LIBRARY_ROW_SPACING := 2.10
+const LIBRARY_GROUP_SPACING := 7.80
+const LIBRARY_SCROLL_SPEED := LIBRARY_GROUP_SPACING
+const LIBRARY_MIN_X := -6.35
+const LIBRARY_MAX_X := 1.25
 
 const RACK_X := 5.15
 const RACK_Z_TOP := -2.20
@@ -99,22 +99,27 @@ func _process(delta: float) -> void:
 		dragging_node.scale = dragging_node.scale.lerp(CARD_SCALE_DRAG, clampf(delta * 12.0, 0.0, 1.0))
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if is_pointer_over_ui():
-		return
-
+func _input(event: InputEvent) -> void:
+	# Mouse-wheel scrolling must work even when the overlay UI is present.
+	# Only block it while the search field is actively being typed in.
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 
 		if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP and mouse_event.pressed:
-			set_library_scroll(library_scroll - LIBRARY_SCROLL_SPEED)
+			if search_box == null or not search_box.has_focus():
+				set_library_scroll(library_scroll - LIBRARY_SCROLL_SPEED)
+				get_viewport().set_input_as_handled()
 			return
 
 		if mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN and mouse_event.pressed:
-			set_library_scroll(library_scroll + LIBRARY_SCROLL_SPEED)
+			if search_box == null or not search_box.has_focus():
+				set_library_scroll(library_scroll + LIBRARY_SCROLL_SPEED)
+				get_viewport().set_input_as_handled()
 			return
 
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT:
+			if is_pointer_over_ui():
+				return
 			if mouse_event.pressed:
 				begin_drag_from_mouse(mouse_event.position)
 			else:
@@ -442,7 +447,7 @@ func refresh_library() -> void:
 	library_scroll_max = max(0.0, float(max(0, group_count - 1)) * LIBRARY_GROUP_SPACING)
 	library_scroll = clamp(library_scroll, library_scroll_min, library_scroll_max)
 	layout_library(true)
-	set_status("Showing " + str(filtered_cards.size()) + " owned card(s). Library shows 5 cards top / 5 bottom; mouse wheel scrolls horizontally.")
+	set_status("Showing " + str(filtered_cards.size()) + " owned card(s). Library shows 5 cards top / 5 bottom; mouse wheel scrolls horizontally by page.")
 
 
 func layout_library(instant: bool = false) -> void:
@@ -465,7 +470,7 @@ func layout_library(instant: bool = false) -> void:
 		node.set_meta("target_position", target)
 		node.set_meta("target_scale", CARD_SCALE_LIBRARY)
 		node.set_meta("target_rotation", Vector3(0, 0, 0))
-		var visible_in_window: bool = target.x >= LIBRARY_MIN_X - 0.95 and target.x <= LIBRARY_MAX_X + 0.95
+		var visible_in_window: bool = target.x >= LIBRARY_MIN_X and target.x <= LIBRARY_MAX_X
 		node.visible = visible_in_window
 		if instant:
 			node.position = target
