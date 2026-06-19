@@ -10,7 +10,9 @@ const MIN_DECK_SIZE := 10
 const MAX_DECK_SIZE := 50
 const COPY_LIMIT := 2
 
-const CARD_SCALE_LIBRARY := Vector3(1.4, 1.4, 1.4)
+# Card sizing and library layout.
+# The library is a continuous horizontal strip made of 5x2 card groups.
+const CARD_SCALE_LIBRARY := Vector3(1.35, 1.35, 1.35)
 const CARD_SCALE_DRAG := Vector3(1.05, 1.05, 1.05)
 const CARD_SCALE_RACK := Vector3(0.70, 0.70, 0.70)
 
@@ -19,16 +21,22 @@ const RACK_Y := 0.12
 const DRAG_Y := 0.42
 
 const LIBRARY_BASE_X := -5.15
-const LIBRARY_BASE_Z := -0.1
+const LIBRARY_BASE_Z := -0.20
 const LIBRARY_COLUMNS_PER_GROUP := 5
 const LIBRARY_ROWS_PER_GROUP := 2
 const LIBRARY_GROUP_SIZE := 10
 const LIBRARY_COLUMN_SPACING := 1.55
 const LIBRARY_ROW_SPACING := 2.10
-const LIBRARY_GROUP_SPACING := 7.80
-const LIBRARY_SCROLL_SPEED := LIBRARY_GROUP_SPACING
-const LIBRARY_MIN_X := -6.35
-const LIBRARY_MAX_X := 1.25
+const LIBRARY_GROUP_SPACING := 7.75
+
+# Continuous wheel scroll. This is intentionally much smaller than one group.
+const LIBRARY_SCROLL_WHEEL_STEP := 0.62
+const LIBRARY_SCROLL_LERP_SPEED := 9.0
+
+# Cull cards at the exact cloth boundaries. The 2D fog overlay handles the visual fade.
+const LIBRARY_VISIBLE_MIN_X := -6.50
+const LIBRARY_VISIBLE_MAX_X := 2.40
+const LIBRARY_CULL_PADDING := 0.20
 
 const RACK_X := 5.15
 const RACK_Z_TOP := -2.20
@@ -56,6 +64,7 @@ var dragging_deck_original_index := -1
 var dragging_target_position := Vector3.ZERO
 var drag_preview_insert_index := 0
 var library_scroll := 0.0
+var library_scroll_target := 0.0
 var library_scroll_min := 0.0
 var library_scroll_max := 0.0
 
@@ -91,12 +100,18 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	if absf(library_scroll - library_scroll_target) > 0.001:
+		var scroll_weight: float = clampf(delta * LIBRARY_SCROLL_LERP_SPEED, 0.0, 1.0)
+		library_scroll = lerpf(library_scroll, library_scroll_target, scroll_weight)
+		layout_library(false)
+
 	animate_collection(library_nodes, delta)
 	animate_collection(deck_nodes, delta)
 
 	if dragging_node != null and is_instance_valid(dragging_node):
 		dragging_node.global_position = dragging_node.global_position.lerp(dragging_target_position, clampf(delta * 18.0, 0.0, 1.0))
 		dragging_node.scale = dragging_node.scale.lerp(CARD_SCALE_DRAG, clampf(delta * 12.0, 0.0, 1.0))
+		set_card_alpha(dragging_node, 1.0)
 
 
 func _input(event: InputEvent) -> void:
@@ -107,13 +122,13 @@ func _input(event: InputEvent) -> void:
 
 		if mouse_event.button_index == MOUSE_BUTTON_WHEEL_UP and mouse_event.pressed:
 			if search_box == null or not search_box.has_focus():
-				set_library_scroll(library_scroll - LIBRARY_SCROLL_SPEED)
+				set_library_scroll(library_scroll_target - LIBRARY_SCROLL_WHEEL_STEP)
 				get_viewport().set_input_as_handled()
 			return
 
 		if mouse_event.button_index == MOUSE_BUTTON_WHEEL_DOWN and mouse_event.pressed:
 			if search_box == null or not search_box.has_focus():
-				set_library_scroll(library_scroll + LIBRARY_SCROLL_SPEED)
+				set_library_scroll(library_scroll_target + LIBRARY_SCROLL_WHEEL_STEP)
 				get_viewport().set_input_as_handled()
 			return
 
@@ -259,123 +274,143 @@ func build_overlay_ui() -> void:
 
 	var top_panel := PanelContainer.new()
 	top_panel.name = "TopCommandPanel"
-	top_panel.anchor_left = 0.03
-	top_panel.anchor_right = 0.97
-	top_panel.anchor_top = 0.025
-	top_panel.anchor_bottom = 0.16
-	top_panel.add_theme_stylebox_override("panel", make_panel_style(Color(0.025, 0.018, 0.012, 0.90), Color(0.70, 0.52, 0.18, 1.0), 2))
+	top_panel.anchor_left = 0.0
+	top_panel.anchor_right = 1.0
+	top_panel.anchor_top = 0.0
+	top_panel.anchor_bottom = 0.135
+	top_panel.add_theme_stylebox_override("panel", make_panel_style(Color(0.018, 0.012, 0.007, 0.96), Color(0.52, 0.38, 0.10, 1.0), 1))
 	root.add_child(top_panel)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 8)
+	margin.add_theme_constant_override("margin_bottom", 8)
 	top_panel.add_child(margin)
 
 	var top_rows := VBoxContainer.new()
-	top_rows.add_theme_constant_override("separation", 8)
+	top_rows.add_theme_constant_override("separation", 6)
 	margin.add_child(top_rows)
 
+	# --- Row 1: navigation + title + deck save actions ---
 	var first_row := HBoxContainer.new()
 	first_row.add_theme_constant_override("separation", 10)
+	first_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	top_rows.add_child(first_row)
 
-	var back_button := make_button("Back to Menu", Vector2(145, 42))
+	var back_button := make_button("← Menu", Vector2(90, 34))
 	back_button.pressed.connect(func(): get_tree().change_scene_to_file(MENU_SCENE_PATH))
 	first_row.add_child(back_button)
 
+	var sep1 := VSeparator.new()
+	sep1.add_theme_color_override("color", Color(0.50, 0.36, 0.10, 0.60))
+	sep1.custom_minimum_size = Vector2(1, 0)
+	first_row.add_child(sep1)
+
 	var title := Label.new()
-	title.text = "3D CARD TABLE  /  DECK RACK"
+	title.text = "DECK BUILDER"
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(0.96, 0.82, 0.38, 1.0))
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", Color(0.82, 0.68, 0.34, 1.0))
 	first_row.add_child(title)
 
 	var name_label := Label.new()
-	name_label.text = "Deck Name:"
+	name_label.text = "Deck:"
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 14)
-	name_label.add_theme_color_override("font_color", Color(0.80, 0.72, 0.56, 1.0))
+	name_label.add_theme_font_size_override("font_size", 13)
+	name_label.add_theme_color_override("font_color", Color(0.62, 0.55, 0.40, 1.0))
 	first_row.add_child(name_label)
 
 	deck_name_edit = LineEdit.new()
 	deck_name_edit.text = "Custom Warband"
-	deck_name_edit.custom_minimum_size = Vector2(235, 38)
+	deck_name_edit.custom_minimum_size = Vector2(200, 32)
+	deck_name_edit.add_theme_font_size_override("font_size", 13)
 	first_row.add_child(deck_name_edit)
 
-	save_button = make_button("Save Deck", Vector2(120, 38))
+	save_button = make_button("Save", Vector2(80, 32))
 	save_button.pressed.connect(save_deck_to_disk)
 	first_row.add_child(save_button)
 
-	play_button = make_button("Save + Battle", Vector2(140, 38))
+	play_button = make_button("Save + Battle", Vector2(120, 32), true)
 	play_button.pressed.connect(_on_save_and_battle_pressed)
 	first_row.add_child(play_button)
 
+	# --- Row 2: search + filters ---
 	var second_row := HBoxContainer.new()
-	second_row.add_theme_constant_override("separation", 8)
+	second_row.add_theme_constant_override("separation", 6)
+	second_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	top_rows.add_child(second_row)
 
 	search_box = LineEdit.new()
-	search_box.placeholder_text = "Search cards by name, race, type, ability, or lore..."
-	search_box.custom_minimum_size = Vector2(360, 36)
+	search_box.placeholder_text = "Search by name, race, type, ability, or lore…"
+	search_box.custom_minimum_size = Vector2(320, 30)
+	search_box.add_theme_font_size_override("font_size", 13)
 	search_box.text_changed.connect(_on_search_changed)
 	second_row.add_child(search_box)
 
+	var sep2 := VSeparator.new()
+	sep2.add_theme_color_override("color", Color(0.50, 0.36, 0.10, 0.50))
+	second_row.add_child(sep2)
+
 	var race_label := Label.new()
-	race_label.text = "Faction:"
+	race_label.text = "Faction"
 	race_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	race_label.add_theme_color_override("font_color", Color(0.80, 0.72, 0.56, 1.0))
+	race_label.add_theme_font_size_override("font_size", 12)
+	race_label.add_theme_color_override("font_color", Color(0.62, 0.55, 0.40, 1.0))
 	second_row.add_child(race_label)
 	add_filter_buttons(second_row, ["All", "Human", "Dwarf", "Orc", "Elf", "Neutral"], race_buttons, _on_race_filter_pressed)
 
+	var sep3 := VSeparator.new()
+	sep3.add_theme_color_override("color", Color(0.50, 0.36, 0.10, 0.50))
+	second_row.add_child(sep3)
+
 	var type_label := Label.new()
-	type_label.text = "Type:"
+	type_label.text = "Type"
 	type_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	type_label.add_theme_color_override("font_color", Color(0.80, 0.72, 0.56, 1.0))
+	type_label.add_theme_font_size_override("font_size", 12)
+	type_label.add_theme_color_override("font_color", Color(0.62, 0.55, 0.40, 1.0))
 	second_row.add_child(type_label)
 	add_filter_buttons(second_row, ["All", "Unit", "Gambit", "Equipment"], type_buttons, _on_type_filter_pressed)
 
 	var bottom_panel := PanelContainer.new()
 	bottom_panel.name = "BottomStatusPanel"
-	bottom_panel.anchor_left = 0.03
-	bottom_panel.anchor_right = 0.97
-	bottom_panel.anchor_top = 0.88
-	bottom_panel.anchor_bottom = 0.975
-	bottom_panel.add_theme_stylebox_override("panel", make_panel_style(Color(0.025, 0.018, 0.012, 0.78), Color(0.55, 0.40, 0.15, 1.0), 1))
+	bottom_panel.anchor_left = 0.665
+	bottom_panel.anchor_right = 1.0
+	bottom_panel.anchor_top = 0.90
+	bottom_panel.anchor_bottom = 1.0
+	bottom_panel.add_theme_stylebox_override("panel", make_panel_style(Color(0.018, 0.012, 0.007, 0.96), Color(0.52, 0.38, 0.10, 1.0), 1))
 	root.add_child(bottom_panel)
 
 	var bottom_margin := MarginContainer.new()
-	bottom_margin.add_theme_constant_override("margin_left", 14)
-	bottom_margin.add_theme_constant_override("margin_right", 14)
-	bottom_margin.add_theme_constant_override("margin_top", 8)
-	bottom_margin.add_theme_constant_override("margin_bottom", 8)
+	bottom_margin.add_theme_constant_override("margin_left", 16)
+	bottom_margin.add_theme_constant_override("margin_right", 16)
+	bottom_margin.add_theme_constant_override("margin_top", 6)
+	bottom_margin.add_theme_constant_override("margin_bottom", 6)
 	bottom_panel.add_child(bottom_margin)
 
 	var bottom_row := HBoxContainer.new()
-	bottom_row.add_theme_constant_override("separation", 14)
+	bottom_row.add_theme_constant_override("separation", 10)
 	bottom_margin.add_child(bottom_row)
 
 	deck_count_label = Label.new()
-	deck_count_label.custom_minimum_size = Vector2(220, 1)
+	deck_count_label.custom_minimum_size = Vector2(90, 1)
+	deck_count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	deck_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	deck_count_label.add_theme_font_size_override("font_size", 20)
-	deck_count_label.add_theme_color_override("font_color", Color(0.96, 0.82, 0.38, 1.0))
+	deck_count_label.add_theme_font_size_override("font_size", 15)
+	deck_count_label.add_theme_color_override("font_color", Color(0.90, 0.76, 0.34, 1.0))
 	bottom_row.add_child(deck_count_label)
 
 	status_label = Label.new()
-	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	status_label.add_theme_font_size_override("font_size", 14)
-	status_label.add_theme_color_override("font_color", Color(0.82, 0.76, 0.62, 1.0))
+	status_label.custom_minimum_size = Vector2(1, 1)
+	status_label.visible = false
 	bottom_row.add_child(status_label)
 
-	var clear_button := make_button("Clear Rack", Vector2(120, 36))
+	var clear_button := make_button("Clear", Vector2(74, 30))
 	clear_button.pressed.connect(_on_clear_pressed)
 	bottom_row.add_child(clear_button)
 
-	var sort_button := make_button("Sort Rack", Vector2(120, 36))
+	var sort_button := make_button("Sort", Vector2(74, 30))
 	sort_button.pressed.connect(_on_sort_pressed)
 	bottom_row.add_child(sort_button)
 
@@ -392,20 +427,57 @@ func build_overlay_ui() -> void:
 	card_detail_label.add_theme_color_override("default_color", Color(0.86, 0.80, 0.66, 1.0))
 	root.add_child(card_detail_label)
 
+	_build_library_fog(root)
 	refresh_filter_buttons()
 
 
-func make_button(text: String, min_size: Vector2) -> Button:
+func make_button(text: String, min_size: Vector2, primary: bool = false) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.custom_minimum_size = min_size
 	button.focus_mode = Control.FOCUS_NONE
+
+	var bg_normal := Color(0.10, 0.065, 0.032, 0.94) if not primary else Color(0.38, 0.24, 0.06, 0.96)
+	var border_normal := Color(0.48, 0.34, 0.10, 0.85) if not primary else Color(0.85, 0.64, 0.18, 1.0)
+
+	var s_normal := _make_btn_style(bg_normal, border_normal)
+	var s_hover := _make_btn_style(
+		bg_normal.lightened(0.12),
+		border_normal.lightened(0.20)
+	)
+	var s_pressed := _make_btn_style(Color(0.52, 0.36, 0.09, 1.0), Color(0.95, 0.74, 0.24, 1.0))
+	var s_disabled := _make_btn_style(Color(0.06, 0.04, 0.02, 0.60), Color(0.28, 0.20, 0.08, 0.50))
+
+	button.add_theme_stylebox_override("normal", s_normal)
+	button.add_theme_stylebox_override("hover", s_hover)
+	button.add_theme_stylebox_override("pressed", s_pressed)
+	button.add_theme_stylebox_override("disabled", s_disabled)
+	button.add_theme_color_override("font_color", Color(0.92, 0.84, 0.62, 1.0))
+	button.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.72, 1.0))
+	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.97, 0.85, 1.0))
+	button.add_theme_color_override("font_disabled_color", Color(0.45, 0.38, 0.28, 0.70))
+	button.add_theme_font_size_override("font_size", 13)
 	return button
+
+
+func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = bg
+	s.border_color = border
+	s.set_border_width_all(1)
+	s.set_corner_radius_all(6)
+	s.content_margin_left = 8.0
+	s.content_margin_right = 8.0
+	s.content_margin_top = 4.0
+	s.content_margin_bottom = 4.0
+	return s
 
 
 func add_filter_buttons(parent: HBoxContainer, labels: Array[String], store: Dictionary, callback: Callable) -> void:
 	for label_text in labels:
-		var button := make_button(label_text, Vector2(78, 34))
+		var button := make_button(label_text, Vector2(68, 28))
+		var s_active := _make_btn_style(Color(0.58, 0.40, 0.08, 1.0), Color(0.95, 0.74, 0.24, 1.0))
+		button.add_theme_stylebox_override("pressed", s_active)
 		var filter_key := label_text.to_lower()
 		button.toggle_mode = true
 		button.pressed.connect(func(): callback.call(filter_key))
@@ -445,9 +517,10 @@ func refresh_library() -> void:
 
 	var group_count: int = int(ceil(float(filtered_cards.size()) / float(LIBRARY_GROUP_SIZE)))
 	library_scroll_max = max(0.0, float(max(0, group_count - 1)) * LIBRARY_GROUP_SPACING)
+	library_scroll_target = clamp(library_scroll_target, library_scroll_min, library_scroll_max)
 	library_scroll = clamp(library_scroll, library_scroll_min, library_scroll_max)
 	layout_library(true)
-	set_status("Showing " + str(filtered_cards.size()) + " owned card(s). Library shows 5 cards top / 5 bottom; mouse wheel scrolls horizontally by page.")
+	set_status("Showing " + str(filtered_cards.size()) + " owned card(s). Continuous horizontal scroll is active.")
 
 
 func layout_library(instant: bool = false) -> void:
@@ -457,7 +530,7 @@ func layout_library(instant: bool = false) -> void:
 			continue
 
 		# Two-row horizontal table layout:
-		# 1-5 on top row, 6-10 on bottom row, then next group scrolls in horizontally.
+		# 1-5 on top row, 6-10 on bottom row, then the strip scrolls continuously.
 		var group_index: int = int(i / LIBRARY_GROUP_SIZE)
 		var local_index: int = i % LIBRARY_GROUP_SIZE
 		var row_index: int = int(local_index / LIBRARY_COLUMNS_PER_GROUP)
@@ -470,11 +543,15 @@ func layout_library(instant: bool = false) -> void:
 		node.set_meta("target_position", target)
 		node.set_meta("target_scale", CARD_SCALE_LIBRARY)
 		node.set_meta("target_rotation", Vector3(0, 0, 0))
-		var visible_in_window: bool = target.x >= LIBRARY_MIN_X and target.x <= LIBRARY_MAX_X
-		node.visible = visible_in_window
+
+		var alpha := get_library_edge_alpha(target.x)
+		node.set_meta("target_alpha", alpha)
+
 		if instant:
 			node.position = target
 			node.scale = CARD_SCALE_LIBRARY
+			set_card_alpha(node, alpha)
+			node.visible = alpha > 0.02
 
 
 func layout_deck_rack(instant: bool = false, preview_insert_index: int = -1) -> void:
@@ -513,6 +590,8 @@ func create_card_node(card_data: CardData, source_zone: String) -> Node3D:
 	card_node.set_meta("target_position", Vector3.ZERO)
 	card_node.set_meta("target_scale", CARD_SCALE_LIBRARY)
 	card_node.set_meta("target_rotation", Vector3.ZERO)
+	card_node.set_meta("target_alpha", 1.0)
+	card_node.set_meta("current_alpha", 1.0)
 	add_pick_area(card_node)
 	return card_node
 
@@ -648,15 +727,79 @@ func animate_collection(nodes: Array[Node3D], delta: float) -> void:
 		var target_position: Vector3 = node.get_meta("target_position", node.position)
 		var target_scale: Vector3 = node.get_meta("target_scale", node.scale)
 		var target_rotation: Vector3 = node.get_meta("target_rotation", node.rotation_degrees)
+		var target_alpha: float = float(node.get_meta("target_alpha", 1.0))
 		var weight: float = clampf(delta * 10.0, 0.0, 1.0)
 		node.position = node.position.lerp(target_position, weight)
 		node.scale = node.scale.lerp(target_scale, weight)
 		node.rotation_degrees = node.rotation_degrees.lerp(target_rotation, weight)
 
+		# Alpha is now binary (0 or 1). Snap immediately so culled cards don't
+		# bleed through the fog overlay during a lerp transition.
+		var next_alpha: float = target_alpha
+		node.set_meta("current_alpha", next_alpha)
+		if target_alpha < 0.5:
+			node.visible = false
+		else:
+			node.visible = true
+			set_card_alpha(node, 1.0)
+
 
 func set_library_scroll(value: float) -> void:
-	library_scroll = clamp(value, library_scroll_min, library_scroll_max)
-	layout_library(false)
+	library_scroll_target = clamp(value, library_scroll_min, library_scroll_max)
+
+
+func get_library_edge_alpha(x_position: float) -> float:
+	# Binary cull: hide only when past cloth edge + padding.
+	# The 2D fog overlay (see _build_library_fog) provides the visual fade.
+	if x_position < LIBRARY_VISIBLE_MIN_X - LIBRARY_CULL_PADDING:
+		return 0.0
+	if x_position > LIBRARY_VISIBLE_MAX_X + LIBRARY_CULL_PADDING:
+		return 0.0
+	return 1.0
+
+
+func set_card_alpha(card_node: Node, alpha: float) -> void:
+	if card_node == null:
+		return
+
+	card_node.set_meta("current_alpha", alpha)
+
+	if card_node is Sprite3D:
+		var sprite := card_node as Sprite3D
+		var sprite_color := sprite.modulate
+		sprite_color.a = alpha
+		sprite.modulate = sprite_color
+	elif card_node is Label3D:
+		var label := card_node as Label3D
+		var label_color := label.modulate
+		label_color.a = alpha
+		label.modulate = label_color
+	elif card_node is MeshInstance3D:
+		apply_mesh_alpha(card_node as MeshInstance3D, alpha)
+
+	for child in card_node.get_children():
+		set_card_alpha(child, alpha)
+
+
+func apply_mesh_alpha(mesh_instance: MeshInstance3D, alpha: float) -> void:
+	var material: Material = mesh_instance.get_meta("deck_builder_alpha_material", null) as Material
+
+	if material == null:
+		var source_material: Material = mesh_instance.material_override
+		if source_material == null:
+			source_material = mesh_instance.get_active_material(0)
+
+		if source_material != null:
+			material = source_material.duplicate()
+			mesh_instance.material_override = material
+			mesh_instance.set_meta("deck_builder_alpha_material", material)
+
+	if material is BaseMaterial3D:
+		var base_material := material as BaseMaterial3D
+		base_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		var material_color := base_material.albedo_color
+		material_color.a = alpha
+		base_material.albedo_color = material_color
 
 
 func pick_card_node(screen_position: Vector2) -> Node3D:
@@ -907,6 +1050,88 @@ func make_mat(albedo: Color, roughness: float = 0.75, metallic: float = 0.0) -> 
 	return mat
 
 
+func _build_library_fog(root: Control) -> void:
+	# Two fixed gradient bands rendered over the 3D scene via CanvasLayer.
+	# Cards keep alpha=1 always; the bands create the "fog" appearance at edges.
+	#
+	# All pixel coords are in the logical 1920×1080 canvas space.
+	# Cloth left edge ≈ px 75, cloth right edge ≈ px 940 (before the rack wall).
+	# The cull boundary (CULL_PADDING=0.50) hides cards when their center is
+	# 0.50 units outside the cloth — that maps to ≈px 27 (left) and ≈px 988 (right),
+	# both deep inside the solid-fog zone, so the pop is never visible.
+	var fog := Control.new()
+	fog.name = "LibraryFogBands"
+	fog.set_anchors_preset(Control.PRESET_FULL_RECT)
+	fog.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(fog)
+
+	var fog_color := Color(0.020, 0.010, 0.005, 1.0)
+
+	# Left: solid 0–75 px (covers wood frame outside cloth),
+	#        gradient 75–145 px (fades into cloth interior).
+	var left_band := TextureRect.new()
+	left_band.name = "FogLeft"
+	left_band.texture = _make_fog_image(fog_color, 75, 70)
+	left_band.stretch_mode = TextureRect.STRETCH_SCALE
+	left_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	left_band.anchor_left   = 0.0
+	left_band.anchor_right  = 0.0
+	left_band.anchor_top    = 0.135
+	left_band.anchor_bottom = 1.0
+	left_band.offset_left   = 0.0
+	left_band.offset_right  = 145.0
+	fog.add_child(left_band)
+
+	# Right: gradient 860–940 px (fades toward cloth right edge),
+	#         solid 940–960 px (small buffer covering the rack wall seam).
+	var right_band := TextureRect.new()
+	right_band.name = "FogRight"
+	right_band.texture = _make_fog_image_right(fog_color, 80, 20)
+	right_band.stretch_mode = TextureRect.STRETCH_SCALE
+	right_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	right_band.anchor_left   = 0.0
+	right_band.anchor_right  = 0.0
+	right_band.anchor_top    = 0.135
+	right_band.anchor_bottom = 1.0
+	right_band.offset_left   = 860.0
+	right_band.offset_right  = 960.0
+	fog.add_child(right_band)
+
+
+# Builds a left-side fog image: [solid_px] columns of fog_color,
+# then [fade_px] columns fading linearly to transparent.
+func _make_fog_image(fog_color: Color, solid_px: int, fade_px: int) -> ImageTexture:
+	var w := solid_px + fade_px
+	var img := Image.create(w, 2, false, Image.FORMAT_RGBA8)
+	for x in range(w):
+		var c: Color
+		if x < solid_px:
+			c = fog_color
+		else:
+			var t := float(x - solid_px) / float(max(1, fade_px - 1))
+			c = fog_color.lerp(Color(fog_color.r, fog_color.g, fog_color.b, 0.0), t)
+		img.set_pixel(x, 0, c)
+		img.set_pixel(x, 1, c)
+	return ImageTexture.create_from_image(img)
+
+
+# Builds a right-side fog image: [fade_px] columns fading from transparent → fog_color,
+# then [solid_px] columns of fog_color.
+func _make_fog_image_right(fog_color: Color, fade_px: int, solid_px: int) -> ImageTexture:
+	var w := fade_px + solid_px
+	var img := Image.create(w, 2, false, Image.FORMAT_RGBA8)
+	for x in range(w):
+		var c: Color
+		if x < fade_px:
+			var t := float(x) / float(max(1, fade_px - 1))
+			c = Color(fog_color.r, fog_color.g, fog_color.b, 0.0).lerp(fog_color, t)
+		else:
+			c = fog_color
+		img.set_pixel(x, 0, c)
+		img.set_pixel(x, 1, c)
+	return ImageTexture.create_from_image(img)
+
+
 func make_panel_style(bg: Color, border: Color, border_width: int) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = bg
@@ -915,5 +1140,5 @@ func make_panel_style(bg: Color, border: Color, border_width: int) -> StyleBoxFl
 	style.border_width_right = border_width
 	style.border_width_top = border_width
 	style.border_width_bottom = border_width
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(0)
 	return style

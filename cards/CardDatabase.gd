@@ -83,6 +83,7 @@ const SOUL_SALVAGE: CardData = preload("res://cards/definitions/gambit/soul_salv
 const THE_DIE_IS_CAST: CardData = preload("res://cards/definitions/gambit/the_die_is_cast.tres")
 const TRANSMUTATION: CardData = preload("res://cards/definitions/gambit/transmutation.tres")
 const WAR_PAINT: CardData = preload("res://cards/definitions/gambit/war_paint.tres")
+const FREE_TAXI_SERVICE: CardData = preload("res://cards/definitions/gambit/free_taxi_service.tres")
 const WITHERING_OF_THE_VEIL: CardData = preload("res://cards/definitions/gambit/withering_of_the_veil.tres")
 
 
@@ -166,6 +167,7 @@ static func get_all_gambit_cards() -> Array[CardData]:
 		CONSORTIUM_AID,
 		ELYNDELL_ARROW_VOLLEY,
 		FOG_OF_WAR,
+		FREE_TAXI_SERVICE,
 		GRIDLOCK,
 		PICKPOCKET,
 		PLENTIFUL_HARVEST,
