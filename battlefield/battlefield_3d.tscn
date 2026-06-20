@@ -460,7 +460,7 @@ shape = SubResource("CylinderShape3D_djscq")
 script = ExtResource("19_moveh")
 
 [node name="EnemyHandFan" type="Node3D" parent="OpponentVisuals" unique_id=1712949409]
-transform = Transform3D(1, 0, 0, 0, -1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 1.2461718, -2.5026696)
+transform = Transform3D(1, 0, 0, 0, -1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 1.2461718, -2.7247562)
 
 [node name="EnemyDrawPileVisual" type="Node3D" parent="OpponentVisuals" unique_id=384757661]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 3.708, 0.1, -2.195)

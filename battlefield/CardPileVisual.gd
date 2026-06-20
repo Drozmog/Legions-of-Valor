@@ -21,21 +21,12 @@ static func create_pile_base(base_name: String = "PileBase") -> MeshInstance3D:
 	return base
 
 
-static func create_card_back_visual(card_width: float, card_height: float) -> MeshInstance3D:
-	var card := MeshInstance3D.new()
+static func create_card_back_visual(card_width: float, card_height: float) -> Node3D:
+	var card := CARD_3D_SCENE.instantiate() as Node3D
 	card.name = "CardBackVisual"
-
-	var mesh := PlaneMesh.new()
-	mesh.size = Vector2(card_width, card_height)
-	card.mesh = mesh
-
-	var mat := StandardMaterial3D.new()
-	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
-	mat.albedo_texture = CARD_BACK_TEXTURE
-	mat.albedo_color = Color.WHITE
-
-	card.material_override = mat
+	card.scale = Vector3(card_width / 1.02, 1.0, card_height / 1.34)
+	if card.has_method("assign_card_data"):
+		card.assign_card_data(null, true)
 	return card
 
 

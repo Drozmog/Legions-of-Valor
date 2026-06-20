@@ -23,7 +23,7 @@ extends Node3D
 @export var opponent_label_pixel_size: float = 0.0045
 @export var opponent_pile_label_font_size: int = 22
 @export var opponent_hand_label_font_size: int = 22
-@export var show_enemy_hand_label: bool = true
+@export var show_enemy_hand_label: bool = false
 
 var deck_count: int = 0
 var tribute_count: int = 0
@@ -38,6 +38,8 @@ var deck_root: Node3D = null
 var tribute_root: Node3D = null
 var discard_root: Node3D = null
 var parry_pit_root: Node3D = null
+var hand_card_nodes: Array[Node3D] = []
+var hand_initialized: bool = false
 
 
 
@@ -116,9 +118,29 @@ func rebuild_hand_fan() -> void:
 	if hand_root == null:
 		return
 
-	clear_children(hand_root)
-
 	var visible_count: int = mini(get_visible_hand_count(), hand_max_visible_cards)
+	if not hand_initialized:
+		for child in hand_root.get_children():
+			child.queue_free()
+		hand_card_nodes.clear()
+		hand_initialized = true
+
+	while hand_card_nodes.size() > visible_count:
+		var removed := hand_card_nodes.pop_back() as Node3D
+		if removed != null and is_instance_valid(removed):
+			removed.queue_free()
+
+	while hand_card_nodes.size() < visible_count:
+		var card := CardPileVisual.create_card_back_visual(card_width, card_height)
+		hand_root.add_child(card)
+		if deck_root != null:
+			card.global_position = deck_root.global_position + Vector3(0.0, 0.24, 0.0)
+			card.global_rotation = deck_root.global_rotation
+		hand_card_nodes.append(card)
+
+	for child in hand_root.get_children():
+		if child is Label3D:
+			child.queue_free()
 
 	if visible_count <= 0:
 		return
@@ -137,10 +159,11 @@ func rebuild_hand_fan() -> void:
 		var y: float = float(i) * 0.004
 		var yaw: float = -normalized * 8.0
 
-		var card := CardPileVisual.create_card_back_visual(card_width, card_height)
-		card.position = Vector3(x, y, z)
-		card.rotation_degrees = Vector3(0, yaw, 0)
-		hand_root.add_child(card)
+		var card := hand_card_nodes[i]
+		var tween := create_tween()
+		tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.tween_property(card, "position", Vector3(x, y, z), 0.34)
+		tween.parallel().tween_property(card, "rotation_degrees", Vector3(0, yaw, 0), 0.34)
 
 	if show_enemy_hand_label:
 		create_label(
@@ -149,6 +172,25 @@ func rebuild_hand_fan() -> void:
 			Vector3(0, 0.20, -0.62),
 			opponent_hand_label_font_size
 		)
+
+
+func get_hand_card_global_position(index: int) -> Vector3:
+	if hand_card_nodes.is_empty():
+		return Vector3.ZERO
+	var visual_index := clampi(index, 0, hand_card_nodes.size() - 1)
+	var card := hand_card_nodes[visual_index]
+	if card == null or not is_instance_valid(card):
+		return Vector3.ZERO
+	return card.global_position
+
+
+func set_hand_card_action_hidden(index: int, hidden: bool) -> void:
+	if hand_card_nodes.is_empty():
+		return
+	var visual_index := clampi(index, 0, hand_card_nodes.size() - 1)
+	var card := hand_card_nodes[visual_index]
+	if card != null and is_instance_valid(card):
+		card.visible = not hidden
 
 
 func rebuild_deck_pile() -> void:
@@ -198,7 +240,7 @@ func rebuild_face_up_pile(root: Node3D, cards: Array, label_text: String) -> voi
 	create_label(
 		root,
 		label_text + ": " + str(cards.size()),
-		Vector3(0, 0.28, -0.82),
+		Vector3(0, 0.14, -0.98),
 		opponent_pile_label_font_size
 	)
 	
@@ -223,7 +265,7 @@ func rebuild_card_back_pile(root: Node3D, count: int, label_text: String) -> voi
 	create_label(
 		root,
 		label_text + ": " + str(count),
-		Vector3(0, 0.28, -0.82),
+		Vector3(0, 0.14, -0.98),
 		opponent_pile_label_font_size
 	)
 

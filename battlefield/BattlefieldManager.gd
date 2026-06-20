@@ -99,13 +99,25 @@ var deck_selection_screen: DeckSelectionScreen = null
 
 var hand_drag_preview: Node3D = null
 
+var player_hand_3d: BattlefieldHand3D = null
+
+var last_player_hand_animation_start := Vector3.ZERO
+
+var has_player_hand_animation_start: bool = false
+
 var hand_drag_preview_target_position := Vector3.ZERO
 
 var hand_drag_preview_target_scale := Vector3.ONE
 
+var hand_was_auto_lowered_for_drag: bool = false
+
 var phase_button_ready_visual: bool = false
 
 var phase_transition_busy: bool = false
+
+var bottom_hud_3d: BattlefieldBottomHud3D = null
+
+var last_bottom_hud_log_text: String = ""
 
 var spawn_opponent_button: Button = null
 
@@ -218,7 +230,9 @@ func _ready() -> void:
 	parry_system.setup(self)
 	connect_all_slots()
 	connect_main_signals()
+	create_player_hand_3d()
 	create_phase_ui()
+	create_bottom_hud_3d()
 	create_exit_button()
 	create_deck_selection_screen()
 	create_ability_prompt_panel()
@@ -237,6 +251,7 @@ func _process(delta: float) -> void:
 	update_hand_drag_preview(delta)
 	update_battleplan_hand_cleanup(delta)
 	update_phase_progress_state()
+	refresh_bottom_hud_log()
 
 
 func connect_main_signals() -> void:
@@ -251,6 +266,15 @@ func connect_main_signals() -> void:
 		tribute_pile.tribute_pile_clicked.connect(_on_tribute_pile_clicked)
 	if tribute_manager != null:
 		tribute_manager.tribute_changed.connect(_on_tribute_changed)
+
+
+func create_player_hand_3d() -> void:
+	if hand == null:
+		return
+	player_hand_3d = BattlefieldHand3D.new()
+	player_hand_3d.name = "PlayerHand3D"
+	add_child(player_hand_3d)
+	player_hand_3d.setup(hand, get_viewport().get_camera_3d())
 
 
 func create_deck_selection_screen() -> void:
@@ -590,6 +614,51 @@ func create_phase_ui() -> void:
 	update_turn_counter_ui()
 
 
+func create_bottom_hud_3d() -> void:
+	bottom_hud_3d = BattlefieldBottomHud3D.new()
+	bottom_hud_3d.name = "BattlefieldBottomHud3D"
+	bottom_hud_3d.phase_action_pressed.connect(_on_next_phase_pressed)
+	add_child(bottom_hud_3d)
+	if phase_panel != null:
+		phase_panel.visible = false
+	if battle_plan_panel != null:
+		battle_plan_panel.visible = false
+	if game_log != null:
+		var old_log_panel: Control = game_log.get_node_or_null("PanelContainer") as Control
+		if old_log_panel != null:
+			old_log_panel.visible = false
+	refresh_bottom_hud()
+
+
+func refresh_bottom_hud() -> void:
+	if bottom_hud_3d == null or phase_label == null or next_phase_button == null:
+		return
+	var score_text := "Aurion  •  Player %d/%d  •  AI %d/%d" % [player_aurion_points, AURION_WIN_TARGET, ai_aurion_points, AURION_WIN_TARGET]
+	bottom_hud_3d.update_info(
+		phase_label.text,
+		"TURN " + str(turn_number),
+		score_text,
+		get_phase_instruction_text(),
+		next_phase_button.text,
+		next_phase_button.disabled,
+		phase_button_ready_visual
+	)
+	var player_plan: Dictionary = {}
+	if battle_plan_manager != null:
+		player_plan = battle_plan_manager.current_battle_plan
+	bottom_hud_3d.set_battleplans(player_plan, opponent_battle_plan)
+
+
+func refresh_bottom_hud_log() -> void:
+	if bottom_hud_3d == null or game_log == null:
+		return
+	var output := "\n".join(game_log.lines)
+	if output == last_bottom_hud_log_text:
+		return
+	last_bottom_hud_log_text = output
+	bottom_hud_3d.set_log_output(output)
+
+
 func create_exit_button() -> void:
 	var exit_button := Button.new()
 	exit_button.name = "ExitBattleButton"
@@ -721,6 +790,7 @@ func update_phase_ui() -> void:
 	update_phase_instruction_ui()
 	update_turn_counter_ui()
 	update_phase_progress_state()
+	refresh_bottom_hud()
 
 
 func update_phase_progress_state() -> void:
@@ -729,6 +799,7 @@ func update_phase_progress_state() -> void:
 	var ready := is_current_phase_complete()
 	next_phase_button.disabled = not ready
 	set_phase_button_ready_visual(ready)
+	refresh_bottom_hud()
 
 
 func is_current_phase_complete() -> bool:
@@ -1051,7 +1122,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 	if not is_instance_valid(card):
 		cancel_selected_card()
 		return
-	card.visible = true
+	card.visible = player_hand_3d == null
 
 	if selected_card_data == null and card.card_data != null:
 		select_card(card.card_data)
@@ -1109,7 +1180,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 				hand.consume_dragged_card(card)
 		else:
 			if card != null and is_instance_valid(card):
-				card.visible = true
+				card.visible = player_hand_3d == null
 
 			return_card_to_hand_safely(card)
 
@@ -1143,7 +1214,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 					hand.consume_dragged_card(card)
 			else:
 				if card != null and is_instance_valid(card):
-					card.visible = true
+					card.visible = player_hand_3d == null
 
 				return_card_to_hand_safely(card)
 
@@ -1163,7 +1234,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 					hand.consume_dragged_card(card)
 			else:
 				if card != null and is_instance_valid(card):
-					card.visible = true
+					card.visible = player_hand_3d == null
 
 				return_card_to_hand_safely(card)
 
@@ -1198,7 +1269,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 						hand.consume_dragged_card(card)
 				else:
 					if card != null and is_instance_valid(card):
-						card.visible = true
+						card.visible = player_hand_3d == null
 
 					return_card_to_hand_safely(card)
 
@@ -1233,7 +1304,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 				hand.consume_dragged_card(card)
 		else:
 			if card != null and is_instance_valid(card):
-				card.visible = true
+				card.visible = player_hand_3d == null
 
 			return_card_to_hand_safely(card)
 
@@ -1241,7 +1312,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 		return
 
 	if hand != null and hand.has_method("is_screen_position_in_hand_reorder_zone"):
-		if hand.is_screen_position_in_hand_reorder_zone(screen_position):
+		if hand.hand_is_raised and hand.is_screen_position_in_hand_reorder_zone(screen_position):
 			if hand.has_method("reorder_card_in_hand"):
 				hand.reorder_card_in_hand(card, screen_position.x)
 
@@ -1259,18 +1330,25 @@ func start_hand_drag_preview(card: CardUI) -> void:
 	if card == null or card.card_data == null:
 		return
 	hand_drag_preview = TEST_CARD_SCENE.instantiate() as Node3D
+	hand_was_auto_lowered_for_drag = false
 	add_child(hand_drag_preview)
 	hand_drag_preview.top_level = true
 	if hand_drag_preview.has_method("assign_card_data"):
 		hand_drag_preview.assign_card_data(card.card_data, false)
 	disable_preview_collision(hand_drag_preview)
 	hand_drag_preview_target_scale = Vector3(1.12, 1.12, 1.12)
-	hand_drag_preview.scale = Vector3(0.92, 0.92, 0.92)
-	hand_drag_preview.rotation = Vector3.ZERO
-	hand_drag_preview.global_position = screen_to_battle_plane(
-		get_viewport().get_mouse_position(),
-		0.62
-	)
+	if player_hand_3d != null:
+		hand_drag_preview.global_position = player_hand_3d.get_card_global_position(card)
+		hand_drag_preview.global_rotation = player_hand_3d.get_card_global_rotation(card)
+		hand_drag_preview.scale = player_hand_3d.get_card_global_scale(card)
+		player_hand_3d.hide_card_for_action(card)
+	else:
+		hand_drag_preview.scale = Vector3(0.92, 0.92, 0.92)
+		hand_drag_preview.rotation = Vector3.ZERO
+		hand_drag_preview.global_position = screen_to_battle_plane(
+			get_viewport().get_mouse_position(),
+			0.62
+		)
 	hand_drag_preview_target_position = hand_drag_preview.global_position
 	card.visible = false
 	Cursors.use_grab()
@@ -1280,6 +1358,12 @@ func update_hand_drag_preview(delta: float) -> void:
 	if hand_drag_preview == null or not is_instance_valid(hand_drag_preview):
 		return
 	var screen_position := get_viewport().get_mouse_position()
+	# Pull the rest of the hand out of the battlefield view once a held card
+	# leaves the hand region. It stays sheathed until Space is pressed again.
+	if hand != null and hand.hand_is_raised and not hand_was_auto_lowered_for_drag:
+		if not hand.is_screen_position_in_hand_reorder_zone(screen_position):
+			hand.lower_hand()
+			hand_was_auto_lowered_for_drag = true
 	var target_node := get_3d_node_under_screen_position(screen_position)
 	var target_slot := find_board_slot_from_node(target_node)
 	hand_drag_preview_target_scale = Vector3(1.12, 1.12, 1.12)
@@ -1296,7 +1380,13 @@ func update_hand_drag_preview(delta: float) -> void:
 		hand_drag_preview_target_position = tribute_pile.global_position + Vector3(0.0, 0.52, 0.0)
 		hand_drag_preview_target_scale = Vector3(1.18, 1.18, 1.18)
 	else:
-		hand_drag_preview_target_position = screen_to_battle_plane(screen_position, 0.62)
+		var table_position := screen_to_battle_plane(screen_position, 0.62)
+		var camera := get_viewport().get_camera_3d()
+		if camera != null:
+			var toward_camera := (camera.global_position - table_position).normalized()
+			hand_drag_preview_target_position = table_position + toward_camera * 0.42
+		else:
+			hand_drag_preview_target_position = table_position
 	hand_drag_preview.global_position = hand_drag_preview.global_position.lerp(
 		hand_drag_preview_target_position,
 		clampf(delta * 16.0, 0.0, 1.0)
@@ -1313,8 +1403,11 @@ func update_hand_drag_preview(delta: float) -> void:
 
 func finish_hand_drag_preview() -> void:
 	if hand_drag_preview != null and is_instance_valid(hand_drag_preview):
+		last_player_hand_animation_start = hand_drag_preview.global_position
+		has_player_hand_animation_start = true
 		hand_drag_preview.queue_free()
 	hand_drag_preview = null
+	hand_was_auto_lowered_for_drag = false
 	Cursors.use_normal()
 
 
@@ -1370,6 +1463,11 @@ func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
 	var preview_card: CardData = player_deck.peek_top_card()
 	var started: bool = hand.start_draw_pile_drag(screen_position, preview_card, is_awarded_draw)
 	if started:
+		if player_hand_3d != null and draw_pile != null:
+			if hand.draw_drag_card != null:
+				hand.draw_drag_card.visible = false
+			player_hand_3d.start_draw_preview(preview_card, draw_pile)
+			player_hand_3d.update_draw_preview_target(screen_position)
 		log_msg("Dragging card from Draw Pile.")
 	else:
 		log_msg("Draw Pile is empty.")
@@ -1378,6 +1476,8 @@ func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
 func _on_draw_pile_drag_moved(screen_position: Vector2) -> void:
 	if hand != null:
 		hand.update_draw_pile_drag(screen_position)
+	if player_hand_3d != null:
+		player_hand_3d.update_draw_preview_target(screen_position)
 
 
 func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
@@ -1385,15 +1485,21 @@ func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
 		return
 	if not hand.is_screen_position_in_hand_drop_zone(screen_position):
 		hand.finish_draw_pile_drag(screen_position, null)
+		if player_hand_3d != null:
+			player_hand_3d.cancel_draw_preview(true)
 		return
 	var is_awarded_draw := current_phase == BattlePhase.BATTLEPLAN and pending_battleplan_draws > 0
 	if not is_awarded_draw and not hand.can_accept_card():
 		hand.finish_draw_pile_drag(screen_position, null)
+		if player_hand_3d != null:
+			player_hand_3d.cancel_draw_preview(true)
 		log_msg("Draw cancelled. Hand is full. Max hand size: " + str(hand.max_hand_size))
 		return
 	var drawn_card: CardData = player_deck.draw_top_card()
 	var accepted: bool = hand.finish_draw_pile_drag(screen_position, drawn_card, is_awarded_draw)
 	if accepted:
+		if player_hand_3d != null:
+			player_hand_3d.finish_draw_preview_into_hand(hand.last_drawn_card)
 		draw_pile.consume_top_card()
 		log_msg("Card drawn into hand. Deck remaining: " + str(player_deck.cards_remaining()))
 		if is_awarded_draw:
@@ -1401,6 +1507,9 @@ func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
 			update_phase_ui()
 			if pending_battleplan_draws <= 0:
 				begin_battleplan_hand_cleanup_or_tribute()
+	else:
+		if player_hand_3d != null:
+			player_hand_3d.cancel_draw_preview(true)
 
 
 func _on_slot_clicked(slot: Node) -> void:
@@ -2428,7 +2537,18 @@ func update_ai_visuals() -> void:
 func play_player_hand_to_node_animation(card_data: CardData, target_node: Node, face_down: bool = false) -> void:
 	if card_animation_manager == null:
 		return
-
+	var start_position := last_player_hand_animation_start
+	if not has_player_hand_animation_start and player_hand_3d != null:
+		start_position = player_hand_3d.get_card_position_for_data(card_data)
+	if has_player_hand_animation_start or start_position != Vector3.ZERO:
+		has_player_hand_animation_start = false
+		await card_animation_manager.animate_card_from_position_to_node(
+			card_data,
+			start_position,
+			target_node,
+			face_down
+		)
+		return
 	await card_animation_manager.animate_card_from_anchor_to_node(
 		card_data,
 		"PlayerHandOrigin",
@@ -2440,7 +2560,19 @@ func play_player_hand_to_node_animation(card_data: CardData, target_node: Node, 
 func play_enemy_hand_to_node_animation(card_data: CardData, target_node: Node, face_down: bool = false) -> void:
 	if card_animation_manager == null:
 		return
-
+	var hand_index := ai_hand.find(card_data)
+	if opponent_visuals != null and hand_index >= 0:
+		var start_position := opponent_visuals.get_hand_card_global_position(hand_index)
+		if start_position != Vector3.ZERO:
+			opponent_visuals.set_hand_card_action_hidden(hand_index, true)
+			await card_animation_manager.animate_card_from_position_to_node(
+				card_data,
+				start_position,
+				target_node,
+				face_down
+			)
+			opponent_visuals.set_hand_card_action_hidden(hand_index, false)
+			return
 	await card_animation_manager.animate_card_from_anchor_to_node(
 		card_data,
 		"EnemyHandOrigin",
@@ -2494,6 +2626,7 @@ func update_aurion_counter_ui() -> void:
 		+ "/"
 		+ str(AURION_WIN_TARGET)
 	)
+	refresh_bottom_hud()
 
 
 func add_aurion(scoring_owner: String, amount: int, reason: String = "") -> void:
@@ -2808,6 +2941,13 @@ func return_card_to_hand_safely(card: CardUI) -> void:
 
 	if hand.has_method("return_dragged_card_to_hand"):
 		hand.return_dragged_card_to_hand(card)
+	if player_hand_3d != null:
+		player_hand_3d.restore_card(
+			card,
+			last_player_hand_animation_start,
+			has_player_hand_animation_start
+		)
+	has_player_hand_animation_start = false
 
 
 func is_unit_card(card_data: CardData) -> bool:

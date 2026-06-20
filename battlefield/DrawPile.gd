@@ -12,9 +12,9 @@ signal draw_drag_released(screen_position: Vector2)
 @export var max_visible_cards: int = 14
 @export var card_gap: float = 0.008
 
-@export var counter_side_offset: float = 0.3
-@export var counter_height: float = 0.55
-@export var counter_forward_offset: float = -0.85
+@export var counter_side_offset: float = 0.0
+@export var counter_height: float = 0.16
+@export var counter_forward_offset: float = 0.92
 @export var counter_pixel_size: float = 0.006
 
 @onready var click_area: Area3D = get_node_or_null("ClickArea") as Area3D
@@ -33,6 +33,8 @@ func _ready() -> void:
 	if click_area != null:
 		click_area.input_ray_pickable = true
 		click_area.input_event.connect(_on_click_area_input_event)
+		click_area.mouse_entered.connect(_on_mouse_entered)
+		click_area.mouse_exited.connect(_on_mouse_exited)
 
 	set_process(false)
 
@@ -109,6 +111,7 @@ func _on_click_area_input_event(
 				return
 
 			is_dragging_from_pile = true
+			Cursors.use_grab()
 			set_process(true)
 
 			draw_drag_started.emit(get_viewport().get_mouse_position())
@@ -123,9 +126,20 @@ func _process(_delta: float) -> void:
 
 	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		is_dragging_from_pile = false
+		Cursors.use_normal()
 		set_process(false)
 
 		draw_drag_released.emit(mouse_pos)
+
+
+func _on_mouse_entered() -> void:
+	if not is_dragging_from_pile and card_count > 0:
+		Cursors.use_pointing()
+
+
+func _on_mouse_exited() -> void:
+	if not is_dragging_from_pile:
+		Cursors.use_normal()
 
 
 func consume_top_card() -> void:
@@ -134,3 +148,11 @@ func consume_top_card() -> void:
 
 	card_count -= 1
 	build_stack()
+
+
+func get_top_card_global_position() -> Vector3:
+	if not stacked_cards.is_empty():
+		var top_card := stacked_cards.back() as Node3D
+		if top_card != null and is_instance_valid(top_card):
+			return top_card.global_position
+	return global_position

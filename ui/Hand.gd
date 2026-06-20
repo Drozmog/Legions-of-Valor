@@ -16,15 +16,15 @@ signal card_cleared()
 @export var card_scale: float = 0.80
 @export var max_hand_size: int = 7
 
-@export var raised_anchor_from_bottom: float = 120.0
+@export var raised_anchor_from_bottom: float = 100.0
 @export var lowered_anchor_below_screen: float = 140.0
 
-@export var min_spacing: float = 95.0
-@export var max_spacing: float = 165.0
-@export var max_fan_width: float = 1250.0
+@export var min_spacing: float = 115.0
+@export var max_spacing: float = 190.0
+@export var max_fan_width: float = 1520.0
 
-@export var max_rotation_degrees: float = 7.0
-@export var fan_curve_drop: float = 35.0
+@export var max_rotation_degrees: float = 0.0
+@export var fan_curve_drop: float = 0.0
 @export var hover_lift: float = 55.0
 @export var tween_time: float = 0.22
 
@@ -38,6 +38,8 @@ var hand_is_raised: bool = false
 
 var draw_drag_card: CardUI = null
 var pending_draw_data: CardData = null
+var draw_preview_insert_index: int = -1
+var last_drawn_card: CardUI = null
 var showing_ability_icons: bool = false
 var live_reorder_index: int = -1
 
@@ -72,6 +74,9 @@ func set_all_ability_icons_visible(show_icons: bool) -> void:
 
 func update_live_hand_reorder() -> void:
 	if dragged_card == null:
+		live_reorder_index = -1
+		return
+	if not hand_is_raised:
 		live_reorder_index = -1
 		return
 
@@ -156,7 +161,7 @@ func add_card_to_hand(card_data: CardData, animated: bool = true) -> bool:
 	return true
 
 
-func arrange_fan(animated: bool = true) -> void:
+func arrange_fan(animated: bool = true, animation_duration: float = -1.0) -> void:
 	var count := cards.size()
 
 	if count == 0:
@@ -207,7 +212,7 @@ func arrange_fan(animated: bool = true) -> void:
 		card.set_meta("home_rotation", target_rotation)
 
 		if animated:
-			_move_card_to_layout(card, target_position, target_rotation)
+			_move_card_to_layout(card, target_position, target_rotation, animation_duration)
 		else:
 			card.position = target_position
 			card.rotation_degrees = target_rotation
@@ -430,13 +435,19 @@ func _move_card_to(card: Control, target: Vector2) -> void:
 	tween.tween_property(card, "position", target, tween_time)
 
 
-func _move_card_to_layout(card: Control, target_position: Vector2, target_rotation: float) -> void:
+func _move_card_to_layout(
+	card: Control,
+	target_position: Vector2,
+	target_rotation: float,
+	animation_duration: float = -1.0
+) -> void:
+	var duration := tween_time if animation_duration < 0.0 else animation_duration
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 
-	tween.tween_property(card, "position", target_position, tween_time)
-	tween.parallel().tween_property(card, "rotation_degrees", target_rotation, tween_time)
-	tween.parallel().tween_property(card, "scale", Vector2(card_scale, card_scale), tween_time)
+	tween.tween_property(card, "position", target_position, duration)
+	tween.parallel().tween_property(card, "rotation_degrees", target_rotation, duration)
+	tween.parallel().tween_property(card, "scale", Vector2(card_scale, card_scale), duration)
 
 
 func remove_selected_card() -> void:
@@ -463,6 +474,7 @@ func start_draw_pile_drag(screen_position: Vector2, preview_card_data: CardData,
 		return false
 
 	pending_draw_data = preview_card_data
+	draw_preview_insert_index = -1
 
 	draw_drag_card = CARD_UI_SCENE.instantiate() as CardUI
 	add_child(draw_drag_card)
@@ -485,9 +497,18 @@ func update_draw_pile_drag(screen_position: Vector2) -> void:
 	var target := screen_position - draw_drag_card.size * draw_drag_card.scale.x / 2.0
 	draw_drag_card.global_position = draw_drag_card.global_position.lerp(target, 0.46)
 	draw_drag_card.rotation_degrees = lerpf(draw_drag_card.rotation_degrees, 0.0, 0.35)
+	if is_screen_position_in_hand_drop_zone(screen_position):
+		var preview_index := get_reorder_insert_index(screen_position.x, cards.size() + 1)
+		if preview_index != draw_preview_insert_index:
+			draw_preview_insert_index = preview_index
+			arrange_fan_with_gap(draw_preview_insert_index)
+	elif draw_preview_insert_index >= 0:
+		draw_preview_insert_index = -1
+		arrange_fan(true)
 
 
 func finish_draw_pile_drag(screen_position: Vector2, drawn_card_data: CardData, allow_over_limit: bool = false) -> bool:
+	last_drawn_card = null
 	if draw_drag_card == null:
 		return false
 
@@ -495,30 +516,43 @@ func finish_draw_pile_drag(screen_position: Vector2, drawn_card_data: CardData, 
 		draw_drag_card.queue_free()
 		draw_drag_card = null
 		pending_draw_data = null
+		draw_preview_insert_index = -1
+		arrange_fan(true)
 		return false
 
 	if drawn_card_data == null:
 		draw_drag_card.queue_free()
 		draw_drag_card = null
 		pending_draw_data = null
+		draw_preview_insert_index = -1
+		arrange_fan(true)
 		return false
 
 	if not allow_over_limit and not can_accept_card():
 		draw_drag_card.queue_free()
 		draw_drag_card = null
 		pending_draw_data = null
+		draw_preview_insert_index = -1
+		arrange_fan(true)
 		return false
 
 	draw_drag_card.card_data = drawn_card_data
-	draw_drag_card.show_back()
+	draw_drag_card.show_front()
 
-	cards.append(draw_drag_card)
+	var insert_index := (
+		draw_preview_insert_index
+		if draw_preview_insert_index >= 0
+		else get_reorder_insert_index(screen_position.x, cards.size() + 1)
+	)
+	cards.insert(clampi(insert_index, 0, cards.size()), draw_drag_card)
+	last_drawn_card = draw_drag_card
 	connect_hand_card_signals(draw_drag_card)
 
-	animate_draw_flip_into_hand(draw_drag_card)
+	animate_draw_into_hand(draw_drag_card)
 
 	draw_drag_card = null
 	pending_draw_data = null
+	draw_preview_insert_index = -1
 
 	return true
 	
@@ -528,17 +562,45 @@ func is_screen_position_in_hand_drop_zone(screen_position: Vector2) -> bool:
 	return screen_position.y >= viewport_size.y - draw_drop_zone_from_bottom
 
 
-func animate_draw_flip_into_hand(card: CardUI) -> void:
+func arrange_fan_with_gap(gap_index: int) -> void:
+	var final_count: int = cards.size() + 1
+	if final_count <= 1:
+		return
+	var area_size: Vector2 = get_hand_area_size()
+	var center_x: float = area_size.x / 2.0
+	var anchor_y: float = (
+		area_size.y - raised_anchor_from_bottom
+		if hand_is_raised
+		else area_size.y + lowered_anchor_below_screen
+	)
+	var spacing: float = clampf(
+		max_fan_width / float(final_count - 1),
+		min_spacing,
+		max_spacing
+	)
+	var start_x: float = center_x - spacing * float(final_count - 1) / 2.0
+
+	for card_index in range(cards.size()):
+		var card := cards[card_index]
+		if card == null or card == dragged_card:
+			continue
+		var visual_index: int = card_index if card_index < gap_index else card_index + 1
+		var normalized: float = (float(visual_index) / float(final_count - 1)) * 2.0 - 1.0
+		var target_position: Vector2 = Vector2(
+			start_x + spacing * float(visual_index),
+			anchor_y + pow(absf(normalized), 1.2) * fan_curve_drop
+		) - Vector2(card.size.x / 2.0, card.size.y)
+		var target_rotation: float = normalized * max_rotation_degrees
+		card.set_meta("home_position", target_position)
+		card.set_meta("home_rotation", target_rotation)
+		_move_card_to_layout(card, target_position, target_rotation, 0.18)
+
+
+func animate_draw_into_hand(card: CardUI) -> void:
 	card.move_to_front()
 	card.rotation_degrees = 0
-
-	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN_OUT)
-
-	tween.tween_property(card, "scale", Vector2(card_scale * 1.12, card_scale * 1.12), 0.08)
-	tween.parallel().tween_property(card, "rotation_degrees", -2.0, 0.08)
-	tween.tween_property(card, "scale", Vector2(0.0, card_scale * 1.12), 0.14)
-	tween.tween_callback(Callable(card, "show_front"))
-	tween.tween_property(card, "scale", Vector2(card_scale * 1.08, card_scale * 1.08), 0.16)
-	tween.parallel().tween_property(card, "rotation_degrees", 0.0, 0.16)
-	tween.tween_callback(Callable(self, "arrange_fan"))
+	card.scale = Vector2(card_scale * 1.08, card_scale * 1.08)
+	# The dropped X position has already selected this card's index. Move the
+	# incoming card and its neighbours together so the hand opens and closes
+	# around it as one continuous physical motion.
+	arrange_fan(true, 0.36)

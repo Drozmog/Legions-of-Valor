@@ -17,6 +17,8 @@ const ABILITY_ICON_PATHS := {
 	"mobility": "res://ui/ability_icons/mobility.png",
 }
 
+static var mipmapped_texture_cache: Dictionary = {}
+
 @onready var card_body: MeshInstance3D = get_node_or_null("CardBody") as MeshInstance3D
 
 var assigned_card_data: CardData = null
@@ -38,9 +40,11 @@ func _ready() -> void:
 	setup_card_body()
 	setup_fallback_label()
 	setup_ability_icon_root()
-
+	# Pile and hidden-hand cards intentionally have no CardData. Their face-down
+	# state still needs to replace the scene's fallback material after entering
+	# the tree.
+	apply_card_visual()
 	if assigned_card_data != null:
-		apply_card_visual()
 		rebuild_ability_icons()
 
 
@@ -164,9 +168,10 @@ func show_front() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 
 	if assigned_card_data != null and assigned_card_data.card_art != null:
-		mat.albedo_texture = assigned_card_data.card_art
+		mat.albedo_texture = get_mipmapped_texture(assigned_card_data.card_art)
 		mat.albedo_color = Color.WHITE
 
 		if fallback_label != null:
@@ -191,9 +196,10 @@ func show_back() -> void:
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 
 	if ResourceLoader.exists(CARD_BACK_PATH):
-		mat.albedo_texture = load(CARD_BACK_PATH) as Texture2D
+		mat.albedo_texture = get_mipmapped_texture(load(CARD_BACK_PATH) as Texture2D)
 		mat.albedo_color = Color.WHITE
 	else:
 		mat.albedo_color = Color(0.08, 0.055, 0.025, 1.0)
@@ -204,6 +210,24 @@ func show_back() -> void:
 		fallback_label.visible = false
 
 	set_ability_icons_visible(false, true)
+
+
+static func get_mipmapped_texture(texture: Texture2D) -> Texture2D:
+	if texture == null:
+		return null
+	var cache_key := texture.resource_path
+	if cache_key.is_empty():
+		cache_key = str(texture.get_instance_id())
+	if mipmapped_texture_cache.has(cache_key):
+		return mipmapped_texture_cache[cache_key] as Texture2D
+	var image := texture.get_image()
+	if image == null or image.is_empty():
+		return texture
+	if not image.has_mipmaps():
+		image.generate_mipmaps()
+	var sharpened := ImageTexture.create_from_image(image)
+	mipmapped_texture_cache[cache_key] = sharpened
+	return sharpened
 	
 func setup_ability_icon_root() -> void:
 	ability_icon_root = get_node_or_null("AbilityIconRoot") as Node3D

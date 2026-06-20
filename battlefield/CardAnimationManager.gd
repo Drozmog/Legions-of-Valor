@@ -44,6 +44,21 @@ func animate_card_between_nodes(
 	)
 
 
+func animate_card_from_position_to_node(
+	card_data: CardData,
+	start_position: Vector3,
+	target_node: Node,
+	face_down: bool = false
+) -> void:
+	await animate_card_to_position(
+		card_data,
+		start_position,
+		get_exact_landing_position(target_node),
+		get_exact_landing_rotation(target_node),
+		face_down
+	)
+
+
 func animate_card_to_position(
 	card_data: CardData,
 	start_position: Vector3,

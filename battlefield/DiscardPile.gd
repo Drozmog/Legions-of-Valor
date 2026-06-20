@@ -6,9 +6,9 @@ extends Node3D
 @export var max_visible_cards: int = 14
 @export var stack_gap: float = 0.008
 
-@export var counter_side_offset: float = 0.55
-@export var counter_height: float = 0.55
-@export var counter_forward_offset: float = -0.85
+@export var counter_side_offset: float = 0.0
+@export var counter_height: float = 0.16
+@export var counter_forward_offset: float = 0.92
 @export var counter_pixel_size: float = 0.006
 
 var discarded_cards: Array[CardData] = []
