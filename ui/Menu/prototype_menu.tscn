@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://dqblc2eb8n7g6"]
+
+[ext_resource type="Script" uid="uid://c6akjckpnmpvk" path="res://ui/PrototypeMenu.gd" id="1_tlvfg"]
+[ext_resource type="VideoStream" uid="uid://c1um3yxwbynlt" path="res://ui/Menu/Videos/menu_background.ogv" id="2_tlvfg"]
+
+[sub_resource type="CanvasItemMaterial" id="CanvasItemMaterial_dxmv0"]
+
+[node name="PrototypeMenu" type="Control" unique_id=1415191127]
+material = SubResource("CanvasItemMaterial_dxmv0")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_tlvfg")
+
+[node name="VideoStreamPlayer" type="VideoStreamPlayer" parent="." unique_id=1632774244]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+stream = ExtResource("2_tlvfg")

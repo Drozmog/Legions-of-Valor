@@ -13,9 +13,9 @@ rarity = "normal"
 tribute_cost = 4
 ap = 7
 dp = 1
-ability_text = "Curse : Penalty → On death, you discard 1 card from your hand.
+ability_text = "Curse : Penalty; On death, you discard 1 card from your hand.
 
-Pierce : If unit destroys an enemy, gain +1 Aurion."
+Pierce : If unit defeats an enemy, gain +1 Aurion."
 lore_text = "\"The battle isn't a means for you to entertain yourself, Thrak. We are fighting for the freedom of our way of life. Betting on your own soldiers is poor for morale. You will do well to stay in line.\" - Brugo The Bold"
 card_art = ExtResource("1_l4fky")
 ability_types = Array[String](["attrition", "assault"])

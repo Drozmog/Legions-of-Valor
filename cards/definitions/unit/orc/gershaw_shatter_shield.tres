@@ -12,9 +12,9 @@ card_type = "unit"
 rarity = "normal"
 tribute_cost = 5
 ap = 7
-ability_text = "Cleave : When this unit wins a clash → Opponent must discard a card from his hand.
+ability_text = "Cleave : When this unit wins a clash; Opponent must discard 1 card from their hand.
 
-Loyalty : Costs 1 less Mana if placed on same race."
+Loyalty : This unit costs 1 less TP if it is deployed as a promotion."
 lore_text = "\"Hurt me? Oh sweet thing, you sound so serious behind that steel plate, allow me to cut that cake of an armor\""
 card_art = ExtResource("1_cgsxe")
 ability_types = Array[String](["attrition", "economy"])

@@ -12,8 +12,7 @@ card_type = "unit"
 rarity = "normal"
 tribute_cost = 3
 ap = 4
-dp = 1
-ability_text = "Cleave : When this unit wins a clash → Opponent must discard a card from his hand."
+ability_text = "Cleave : When this unit wins a clash; Opponent must discard 1 card from their hand."
 lore_text = "\"Press the human lines back into the river valleys!
 Give them no room to form lines!\""
 card_art = ExtResource("1_w8fg5")

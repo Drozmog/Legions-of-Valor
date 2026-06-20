@@ -13,9 +13,9 @@ rarity = "normal"
 tribute_cost = 2
 ap = 5
 dp = 1
-ability_text = "Despair : Penalty → On death, you lose 1 Aurion.
+ability_text = "Despair : Penalty; On death, you lose 1 Aurion.
 
-Dominance : If AP is 3+ higher than defender, defender cannot Parry."
+Dominance : If your AP is 2 or higher than the defender's AP, defender cannot Parry."
 lore_text = "\"Rejected by the palace, hunted by the clans. I only owe allegiance to the blade.\""
 card_art = ExtResource("1_djxtq")
 ability_types = Array[String](["attrition", "control"])

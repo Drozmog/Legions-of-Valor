@@ -32,6 +32,7 @@ var hand_count: int = 0
 
 var tribute_cards_data: Array = []
 var discard_cards_data: Array = []
+var parry_cards_data: Array[CardData] = []
 
 var hand_root: Node3D = null
 var deck_root: Node3D = null
@@ -296,7 +297,30 @@ func rebuild_parry_pit() -> void:
 	mesh_instance.material_override = mat
 
 	parry_pit_root.add_child(mesh_instance)
-	create_label(parry_pit_root, "Enemy Parry", Vector3(0, 0.25, -0.70), opponent_pile_label_font_size)
+	for index in range(parry_cards_data.size()):
+		var card_data: CardData = parry_cards_data[index]
+		if card_data == null:
+			continue
+		var card := CardPileVisual.create_face_up_card_visual(card_data, face_up_pile_card_scale)
+		card.position = Vector3(
+			-0.18 + float(index % 3) * 0.18,
+			0.035 + float(index) * 0.012,
+			-0.10 + float(index % 3) * 0.10
+		)
+		card.rotation_degrees = Vector3(0.0, -7.0 + float(index % 4) * 4.0, 0.0)
+		parry_pit_root.add_child(card)
+
+
+func add_parry_card(card_data: CardData) -> void:
+	if card_data == null:
+		return
+	parry_cards_data.append(card_data)
+	rebuild_parry_pit()
+
+
+func clear_parry_cards() -> void:
+	parry_cards_data.clear()
+	rebuild_parry_pit()
 
 
 func create_label(parent: Node3D, text: String, label_position: Vector3, font_size: int) -> void:

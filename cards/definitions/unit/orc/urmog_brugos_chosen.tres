@@ -11,11 +11,11 @@ race = "orc"
 card_type = "unit"
 rarity = "normal"
 tribute_cost = 5
-ap = 7
+ap = 6
 dp = 1
 ability_text = "Shielded : Gain +2AP if Defending (Not while attacking).
 
-Aegis : Unit cannot be targeted/destroyed by Events."
+Spell-Shield : This unit is not affected by enemy gambits."
 lore_text = "\"Tell the humans they have pushed far enough into our northern foothills. Tell your Fabled Marshal we're ready\""
 card_art = ExtResource("1_mlc4w")
 ability_types = Array[String](["protection", "protection"])

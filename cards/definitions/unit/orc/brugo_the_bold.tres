@@ -11,12 +11,12 @@ race = "orc"
 card_type = "unit"
 rarity = "elite"
 tribute_cost = 7
-ap = 11
+ap = 10
 dp = 3
-ability_text = "Banish : Return a unit and all its equipment to back to the player's hand.
+ability_text = "Banish : Return a unit and all its equipment back to the player's hand.
 
-Aegis : Cannot be targeted/destroyed by Events."
+Loyalty : This unit costs 1 less TP if it is deployed as a promotion."
 lore_text = "\"Parlaying is the ultimate form of resistance. A dead people cannot reclaim honor. We sign the peace today so we can live to fight tomorrow.\""
 card_art = ExtResource("1_2k0i2")
-ability_types = Array[String](["mobility", "protection"])
+ability_types = Array[String](["mobility", "economy"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

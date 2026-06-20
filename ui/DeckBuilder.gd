@@ -3,7 +3,7 @@ extends Node3D
 
 const CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
 const BATTLE_SCENE_PATH := "res://battlefield/battlefield_3d.tscn"
-const MENU_SCENE_PATH := "res://ui/prototype_menu.tscn"
+const MENU_SCENE_PATH := "res://ui/Menu/prototype_menu.tscn"
 const SAVE_PATH := "user://lov_player_deck.json"
 
 const MIN_DECK_SIZE := 10

@@ -33,7 +33,7 @@ const UPPER_HALL_PROSPECTOR: CardData = preload("res://cards/definitions/unit/dw
 const BRUGO_THE_BOLD: CardData = preload("res://cards/definitions/unit/orc/brugo_the_bold.tres")
 const CAVE_CRAWL_GRUNT: CardData = preload("res://cards/definitions/unit/orc/cave_crawl_grunt.tres")
 const DREAD_PIT_BRAWLER: CardData = preload("res://cards/definitions/unit/orc/dread_pit_brawler.tres")
-const ELITE_MARAUDER: CardData = preload("res://cards/definitions/unit/orc/elite_marauder.tres")
+const ELITE_MARAUDER_MUURGUL: CardData = preload("res://cards/definitions/unit/orc/elite_marauder_muurgul.tres")
 const GERSHAW_SHATTER_SHIELD: CardData = preload("res://cards/definitions/unit/orc/gershaw_shatter_shield.tres")
 const GORTHAK_THE_BUTCHER: CardData = preload("res://cards/definitions/unit/orc/gorthak_the_butcher.tres")
 const HIGH_CHIEFTAIN_GROG: CardData = preload("res://cards/definitions/unit/orc/high_chieftain_grog.tres")
@@ -43,8 +43,8 @@ const KRELL_THE_BLOODLET: CardData = preload("res://cards/definitions/unit/orc/k
 const ORCISH_MILITIA: CardData = preload("res://cards/definitions/unit/orc/orcish_militia.tres")
 const ORKHAEL_OUTCAST: CardData = preload("res://cards/definitions/unit/orc/orkhael_outcast.tres")
 const ORKHAEL_SCAVENGER: CardData = preload("res://cards/definitions/unit/orc/orkhael_scavenger.tres")
-const ORKHAEL_WARLORD: CardData = preload("res://cards/definitions/unit/orc/orkhael_warlord.tres")
-const RAGING_ORKHAEL: CardData = preload("res://cards/definitions/unit/orc/raging_orkhael.tres")
+const ORKHAEL_WARLORD_RIUYO: CardData = preload("res://cards/definitions/unit/orc/orkhael_warlord_riuyo.tres")
+const RAGING_ORKHAEL_VLARA: CardData = preload("res://cards/definitions/unit/orc/raging_orkhael_vlara.tres")
 const SIEGE_BREAKER_ORC: CardData = preload("res://cards/definitions/unit/orc/siege_breaker_orc.tres")
 const SLAUGHTER_VETERAN_VIGO: CardData = preload("res://cards/definitions/unit/orc/slaughter_veteran_vigo.tres")
 const SOLKARAN_DEPTH_DWELLER: CardData = preload("res://cards/definitions/unit/orc/solkaran_depth_dweller.tres")
@@ -117,7 +117,7 @@ static func get_all_orc_cards() -> Array[CardData]:
 		BRUGO_THE_BOLD,
 		CAVE_CRAWL_GRUNT,
 		DREAD_PIT_BRAWLER,
-		ELITE_MARAUDER,
+		ELITE_MARAUDER_MUURGUL,
 		GERSHAW_SHATTER_SHIELD,
 		GORTHAK_THE_BUTCHER,
 		HIGH_CHIEFTAIN_GROG,
@@ -127,8 +127,8 @@ static func get_all_orc_cards() -> Array[CardData]:
 		ORCISH_MILITIA,
 		ORKHAEL_OUTCAST,
 		ORKHAEL_SCAVENGER,
-		ORKHAEL_WARLORD,
-		RAGING_ORKHAEL,
+		ORKHAEL_WARLORD_RIUYO,
+		RAGING_ORKHAEL_VLARA,
 		SIEGE_BREAKER_ORC,
 		SLAUGHTER_VETERAN_VIGO,
 		SOLKARAN_DEPTH_DWELLER,

@@ -11,11 +11,11 @@ race = "orc"
 card_type = "unit"
 rarity = "elite"
 tribute_cost = 6
-ap = 9
-dp = 2
-ability_text = "Hard Bargain : If a clash is won→gain +1 Aurion. If this unit is destroyed→lose 2 Aurion.
+ap = 11
+dp = 3
+ability_text = "Hard Bargain : If a clash is won; gain +1 Aurion. If this unit is destroyed; lose 2 Aurion.
 
-Aegis : Cannot be targeted/destroyed by Events."
+Equalizer : Both units discarded if Attacker AP is exactly +1 higher."
 lore_text = "\"I was the best of the elves and they cast me away. I am the best of the orcs but I dare not say. The Sylvian courts will answer for their injustice and so will the guild\""
 card_art = ExtResource("1_0d1j6")
 ability_types = Array[String](["economy", "protection"])

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dnfe6xu7teskp"]
+
+[ext_resource type="Texture2D" uid="uid://cftkw7lija83o" path="res://cards/images/unit/orc/elite_marauder_muurgul.png" id="1_v74gf"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_26xkv"]
+
+[resource]
+script = ExtResource("2_26xkv")
+card_id = "elite_marauder_muurgul"
+card_name = "Elite Marauder"
+race = "orc"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 4
+ap = 6
+dp = 2
+ability_text = "Loyalty : This unit costs 1 less TP if it is deployed as a promotion."
+lore_text = "Part of the disciplined legions trained under Horlon to match human battlefield structure."
+card_art = ExtResource("1_v74gf")
+ability_types = Array[String](["economy"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

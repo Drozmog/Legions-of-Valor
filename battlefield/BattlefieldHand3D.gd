@@ -45,6 +45,11 @@ func _process(delta: float) -> void:
 	sync_card_visuals()
 	update_card_layout(delta)
 	update_pressed_card_drag()
+	# A SubViewport or modal control may consume mouse-up before this node's
+	# _input callback. Recover from the physical button state so a card can
+	# never remain hidden or permanently held.
+	if pressed_card != null and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		release_pressed_card(get_viewport().get_mouse_position())
 	update_draw_preview(delta)
 
 
@@ -221,22 +226,25 @@ func _input(event: InputEvent) -> void:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index != MOUSE_BUTTON_LEFT or mouse_event.pressed:
 			return
-		var released_card := pressed_card
-		pressed_card = null
-		if press_became_drag:
-			# The invisible rules proxy must continue from the physical drop point.
-			# Otherwise its layout tween starts at the old slot and the 3D card
-			# appears to replay the reorder a second time.
-			released_card.global_position = (
-				mouse_event.position
-				- released_card.size * released_card.scale * 0.5
-			)
-			released_card.rotation_degrees = 0.0
-			hand_ui._on_card_drag_released(released_card, mouse_event.position)
-		else:
-			hand_ui._on_card_clicked(released_card, mouse_event.position)
-		press_became_drag = false
+		release_pressed_card(mouse_event.position)
 		get_viewport().set_input_as_handled()
+
+
+func release_pressed_card(screen_position: Vector2) -> void:
+	if pressed_card == null:
+		return
+	var released_card := pressed_card
+	pressed_card = null
+	if press_became_drag:
+		released_card.global_position = (
+			screen_position
+			- released_card.size * released_card.scale * 0.5
+		)
+		released_card.rotation_degrees = 0.0
+		hand_ui._on_card_drag_released(released_card, screen_position)
+	else:
+		hand_ui._on_card_clicked(released_card, screen_position)
+	press_became_drag = false
 
 
 func _on_card_mouse_entered(proxy: CardUI) -> void:

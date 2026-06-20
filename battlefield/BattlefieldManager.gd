@@ -5,7 +5,7 @@ extends Node3D
 # After this file works, the wrapper manager scripts can be removed.
 
 const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
-const MENU_SCENE_PATH := "res://ui/prototype_menu.tscn"
+const MENU_SCENE_PATH := "res://ui/Menu/prototype_menu.tscn"
 
 const ARCH_WIZARD_MAELCOR: CardData = CardDatabase.ARCH_WIZARD_MAELCOR
 
@@ -1331,6 +1331,8 @@ func start_hand_drag_preview(card: CardUI) -> void:
 		return
 	hand_drag_preview = TEST_CARD_SCENE.instantiate() as Node3D
 	hand_was_auto_lowered_for_drag = false
+	if bottom_hud_3d != null:
+		bottom_hud_3d.set_card_drag_active(true)
 	add_child(hand_drag_preview)
 	hand_drag_preview.top_level = true
 	if hand_drag_preview.has_method("assign_card_data"):
@@ -1408,6 +1410,8 @@ func finish_hand_drag_preview() -> void:
 		hand_drag_preview.queue_free()
 	hand_drag_preview = null
 	hand_was_auto_lowered_for_drag = false
+	if bottom_hud_3d != null:
+		bottom_hud_3d.set_card_drag_active(false)
 	Cursors.use_normal()
 
 
@@ -1463,6 +1467,8 @@ func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
 	var preview_card: CardData = player_deck.peek_top_card()
 	var started: bool = hand.start_draw_pile_drag(screen_position, preview_card, is_awarded_draw)
 	if started:
+		if bottom_hud_3d != null:
+			bottom_hud_3d.set_card_drag_active(true)
 		if player_hand_3d != null and draw_pile != null:
 			if hand.draw_drag_card != null:
 				hand.draw_drag_card.visible = false
@@ -1481,6 +1487,8 @@ func _on_draw_pile_drag_moved(screen_position: Vector2) -> void:
 
 
 func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
+	if bottom_hud_3d != null:
+		bottom_hud_3d.set_card_drag_active(false)
 	if hand == null or player_deck == null:
 		return
 	if not hand.is_screen_position_in_hand_drop_zone(screen_position):
@@ -2123,9 +2131,9 @@ func resolve_lane_combat(lane: String, player_slot: Node, opponent_slot: Node) -
 		return
 
 	if player_has_initiative:
-		resolve_directed_clash(lane, player_slot, player_card, opponent_slot, opponent_card, true)
+		await resolve_directed_clash(lane, player_slot, player_card, opponent_slot, opponent_card, true)
 	else:
-		resolve_directed_clash(lane, opponent_slot, opponent_card, player_slot, player_card, false)
+		await resolve_directed_clash(lane, opponent_slot, opponent_card, player_slot, player_card, false)
 
 
 func resolve_directed_clash(
@@ -2182,9 +2190,7 @@ func resolve_directed_clash(
 			parry_system.begin(lane, _attacker_slot, attacker_card, defender_slot, defender_card)
 			return
 
-		send_slot_card_to_discard(defender_slot)
-		log_msg(defender_label + " " + defender_card.card_name + " was destroyed.")
-		add_aurion("player", 1, "Destroyed " + defender_card.card_name + " in combat.")
+		await resolve_ai_parry_attempt(attacker_card, defender_slot, defender_card)
 		return
 
 	# The attacker knowingly chose to fight into a stronger unit.
@@ -2209,6 +2215,66 @@ func resolve_directed_clash(
 	var defender_score_owner: String = "ai" if player_is_attacker else "player"
 	add_aurion(defender_score_owner, 1, "Destroyed " + attacker_card.card_name + " after it knowingly attacked a higher-AP unit.")
 	return
+
+
+func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defender_card: CardData) -> void:
+	var required: int = maxi(attacker_card.ap - defender_card.ap, 1)
+	var available_dp := 0
+	for hand_card in ai_hand:
+		if hand_card != null:
+			available_dp += maxi(hand_card.dp, 0)
+	if available_dp < required:
+		send_slot_card_to_discard(defender_slot)
+		log_msg("Opponent could not parry. " + defender_card.card_name + " was destroyed.")
+		add_aurion("player", 1, "Destroyed " + defender_card.card_name + " in combat.")
+		return
+
+	log_msg("Opponent opens a Parry and needs " + str(required) + " DP.")
+	var gathered := 0
+	var parry_target := get_enemy_visual_target("EnemyParryPitVisual")
+	while gathered < required:
+		var remaining := required - gathered
+		var hand_index := find_ai_parry_card_index(remaining)
+		if hand_index < 0:
+			break
+		var sacrifice: CardData = ai_hand[hand_index]
+		await play_enemy_hand_to_node_animation(sacrifice, parry_target, false)
+		ai_hand.pop_at(hand_index)
+		ai_discard.append(sacrifice)
+		gathered += maxi(sacrifice.dp, 0)
+		if opponent_visuals != null and opponent_visuals.has_method("add_parry_card"):
+			opponent_visuals.add_parry_card(sacrifice)
+		update_ai_visuals()
+		log_msg("Opponent parries with " + sacrifice.card_name + " for " + str(maxi(sacrifice.dp, 0)) + " DP.")
+		await get_tree().create_timer(0.28).timeout
+
+	if gathered >= required:
+		log_msg("Opponent Parry succeeds. " + defender_card.card_name + " survives.")
+	else:
+		send_slot_card_to_discard(defender_slot)
+		log_msg("Opponent Parry fails. " + defender_card.card_name + " was destroyed.")
+		add_aurion("player", 1, "Destroyed " + defender_card.card_name + " in combat.")
+	await get_tree().create_timer(0.55).timeout
+	if opponent_visuals != null and opponent_visuals.has_method("clear_parry_cards"):
+		opponent_visuals.clear_parry_cards()
+
+
+func find_ai_parry_card_index(remaining_dp: int) -> int:
+	var exact_or_smallest := -1
+	var exact_or_smallest_dp := 1_000_000
+	var largest := -1
+	var largest_dp := -1
+	for index in range(ai_hand.size()):
+		var card_data: CardData = ai_hand[index]
+		if card_data == null or card_data.dp <= 0:
+			continue
+		if card_data.dp >= remaining_dp and card_data.dp < exact_or_smallest_dp:
+			exact_or_smallest = index
+			exact_or_smallest_dp = card_data.dp
+		if card_data.dp > largest_dp:
+			largest = index
+			largest_dp = card_data.dp
+	return exact_or_smallest if exact_or_smallest >= 0 else largest
 
 
 func get_slot_card_data(slot: Node) -> CardData:
@@ -4730,7 +4796,7 @@ func resolve_player_attack_lane_with_visuals(lane: String) -> void:
 		return
 
 	if enemy_front_card != null:
-		resolve_lane_combat(lane, player_front_slot, enemy_front_slot)
+		await resolve_lane_combat(lane, player_front_slot, enemy_front_slot)
 
 		if parry_system.active:
 			combat_resolution_running = false

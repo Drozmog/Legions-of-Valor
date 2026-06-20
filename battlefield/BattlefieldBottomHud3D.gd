@@ -30,6 +30,14 @@ var log_open := false
 var plans_open := false
 var last_info_signature := ""
 var last_plan_signature := ""
+var card_drag_active := false
+var log_open_position := Vector3.ZERO
+var log_closed_position := Vector3.ZERO
+var plan_open_position := Vector3.ZERO
+var plan_closed_position := Vector3.ZERO
+var log_slide_tween: Tween
+var plan_slide_tween: Tween
+var hud_cursor_active := false
 
 
 func _ready() -> void:
@@ -41,7 +49,7 @@ func _ready() -> void:
 
 
 func build_main_bar() -> void:
-	var entry := create_surface("BattleHud", Vector2i(1800, 110), Vector3(0.0, 0.075, 3.87), Vector2(9.0, 0.42), true)
+	var entry := create_surface("BattleHud", Vector2i(2100, 110), Vector3(0.0, 0.075, 3.87), Vector2(10.5, 0.40), true)
 	main_surface = entry["surface"]
 	var root: Control = entry["control"]
 
@@ -55,47 +63,45 @@ func build_main_bar() -> void:
 	root.add_child(panel)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 12)
-	margin.add_theme_constant_override("margin_right", 12)
-	margin.add_theme_constant_override("margin_top", 5)
-	margin.add_theme_constant_override("margin_bottom", 5)
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
 	panel.add_child(margin)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	row.add_theme_constant_override("separation", 40)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	margin.add_child(row)
 
-	var log_button := make_button("▲ LOG", Vector2(82, 42))
+	var log_button := make_button("▲ LOG", Vector2(20, 20))
 	log_button.pressed.connect(toggle_log)
 	row.add_child(log_button)
 
-	var portrait := Label.new()
-	portrait.text = "P"
-	portrait.custom_minimum_size = Vector2(46, 46)
-	portrait.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	portrait.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	portrait.add_theme_font_size_override("font_size", 23)
-	portrait.add_theme_color_override("font_color", PALE_GOLD)
-	portrait.add_theme_stylebox_override("normal", portrait_style())
+	var portrait := TextureRect.new()
+	portrait.texture = preload("res://ui/Profile Pictures/siegmere.png")
+	portrait.custom_minimum_size = Vector2(70, 70)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(portrait)
 
 	var identity := VBoxContainer.new()
-	identity.custom_minimum_size = Vector2(142, 0)
+	identity.custom_minimum_size = Vector2(142, 20)
 	identity.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_child(identity)
 	var player_name := Label.new()
-	player_name.text = "PLAYER"
-	player_name.add_theme_font_size_override("font_size", 16)
+	player_name.text = "DROZMOG"
+	player_name.add_theme_font_size_override("font_size", 30)
 	player_name.add_theme_color_override("font_color", PALE_GOLD)
 	identity.add_child(player_name)
 	var role := Label.new()
-	role.text = "LEGIONS COMMANDER"
-	role.add_theme_font_size_override("font_size", 11)
+	role.text = "Grand Marshal"
+	role.add_theme_font_size_override("font_size", 16)
 	role.add_theme_color_override("font_color", Color(0.72, 0.57, 0.34, 1.0))
 	identity.add_child(role)
 
-	var plans_button := make_button("BATTLEPLANS", Vector2(150, 42))
+	var plans_button := make_button("BATTLEPLANS", Vector2(150, 10))
 	plans_button.pressed.connect(toggle_plans)
 	row.add_child(plans_button)
 
@@ -107,35 +113,38 @@ func build_main_bar() -> void:
 	phase_info.alignment = BoxContainer.ALIGNMENT_CENTER
 	phase_info.add_theme_constant_override("separation", 0)
 	row.add_child(phase_info)
-	var heading := HBoxContainer.new()
-	heading.alignment = BoxContainer.ALIGNMENT_CENTER
-	heading.add_theme_constant_override("separation", 16)
-	phase_info.add_child(heading)
-	phase_label = Label.new()
-	phase_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	phase_label.add_theme_font_size_override("font_size", 18)
-	phase_label.add_theme_color_override("font_color", PALE_GOLD)
-	heading.add_child(phase_label)
-	turn_label = Label.new()
-	turn_label.add_theme_font_size_override("font_size", 14)
-	turn_label.add_theme_color_override("font_color", GOLD)
-	turn_label.visible = false
-	heading.add_child(turn_label)
 	score_label = Label.new()
+	score_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	score_label.add_theme_font_size_override("font_size", 14)
+	score_label.add_theme_font_size_override("font_size", 20)
 	score_label.add_theme_color_override("font_color", Color.WHITE)
 	phase_info.add_child(score_label)
 	instruction_label = Label.new()
 	instruction_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	instruction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	instruction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	instruction_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	instruction_label.add_theme_font_size_override("font_size", 13)
+	instruction_label.add_theme_font_size_override("font_size", 18)
 	instruction_label.add_theme_color_override("font_color", Color(0.84, 0.75, 0.61, 1.0))
+	instruction_label.visible = false
 	phase_info.add_child(instruction_label)
+
+	var phase_heading := VBoxContainer.new()
+	phase_heading.custom_minimum_size = Vector2(205, 0)
+	phase_heading.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(phase_heading)
+	phase_label = Label.new()
+	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	phase_label.add_theme_font_size_override("font_size", 25)
+	phase_label.add_theme_color_override("font_color", PALE_GOLD)
+	phase_heading.add_child(phase_label)
+	turn_label = Label.new()
+	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	turn_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	turn_label.add_theme_font_size_override("font_size", 20)
+	turn_label.add_theme_color_override("font_color", GOLD)
+	phase_heading.add_child(turn_label)
 
 	phase_button = make_button("CONTINUE", Vector2(170, 46), true)
 	phase_button.pressed.connect(func(): phase_action_pressed.emit())
@@ -143,7 +152,9 @@ func build_main_bar() -> void:
 
 
 func build_log_foldout() -> void:
-	var entry := create_surface("BattleLog", Vector2i(900, 430), Vector3(-2.35, 0.115, 2.18), Vector2(4.45, 2.05), false)
+	log_open_position = Vector3(-3.00, 0.115, 2.6)
+	log_closed_position = Vector3(-3.00, 0.115, 3.58)
+	var entry := create_surface("BattleLog", Vector2i(900, 430), log_closed_position, Vector2(4.45, 2.05), true)
 	log_surface = entry["surface"]
 	log_viewport = entry["viewport"]
 	var root: Control = entry["control"]
@@ -162,14 +173,18 @@ func build_log_foldout() -> void:
 	log_text.scroll_active = true
 	log_text.scroll_following = true
 	log_text.fit_content = false
+	log_text.mouse_filter = Control.MOUSE_FILTER_STOP
 	log_text.add_theme_font_size_override("normal_font_size", 17)
 	log_text.add_theme_color_override("default_color", Color(0.92, 0.84, 0.68, 1.0))
 	margin.add_child(log_text)
+	log_surface.scale = Vector3(1.0, 0.02, 1.0)
 	log_surface.visible = false
 
 
 func build_plan_foldout() -> void:
-	var entry := create_surface("BattlePlans", Vector2i(1240, 560), Vector3(0.0, 0.118, 1.75), Vector2(6.25, 2.75), false)
+	plan_open_position = Vector3(0.2, 0.118, 2.2)
+	plan_closed_position = Vector3(0.2, 0.118, 3.50)
+	var entry := create_surface("BattlePlans", Vector2i(1240, 560), plan_closed_position, Vector2(6.25, 2.75), false)
 	plan_surface = entry["surface"]
 	plan_viewport = entry["viewport"]
 	var root: Control = entry["control"]
@@ -190,6 +205,7 @@ func build_plan_foldout() -> void:
 	opponent_plan_box = make_plan_card("OPPONENT BATTLEPLAN")
 	row.add_child(player_plan_box)
 	row.add_child(opponent_plan_box)
+	plan_surface.scale = Vector3(1.0, 0.02, 1.0)
 	plan_surface.visible = false
 
 
@@ -233,7 +249,7 @@ func update_info(phase_text: String, turn_text: String, score_text: String, inst
 	if signature == last_info_signature:
 		return
 	last_info_signature = signature
-	phase_label.text = phase_text + "   •   " + turn_text
+	phase_label.text = phase_text
 	turn_label.text = turn_text
 	score_label.text = score_text
 	instruction_label.text = instruction.replace("\n", "  •  ")
@@ -259,18 +275,42 @@ func set_battleplans(player_plan: Dictionary, enemy_plan: Dictionary) -> void:
 
 func toggle_log() -> void:
 	log_open = not log_open
-	log_surface.visible = log_open
+	animate_foldout(log_surface, log_open, log_open_position, log_closed_position, true)
 	if log_open:
 		plans_open = false
-		plan_surface.visible = false
+		animate_foldout(plan_surface, false, plan_open_position, plan_closed_position, false)
 
 
 func toggle_plans() -> void:
 	plans_open = not plans_open
-	plan_surface.visible = plans_open
+	animate_foldout(plan_surface, plans_open, plan_open_position, plan_closed_position, false)
 	if plans_open:
 		log_open = false
-		log_surface.visible = false
+		animate_foldout(log_surface, false, log_open_position, log_closed_position, true)
+
+
+func animate_foldout(surface: MeshInstance3D, opening: bool, open_position: Vector3, closed_position: Vector3, is_log: bool) -> void:
+	if surface == null:
+		return
+	var old_tween := log_slide_tween if is_log else plan_slide_tween
+	if old_tween != null and old_tween.is_valid():
+		old_tween.kill()
+	if opening:
+		surface.visible = true
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT if opening else Tween.EASE_IN)
+	tween.tween_property(surface, "position", open_position if opening else closed_position, 0.28)
+	tween.parallel().tween_property(surface, "scale", Vector3.ONE if opening else Vector3(1.0, 0.02, 1.0), 0.28)
+	if not opening:
+		tween.tween_callback(func(): surface.visible = false)
+	if is_log:
+		log_slide_tween = tween
+	else:
+		plan_slide_tween = tween
+
+
+func set_card_drag_active(active: bool) -> void:
+	card_drag_active = active
 
 
 func make_plan_card(caption: String) -> PanelContainer:
@@ -310,13 +350,15 @@ func fill_plan_card(card: PanelContainer, plan: Dictionary, caption: String) -> 
 
 
 func _input(event: InputEvent) -> void:
-	if not event is InputEventMouse or camera_3d == null:
+	if card_drag_active or not event is InputEventMouse or camera_3d == null:
 		return
 	var mouse_event := event as InputEventMouse
 	for entry in surfaces:
 		if not bool(entry["interactive"]):
 			continue
 		var surface: MeshInstance3D = entry["surface"]
+		if surface == null or not surface.visible:
+			continue
 		var origin := camera_3d.project_ray_origin(mouse_event.position)
 		var direction := camera_3d.project_ray_normal(mouse_event.position)
 		if absf(direction.y) < 0.0001:
@@ -333,9 +375,25 @@ func _input(event: InputEvent) -> void:
 		var forwarded := event.duplicate() as InputEventMouse
 		forwarded.position = mapped
 		forwarded.global_position = mapped
-		(entry["viewport"] as SubViewport).push_input(forwarded, true)
+		var target_viewport := entry["viewport"] as SubViewport
+		target_viewport.push_input(forwarded, true)
+		if event is InputEventMouseMotion:
+			var hovered := target_viewport.gui_get_hovered_control()
+			var wants_pointing := (
+				hovered != null
+				and hovered.mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND
+			)
+			if wants_pointing:
+				hud_cursor_active = true
+				Cursors.use_pointing()
+			elif hud_cursor_active:
+				hud_cursor_active = false
+				Cursors.use_normal()
 		get_viewport().set_input_as_handled()
 		return
+	if event is InputEventMouseMotion and hud_cursor_active:
+		hud_cursor_active = false
+		Cursors.use_normal()
 
 
 func make_button(text_value: String, minimum: Vector2, primary: bool = false) -> Button:
@@ -359,7 +417,7 @@ func panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = PANEL_BG
 	style.border_color = GOLD
-	style.set_border_width_all(3)
+	style.set_border_width_all(0)
 	style.set_corner_radius_all(11)
 	# A flat tabletop plaque avoids the square shadow corner produced by
 	# StyleBoxFlat shadows around rounded panels.

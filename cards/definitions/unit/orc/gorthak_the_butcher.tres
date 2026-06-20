@@ -12,7 +12,7 @@ card_type = "unit"
 rarity = "elite"
 tribute_cost = 7
 ap = 10
-ability_text = "Wrath : On deploy → Destroy ALL equipment cards in play.
+ability_text = "Wrath : On deploy; Destroy ALL equipment cards in play.
 
 Bloodthirst : If this unit destroys an enemy unit, it can attack a second time this turn."
 lore_text = "\"Rodry would have made a good commander, the best and I would finally set my sword aside. Gorthak is what they call him, the beast who ate his heart. He will be my last mark\" - Commander Rykard "
