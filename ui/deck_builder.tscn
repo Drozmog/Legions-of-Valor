@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://d226xmh0gjdy3"]
 
-[ext_resource type="Script" uid="uid://covct7wrxca8x" path="res://ui/DeckBuilder.gd" id="1_builder"]
+[ext_resource type="Script" uid="uid://cedl2qflls1en" path="res://ui/DeckBuilder.gd" id="1_builder"]
 [ext_resource type="Texture2D" uid="uid://c5sxw3n3uqrml" path="res://Textures/Deck Builder/heavy_wooden_deck_builder_table (2).png" id="3_lltvm"]
 [ext_resource type="Texture2D" uid="uid://cy34hadl7kml0" path="res://Textures/Deck Builder/red_cloth.png" id="3_mn2kh"]
 [ext_resource type="Texture2D" uid="uid://dnkwi7uhean6a" path="res://Textures/Deck Builder/rack_surface.png" id="4_mn2kh"]
@@ -56,9 +56,11 @@ uv1_offset = Vector3(-0.005, 0, 0)
 [sub_resource type="BoxMesh" id="Mesh_RackWallShort"]
 size = Vector3(3.16, 0.42, 0.08)
 
-[sub_resource type="StandardMaterial3D" id="Mat_Wall"]
-albedo_color = Color(0.33, 0.17, 0.07, 1)
-roughness = 0.72
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1vvxd"]
+albedo_texture = ExtResource("5_1vvxd")
+roughness = 0.0
+uv1_scale = Vector3(2.98, 2.01, 1)
+uv1_offset = Vector3(0.005, 0, 0)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0mkf5"]
 albedo_texture = ExtResource("5_1vvxd")
@@ -73,8 +75,9 @@ script = ExtResource("1_builder")
 environment = SubResource("Environment_uy14w")
 
 [node name="DeckBuilderCamera" type="Camera3D" parent="." unique_id=614418254]
-transform = Transform3D(1, 0, 0, 0, 0.26218924, 0.9650165, 0, -0.9650165, 0.26218924, 0, 4.8, 2.125)
+transform = Transform3D(1, 0, 0, 0, 0.15988123, 0.98713624, 0, -0.98713624, 0.15988123, 0, 5.57, 1.385)
 current = true
+fov = 71.5
 
 [node name="WarmOverheadLight" type="DirectionalLight3D" parent="." unique_id=1695227764]
 transform = Transform3D(0.8480481, 0.44939703, -0.28081444, 0, 0.52991927, 0.8480481, 0.52991927, -0.7191856, 0.44939703, 0, 0, 0)
@@ -96,12 +99,12 @@ mesh = SubResource("Mesh_TableTrim")
 surface_material_override/0 = SubResource("Mat_Gold")
 
 [node name="RedClothCollectionTable" type="MeshInstance3D" parent="." unique_id=1070043322]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1564276, 0.012, 0.59011257)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1564276, 0.012, 0.10418761)
 mesh = SubResource("Mesh_LeftSurface")
 surface_material_override/0 = SubResource("Mat_Surface")
 
 [node name="LibraryTitle3D" type="Label3D" parent="." unique_id=770178002]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -5.8564277, 0.08, -2.0598874)
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -5.8564277, 0.08, -2.5458124)
 pixel_size = 0.01
 offset = Vector2(158.425, -46.31)
 modulate = Color(0.96, 0.79, 0.34, 1)
@@ -109,32 +112,38 @@ text = "OWNED CARD LIBRARY"
 font_size = 34
 
 [node name="RightPhysicalDeckRack" type="MeshInstance3D" parent="." unique_id=1694474229]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.979156, 0.035, 0.49011254)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 3.979156, 0.034999996, 0.092237115)
 mesh = SubResource("Mesh_RackBase")
 surface_material_override/0 = SubResource("Mat_Rack")
+metadata/_edit_group_ = true
 
 [node name="RackLeftWall" type="MeshInstance3D" parent="." unique_id=711139567]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.456284, 0.22, 0.49011254)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 2.456284, 0.22, 0.092237115)
 mesh = SubResource("Mesh_RackWallLong")
 surface_material_override/0 = SubResource("StandardMaterial3D_i8q6e")
+metadata/_edit_group_ = true
 
 [node name="RackRightWall" type="MeshInstance3D" parent="." unique_id=1624099856]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5360518, 0.22, 0.49011254)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 5.5360518, 0.22, 0.092237115)
 mesh = SubResource("Mesh_RackWallLong")
 surface_material_override/0 = SubResource("StandardMaterial3D_7s2lj")
+metadata/_edit_group_ = true
 
 [node name="RackTopWall" type="MeshInstance3D" parent="." unique_id=1857012900]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.996, 0.22, -2.3698874)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 3.996, 0.22, -2.6026287)
 mesh = SubResource("Mesh_RackWallShort")
-surface_material_override/0 = SubResource("Mat_Wall")
+surface_material_override/0 = SubResource("StandardMaterial3D_1vvxd")
+metadata/_edit_group_ = true
 
 [node name="RackBottomWall" type="MeshInstance3D" parent="." unique_id=1734884484]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.996, 0.22, 3.3501124)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 3.996, 0.22, 2.7871027)
 mesh = SubResource("Mesh_RackWallShort")
 surface_material_override/0 = SubResource("StandardMaterial3D_0mkf5")
+metadata/_edit_group_ = true
 
 [node name="RackTitle3D" type="Label3D" parent="." unique_id=1968342843]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 3.306284, 0.16, -2.0598874)
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 3.306284, 0.16, -2.5458124)
+visible = false
 pixel_size = 0.01
 offset = Vector2(69.125, -22.29)
 modulate = Color(0.96, 0.79, 0.34, 1)
@@ -142,5 +151,7 @@ text = "DECK RACK"
 font_size = 44
 
 [node name="LibraryCards" type="Node3D" parent="." unique_id=1014809837]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.48592496)
 
 [node name="DeckRackCards" type="Node3D" parent="." unique_id=1633634401]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.48592496)

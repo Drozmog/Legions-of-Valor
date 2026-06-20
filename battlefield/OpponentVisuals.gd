@@ -190,13 +190,8 @@ func rebuild_face_up_pile(root: Node3D, cards: Array, label_text: String) -> voi
 
 		var card_node := CardPileVisual.create_face_up_card_visual(card_data, face_up_pile_card_scale)
 
-		card_node.position = Vector3(
-			float(i) * 0.025,
-			0.045 + float(i) * 0.014,
-			float(i) * 0.018
-		)
-
-		card_node.rotation_degrees = Vector3(0.0, float(i) * 1.0, 0.0)
+		card_node.position = Vector3(0.0, 0.045 + float(i) * 0.014, 0.0)
+		card_node.rotation_degrees = Vector3.ZERO
 
 		root.add_child(card_node)
 
@@ -222,7 +217,7 @@ func rebuild_card_back_pile(root: Node3D, count: int, label_text: String) -> voi
 	for i in range(visible_count):
 		var card := CardPileVisual.create_card_back_visual(card_width, card_height)
 		card.position = Vector3(0, 0.025 + float(i) * (card_thickness + pile_card_gap), 0)
-		card.rotation_degrees = Vector3(0, float(i % 4) * 1.5, 0)
+		card.rotation_degrees = Vector3.ZERO
 		root.add_child(card)
 
 	create_label(

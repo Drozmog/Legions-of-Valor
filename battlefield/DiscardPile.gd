@@ -20,6 +20,7 @@ var base_node: MeshInstance3D = null
 
 func _ready() -> void:
 	create_base()
+	create_drop_area()
 	create_counter_label()
 	build_stack()
 
@@ -30,6 +31,21 @@ func create_base() -> void:
 
 	base_node = CardPileVisual.create_pile_base("DiscardBase")
 	add_child(base_node)
+
+
+func create_drop_area() -> void:
+	if get_node_or_null("DropArea") != null:
+		return
+	var area := Area3D.new()
+	area.name = "DropArea"
+	area.input_ray_pickable = true
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(1.35, 0.45, 1.65)
+	collision.shape = shape
+	collision.position.y = 0.18
+	area.add_child(collision)
+	add_child(area)
 
 
 func create_counter_label() -> void:
@@ -97,14 +113,8 @@ func build_stack() -> void:
 		var card_data: CardData = visible_cards[i]
 		var card_node := CardPileVisual.create_face_up_card_visual(card_data, card_scale)
 
-		# Same clean style as tribute pile.
-		card_node.position = Vector3(
-			float(i) * 0.025,
-			0.045 + float(i) * (card_thickness + stack_gap),
-			float(i) * 0.018
-		)
-
-		card_node.rotation_degrees = Vector3(0.0, float(i) * 1.0, 0.0)
+		card_node.position = Vector3(0.0, 0.045 + float(i) * (card_thickness + stack_gap), 0.0)
+		card_node.rotation_degrees = Vector3.ZERO
 
 		add_child(card_node)
 		stacked_cards.append(card_node)

@@ -73,7 +73,7 @@ func build_menu() -> void:
 	start_button.pressed.connect(_on_start_battle_pressed)
 	vbox.add_child(start_button)
 
-	var deck_button := make_menu_button("Deck Builder / Card Library", "Browse cards, build a deck rack, and save it for battle.")
+	var deck_button := make_menu_button("Deck Builder", "Browse cards, build a deck rack, and save it for battle.")
 	deck_button.pressed.connect(_on_deck_builder_pressed)
 	vbox.add_child(deck_button)
 

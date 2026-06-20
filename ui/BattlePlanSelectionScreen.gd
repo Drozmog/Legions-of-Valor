@@ -4,6 +4,7 @@ extends Control
 signal battle_plan_selected(plan: Dictionary)
 
 var options_container: HBoxContainer = null
+var ui_built: bool = false
 
 
 func _ready() -> void:
@@ -26,20 +27,26 @@ func setup_screen() -> void:
 
 
 func build_base_ui() -> void:
+	if ui_built:
+		return
+	ui_built = true
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.35)
 	dim.anchor_right = 1.0
 	dim.anchor_bottom = 1.0
 	add_child(dim)
 
-	var center := CenterContainer.new()
-	center.anchor_right = 1.0
-	center.anchor_bottom = 1.0
-	add_child(center)
-
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(1080, 580)
-	center.add_child(panel)
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -540.0
+	panel.offset_right = 540.0
+	panel.offset_top = -290.0
+	panel.offset_bottom = 290.0
+	panel.clip_contents = true
+	add_child(panel)
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.025, 0.025, 0.018, 0.94)
@@ -84,6 +91,9 @@ func build_base_ui() -> void:
 
 
 func show_selection(plans: Array[Dictionary]) -> void:
+	if not ui_built:
+		setup_screen()
+		build_base_ui()
 	if options_container == null:
 		return
 
@@ -93,11 +103,14 @@ func show_selection(plans: Array[Dictionary]) -> void:
 	for plan in plans:
 		options_container.add_child(create_plan_card(plan))
 
-	visible = true
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	show()
+	move_to_front()
 
 
 func hide_selection() -> void:
-	visible = false
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hide()
 
 
 func create_plan_card(plan: Dictionary) -> Control:

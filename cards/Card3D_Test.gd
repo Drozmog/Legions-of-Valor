@@ -3,6 +3,8 @@ extends Node3D
 
 const CARD_WIDTH: float = 1.02
 const CARD_HEIGHT: float = 1.34
+const CARD_CORNER_RADIUS: float = 0.065
+const CARD_CORNER_SEGMENTS: int = 8
 const CARD_BACK_PATH: String = "res://cards/card_back.png"
 
 const ABILITY_ICON_PATHS := {
@@ -61,12 +63,71 @@ func setup_card_body() -> void:
 		card_body.name = "CardBody"
 		add_child(card_body)
 
-	var plane := PlaneMesh.new()
-	plane.size = Vector2(CARD_WIDTH, CARD_HEIGHT)
-
-	card_body.mesh = plane
+	card_body.mesh = create_rounded_card_mesh(
+		CARD_WIDTH,
+		CARD_HEIGHT,
+		CARD_CORNER_RADIUS,
+		CARD_CORNER_SEGMENTS
+	)
 	card_body.position = Vector3(0, 0.012, 0)
 	card_body.rotation_degrees = Vector3.ZERO
+
+
+func create_rounded_card_mesh(width: float, height: float, radius: float, segments: int) -> ArrayMesh:
+	var half_w := width * 0.5
+	var half_h := height * 0.5
+	var outline: Array[Vector2] = []
+	add_card_corner_arc(outline, Vector2(half_w - radius, half_h - radius), radius, 90.0, 0.0, segments)
+	add_card_corner_arc(outline, Vector2(half_w - radius, -half_h + radius), radius, 0.0, -90.0, segments)
+	add_card_corner_arc(outline, Vector2(-half_w + radius, -half_h + radius), radius, -90.0, -180.0, segments)
+	add_card_corner_arc(outline, Vector2(-half_w + radius, half_h - radius), radius, 180.0, 90.0, segments)
+
+	var vertices := PackedVector3Array([Vector3.ZERO])
+	var normals := PackedVector3Array([Vector3.UP])
+	var uvs := PackedVector2Array([Vector2(0.5, 0.5)])
+	var indices := PackedInt32Array()
+
+	for point in outline:
+		# Card3D lies on X/Z. Mapping inspector-style +Y to -Z preserves the
+		# existing card-art orientation while using the same rounded silhouette.
+		vertices.append(Vector3(point.x, 0.0, -point.y))
+		normals.append(Vector3.UP)
+		uvs.append(Vector2(
+			(point.x + half_w) / width,
+			1.0 - ((point.y + half_h) / height)
+		))
+
+	for i in range(1, outline.size() + 1):
+		var next_i := i + 1
+		if next_i > outline.size():
+			next_i = 1
+		indices.append(0)
+		indices.append(i)
+		indices.append(next_i)
+
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
+
+func add_card_corner_arc(
+	points: Array[Vector2],
+	center: Vector2,
+	radius: float,
+	start_degrees: float,
+	end_degrees: float,
+	segments: int
+) -> void:
+	for i in range(segments + 1):
+		var t := float(i) / float(segments)
+		var angle := deg_to_rad(lerpf(start_degrees, end_degrees, t))
+		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
 
 
 func setup_fallback_label() -> void:

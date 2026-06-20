@@ -5,6 +5,7 @@ extends Node3D
 # After this file works, the wrapper manager scripts can be removed.
 
 const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
+const MENU_SCENE_PATH := "res://ui/prototype_menu.tscn"
 
 const ARCH_WIZARD_MAELCOR: CardData = CardDatabase.ARCH_WIZARD_MAELCOR
 
@@ -62,6 +63,14 @@ var game_has_started: bool = false
 
 var waiting_for_battle_plan: bool = true
 
+const BATTLEPLAN_HAND_CLEANUP_TIME: float = 20.0
+
+var pending_battleplan_draws: int = 0
+
+var battleplan_hand_cleanup_active: bool = false
+
+var battleplan_discard_time_left: float = 0.0
+
 var current_phase: int = BattlePhase.BATTLEPLAN
 
 var opponent_battle_plan: Dictionary = {}
@@ -81,6 +90,22 @@ var phase_label: Label = null
 var phase_instruction_label: Label = null
 
 var next_phase_button: Button = null
+
+var turn_label: Label = null
+
+var turn_number: int = 1
+
+var deck_selection_screen: DeckSelectionScreen = null
+
+var hand_drag_preview: Node3D = null
+
+var hand_drag_preview_target_position := Vector3.ZERO
+
+var hand_drag_preview_target_scale := Vector3.ONE
+
+var phase_button_ready_visual: bool = false
+
+var phase_transition_busy: bool = false
 
 var spawn_opponent_button: Button = null
 
@@ -119,6 +144,8 @@ var ai_tribute_used_this_turn: bool = false
 var ai_has_starting_hand: bool = false
 
 var ai_deployed_this_deployment_phase: bool = false
+
+var player_passed_deployment: bool = false
 
 var used_battle_plan_keys: Dictionary = {}
 
@@ -192,15 +219,24 @@ func _ready() -> void:
 	connect_all_slots()
 	connect_main_signals()
 	create_phase_ui()
+	create_exit_button()
+	create_deck_selection_screen()
 	create_ability_prompt_panel()
 	create_debug_tp_button()
 	set_phase(BattlePhase.BATTLEPLAN)
-	setup_battle_plan_flow()
+	setup_deck_selection_flow()
 	create_spell_choice_panel()
 	create_aurion_counter_ui()
 	disable_keyboard_focus_for_all_buttons($UI)
 	create_board_slot_action_menu()
 	patch_game_log_for_scrolling()
+	set_process(true)
+
+
+func _process(delta: float) -> void:
+	update_hand_drag_preview(delta)
+	update_battleplan_hand_cleanup(delta)
+	update_phase_progress_state()
 
 
 func connect_main_signals() -> void:
@@ -215,6 +251,40 @@ func connect_main_signals() -> void:
 		tribute_pile.tribute_pile_clicked.connect(_on_tribute_pile_clicked)
 	if tribute_manager != null:
 		tribute_manager.tribute_changed.connect(_on_tribute_changed)
+
+
+func create_deck_selection_screen() -> void:
+	deck_selection_screen = DeckSelectionScreen.new()
+	deck_selection_screen.name = "DeckSelectionScreen"
+	deck_selection_screen.deck_selected.connect(_on_prebattle_deck_selected)
+	$UI.add_child(deck_selection_screen)
+
+
+func setup_deck_selection_flow() -> void:
+	waiting_for_battle_plan = true
+	if battle_plan_selection_screen != null:
+		battle_plan_selection_screen.hide_selection()
+	if deck_selection_screen == null or player_deck == null:
+		setup_battle_plan_flow()
+		return
+	deck_selection_screen.show_selection(player_deck.get_saved_deck_summaries())
+	update_phase_progress_state()
+
+
+func _on_prebattle_deck_selected(slot_index: int) -> void:
+	if player_deck == null:
+		return
+	if slot_index < 0:
+		player_deck.use_fallback_deck()
+	else:
+		var loaded := player_deck.load_saved_deck_slot(slot_index, true)
+		if not loaded:
+			log_msg("That saved deck is unavailable or has fewer than 10 valid cards.")
+			deck_selection_screen.show_selection(player_deck.get_saved_deck_summaries())
+			return
+	log_msg("Battle deck selected: " + str(player_deck.cards_remaining()) + " cards.")
+	await get_tree().process_frame
+	setup_battle_plan_flow()
 
 
 func setup_battle_plan_flow() -> void:
@@ -257,6 +327,7 @@ func open_battle_plan_selection() -> void:
 		log_msg("Battleplan deck is running low. Remaining choices: " + str(choices.size()))
 
 	battle_plan_selection_screen.show_selection(choices)
+	update_phase_progress_state()
 
 
 func _on_battle_plan_selected(plan: Dictionary) -> void:
@@ -298,7 +369,6 @@ func _on_battle_plan_selected(plan: Dictionary) -> void:
 		begin_game_after_battle_plan_selection()
 
 	draw_battleplan_cards(plan)
-	set_phase(BattlePhase.TRIBUTE)
 
 
 func choose_opponent_battle_plan() -> void:
@@ -337,35 +407,78 @@ func apply_initiative_rules(plan: Dictionary) -> void:
 
 func draw_battleplan_cards(plan: Dictionary) -> void:
 	var draw_amount: int = int(plan.get("draw_amount", 0))
-
-	var player_drawn_count: int = 0
+	pending_battleplan_draws = 0
+	battleplan_hand_cleanup_active = false
 
 	if draw_amount > 0 and player_deck != null and hand != null:
-		for i in range(draw_amount):
-			if not hand.can_accept_card():
-				break
+		pending_battleplan_draws = mini(draw_amount, player_deck.cards_remaining())
 
-			var drawn_card: CardData = player_deck.draw_top_card()
-
-			if drawn_card == null:
-				break
-
-			hand.add_card_to_hand(drawn_card)
-			player_drawn_count += 1
-
-			if draw_pile != null:
-				draw_pile.consume_top_card()
-
-	log_msg("Battleplan draw: player drew " + str(player_drawn_count) + "/" + str(draw_amount) + " cards.")
+	if pending_battleplan_draws > 0:
+		log_msg(
+			"Battleplan draw: drag "
+			+ str(pending_battleplan_draws)
+			+ " card(s) from the Draw Pile into your hand."
+		)
+	else:
+		log_msg("Battleplan draw: no player cards to draw.")
 
 	if opponent_battle_plan.is_empty():
 		log_msg("AI battleplan draw skipped. No unused AI battleplan remains.")
+	else:
+		var ai_draw_amount: int = int(opponent_battle_plan.get("draw_amount", 0))
+		ai_draw_cards(ai_draw_amount)
+		log_msg("AI battleplan draw: AI drew " + str(ai_draw_amount) + " cards. AI hand: " + str(ai_hand.size()))
+
+	update_phase_ui()
+	if pending_battleplan_draws <= 0:
+		begin_battleplan_hand_cleanup_or_tribute()
+
+
+func begin_battleplan_hand_cleanup_or_tribute() -> void:
+	if hand != null and hand.cards.size() > hand.max_hand_size:
+		battleplan_hand_cleanup_active = true
+		battleplan_discard_time_left = BATTLEPLAN_HAND_CLEANUP_TIME
+		log_msg(
+			"Hand limit exceeded. Discard "
+			+ str(hand.cards.size() - hand.max_hand_size)
+			+ " card(s) of your choice within "
+			+ str(int(BATTLEPLAN_HAND_CLEANUP_TIME))
+			+ " seconds."
+		)
+		update_phase_ui()
 		return
+	finish_battleplan_prephase()
 
-	var ai_draw_amount: int = int(opponent_battle_plan.get("draw_amount", 0))
-	ai_draw_cards(ai_draw_amount)
 
-	log_msg("AI battleplan draw: AI drew " + str(ai_draw_amount) + " cards. AI hand: " + str(ai_hand.size()))
+func update_battleplan_hand_cleanup(delta: float) -> void:
+	if not battleplan_hand_cleanup_active or hand == null:
+		return
+	if hand.cards.size() <= hand.max_hand_size:
+		finish_battleplan_prephase()
+		return
+	# Do not let the deadline consume a card while the player is physically holding it.
+	if hand_drag_preview != null or selected_card_data != null:
+		return
+	battleplan_discard_time_left = maxf(battleplan_discard_time_left - delta, 0.0)
+	update_phase_instruction_ui()
+	if battleplan_discard_time_left > 0.0:
+		return
+	while hand.cards.size() > hand.max_hand_size:
+		var card_ui: CardUI = hand.cards.back() as CardUI
+		if card_ui == null or card_ui.card_data == null:
+			break
+		if discard_pile != null:
+			discard_pile.add_card(card_ui.card_data)
+		hand.consume_dragged_card(card_ui)
+	log_msg("Discard timer expired. Excess cards were discarded automatically.")
+	finish_battleplan_prephase()
+
+
+func finish_battleplan_prephase() -> void:
+	pending_battleplan_draws = 0
+	battleplan_hand_cleanup_active = false
+	battleplan_discard_time_left = 0.0
+	set_phase(BattlePhase.TRIBUTE)
 
 
 func begin_game_after_battle_plan_selection() -> void:
@@ -434,6 +547,13 @@ func create_phase_ui() -> void:
 	phase_label.add_theme_color_override("font_color", Color(1.0, 0.92, 0.72, 1.0))
 	vbox.add_child(phase_label)
 
+	turn_label = Label.new()
+	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	turn_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	turn_label.add_theme_font_size_override("font_size", 14)
+	turn_label.add_theme_color_override("font_color", Color(1.0, 0.78, 0.25, 1.0))
+	vbox.add_child(turn_label)
+
 	aurion_label = Label.new()
 	aurion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	aurion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -467,6 +587,29 @@ func create_phase_ui() -> void:
 	$UI.add_child(phase_panel)
 	update_phase_ui()
 	update_aurion_counter_ui()
+	update_turn_counter_ui()
+
+
+func create_exit_button() -> void:
+	var exit_button := Button.new()
+	exit_button.name = "ExitBattleButton"
+	exit_button.text = "Exit"
+	exit_button.focus_mode = Control.FOCUS_NONE
+	exit_button.custom_minimum_size = Vector2(86, 40)
+	exit_button.anchor_left = 1.0
+	exit_button.anchor_right = 1.0
+	exit_button.offset_left = -104.0
+	exit_button.offset_top = 18.0
+	exit_button.offset_right = -18.0
+	exit_button.offset_bottom = 58.0
+	exit_button.z_index = 80
+	exit_button.pressed.connect(func(): get_tree().change_scene_to_file(MENU_SCENE_PATH))
+	$UI.add_child(exit_button)
+
+
+func update_turn_counter_ui() -> void:
+	if turn_label != null:
+		turn_label.text = "TURN " + str(turn_number)
 
 
 func create_ability_prompt_panel() -> void:
@@ -510,6 +653,7 @@ func set_phase(new_phase: int) -> void:
 
 func begin_deployment_phase() -> void:
 	ai_deployed_this_deployment_phase = false
+	player_passed_deployment = false
 	log_msg("Phase: Deployment")
 
 	if player_has_initiative:
@@ -520,14 +664,16 @@ func begin_deployment_phase() -> void:
 
 
 func run_ai_deployment_turn_if_needed() -> void:
-	if ai_deployed_this_deployment_phase:
+	if ai_deployed_this_deployment_phase or phase_transition_busy:
 		return
+	phase_transition_busy = true
 
 	if next_phase_button != null:
 		next_phase_button.disabled = true
 
 	await ai_take_deployment_turn()
 	ai_deployed_this_deployment_phase = true
+	phase_transition_busy = false
 
 	if next_phase_button != null:
 		next_phase_button.disabled = false
@@ -551,19 +697,121 @@ func update_phase_ui() -> void:
 
 	match current_phase:
 		BattlePhase.BATTLEPLAN:
-			phase_label.text = "BATTLEPLAN PHASE"
-			next_phase_button.text = "Choose Battleplan"
+			if pending_battleplan_draws > 0:
+				phase_label.text = "BATTLEPLAN DRAW"
+				next_phase_button.text = "Draw " + str(pending_battleplan_draws) + " Card(s)"
+			elif battleplan_hand_cleanup_active:
+				phase_label.text = "HAND LIMIT"
+				next_phase_button.text = "Discard Excess Cards"
+			else:
+				phase_label.text = "BATTLEPLAN PHASE"
+				next_phase_button.text = "Choose Battleplan"
 		BattlePhase.TRIBUTE:
 			phase_label.text = "TRIBUTE PHASE"
 			next_phase_button.text = "Go to Deployment"
 		BattlePhase.DEPLOYMENT:
 			phase_label.text = "DEPLOYMENT PHASE"
-			next_phase_button.text = "Go to Combat"
+			next_phase_button.text = (
+				"Proceed to Combat Phase" if player_passed_deployment else "Pass Deployment"
+			)
 		BattlePhase.COMBAT:
 			phase_label.text = "COMBAT PHASE"
 			next_phase_button.text = "End Combat / Next Round"
 
 	update_phase_instruction_ui()
+	update_turn_counter_ui()
+	update_phase_progress_state()
+
+
+func update_phase_progress_state() -> void:
+	if next_phase_button == null:
+		return
+	var ready := is_current_phase_complete()
+	next_phase_button.disabled = not ready
+	set_phase_button_ready_visual(ready)
+
+
+func is_current_phase_complete() -> bool:
+	if phase_transition_busy or is_prebattle_modal_open() or hand_drag_preview != null:
+		return false
+	match current_phase:
+		BattlePhase.BATTLEPLAN:
+			return false
+		BattlePhase.TRIBUTE:
+			return tribute_manager != null and tribute_manager.tribute_card_used_this_turn
+		BattlePhase.DEPLOYMENT:
+			return true
+		BattlePhase.COMBAT:
+			return (
+				combat_direction_selected
+				and combat_next_lane_index >= combat_lane_order.size()
+				and not combat_resolution_running
+				and not parry_system.active
+			)
+	return false
+
+
+func is_prebattle_modal_open() -> bool:
+	return (
+		(deck_selection_screen != null and deck_selection_screen.visible)
+		or (battle_plan_selection_screen != null and battle_plan_selection_screen.visible)
+		or waiting_for_battle_plan
+	)
+
+
+func player_has_remaining_deployment_move() -> bool:
+	if hand == null or tribute_manager == null or board_slots == null:
+		return false
+	var available_tp := tribute_manager.current_tribute_points
+	for card_ui in hand.cards:
+		if card_ui == null or card_ui.card_data == null:
+			continue
+		var card_data: CardData = card_ui.card_data
+		var card_type := get_clean_card_type(card_data)
+		for slot in board_slots.get_children():
+			if String(slot.get_meta("owner", "")) != "player":
+				continue
+			var occupied := bool(slot.get_meta("occupied", false))
+			var row := String(slot.get_meta("row", ""))
+			if card_type == "equipment":
+				if (
+					occupied
+					and slot.has_method("can_attach_equipment")
+					and slot.can_attach_equipment()
+					and card_data.tribute_cost <= available_tp
+					and player_card_passes_faction_gate(card_data, false)
+				):
+					return true
+				continue
+			if occupied or (row != "front" and row != "back"):
+				continue
+			var can_skip_gate := should_skip_player_faction_gate_for_slot(card_data, slot)
+			if not can_skip_gate and not player_card_passes_faction_gate(card_data, false):
+				continue
+			var face_down := row == "back" and (is_unit_card(card_data) or is_gambit_card(card_data))
+			var cost := get_player_face_down_card_deployment_cost(card_data, face_down)
+			if cost <= available_tp:
+				return true
+	return false
+
+
+func set_phase_button_ready_visual(ready: bool) -> void:
+	if phase_button_ready_visual == ready:
+		return
+	phase_button_ready_visual = ready
+	if not ready:
+		next_phase_button.remove_theme_stylebox_override("normal")
+		next_phase_button.remove_theme_color_override("font_color")
+		return
+	var glow := StyleBoxFlat.new()
+	glow.bg_color = Color(0.48, 0.29, 0.045, 0.98)
+	glow.border_color = Color(1.0, 0.82, 0.24, 1.0)
+	glow.set_border_width_all(3)
+	glow.set_corner_radius_all(7)
+	glow.shadow_color = Color(1.0, 0.62, 0.08, 0.72)
+	glow.shadow_size = 12
+	next_phase_button.add_theme_stylebox_override("normal", glow)
+	next_phase_button.add_theme_color_override("font_color", Color(1.0, 0.96, 0.72, 1.0))
 
 
 func update_phase_instruction_ui() -> void:
@@ -587,6 +835,20 @@ func get_phase_instruction_text() -> String:
 
 	match current_phase:
 		BattlePhase.BATTLEPLAN:
+			if pending_battleplan_draws > 0:
+				return (
+					"Physically drag "
+					+ str(pending_battleplan_draws)
+					+ " awarded card(s) from Draw Pile into your hand."
+				)
+			if battleplan_hand_cleanup_active and hand != null:
+				return (
+					"Discard "
+					+ str(maxi(hand.cards.size() - hand.max_hand_size, 0))
+					+ " card(s) into the Discard Pile.  Time: "
+					+ str(int(ceil(battleplan_discard_time_left)))
+					+ "s"
+				)
 			return (
 				"Choose 1 Battle Plan.
 "
@@ -614,6 +876,11 @@ func get_phase_instruction_text() -> String:
 			)
 
 		BattlePhase.DEPLOYMENT:
+			if player_passed_deployment:
+				return (
+					"Your Deployment has been passed.\n"
+					+ "Press Proceed to Combat Phase when ready."
+				)
 			return (
 				"Drag cards to glowing valid slots.
 "
@@ -623,7 +890,7 @@ func get_phase_instruction_text() -> String:
 "
 				+ "Equipment attaches to face-up units.
 "
-				+ "Press Go to Combat when done."
+				+ "Deploy while useful, or pass Deployment at any time."
 			)
 
 		BattlePhase.COMBAT:
@@ -689,6 +956,8 @@ func get_phase_instruction_text() -> String:
 
 
 func _on_next_phase_pressed() -> void:
+	if is_prebattle_modal_open() or not is_current_phase_complete():
+		return
 	if next_phase_button != null and next_phase_button.disabled:
 		return
 
@@ -700,13 +969,19 @@ func _on_next_phase_pressed() -> void:
 			set_phase(BattlePhase.DEPLOYMENT)
 
 		BattlePhase.DEPLOYMENT:
-			if not ai_deployed_this_deployment_phase:
-				if player_has_initiative:
-					log_msg("Player deployment complete. AI now deploys before Combat.")
-				else:
-					log_msg("AI deployment was not completed yet. Resolving AI deployment before Combat.")
-
-				await run_ai_deployment_turn_if_needed()
+			if not player_passed_deployment:
+				player_passed_deployment = true
+				log_msg("Player passed Deployment.")
+				cancel_selected_card()
+				update_slot_highlights()
+				if not ai_deployed_this_deployment_phase:
+					if player_has_initiative:
+						log_msg("AI now takes its Deployment turn.")
+					else:
+						log_msg("Resolving the AI Deployment turn.")
+					await run_ai_deployment_turn_if_needed()
+				update_phase_ui()
+				return
 
 			set_phase(BattlePhase.COMBAT)
 
@@ -731,6 +1006,8 @@ func start_next_round() -> void:
 	if battle_plan_manager != null:
 		battle_plan_manager.advance_round()
 
+	turn_number += 1
+	update_turn_counter_ui()
 	cancel_selected_card()
 	open_battle_plan_selection()
 
@@ -762,9 +1039,11 @@ func _on_hand_card_drag_started(card: CardUI) -> void:
 	if waiting_for_battle_plan or card == null:
 		return
 	select_card(card.card_data)
+	start_hand_drag_preview(card)
 
 
 func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
+	finish_hand_drag_preview()
 	if card == null:
 		cancel_selected_card()
 		return
@@ -772,6 +1051,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 	if not is_instance_valid(card):
 		cancel_selected_card()
 		return
+	card.visible = true
 
 	if selected_card_data == null and card.card_data != null:
 		select_card(card.card_data)
@@ -787,6 +1067,25 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 			return
 
 		log_msg("Drop cards into the glowing pit to parry, or press Let Unit Die.")
+		return_card_to_hand_safely(card)
+		cancel_selected_card()
+		return
+
+	if battleplan_hand_cleanup_active:
+		if is_node_inside_target(target_node, discard_pile):
+			if dragged_card_data != null and discard_pile != null:
+				card.visible = false
+				await play_player_hand_to_node_animation(dragged_card_data, discard_pile, false)
+				discard_pile.add_card(dragged_card_data)
+				hand.consume_dragged_card(card)
+				log_msg("Card discarded to meet the Battle Plan hand limit.")
+			cancel_selected_card()
+			if hand.cards.size() <= hand.max_hand_size:
+				finish_battleplan_prephase()
+			else:
+				update_phase_ui()
+			return
+		log_msg("During hand cleanup, drop excess cards into the Discard Pile.")
 		return_card_to_hand_safely(card)
 		cancel_selected_card()
 		return
@@ -820,6 +1119,11 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 	if target_slot != null:
 		if current_phase != BattlePhase.DEPLOYMENT:
 			log_msg("Cards can only be deployed during the Deployment Phase.")
+			return_card_to_hand_safely(card)
+			cancel_selected_card()
+			return
+		if player_passed_deployment:
+			log_msg("Deployment has already been passed. Proceed to Combat Phase.")
 			return_card_to_hand_safely(card)
 			cancel_selected_card()
 			return
@@ -950,6 +1254,91 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 	cancel_selected_card()
 
 
+func start_hand_drag_preview(card: CardUI) -> void:
+	finish_hand_drag_preview()
+	if card == null or card.card_data == null:
+		return
+	hand_drag_preview = TEST_CARD_SCENE.instantiate() as Node3D
+	add_child(hand_drag_preview)
+	hand_drag_preview.top_level = true
+	if hand_drag_preview.has_method("assign_card_data"):
+		hand_drag_preview.assign_card_data(card.card_data, false)
+	disable_preview_collision(hand_drag_preview)
+	hand_drag_preview_target_scale = Vector3(1.12, 1.12, 1.12)
+	hand_drag_preview.scale = Vector3(0.92, 0.92, 0.92)
+	hand_drag_preview.rotation = Vector3.ZERO
+	hand_drag_preview.global_position = screen_to_battle_plane(
+		get_viewport().get_mouse_position(),
+		0.62
+	)
+	hand_drag_preview_target_position = hand_drag_preview.global_position
+	card.visible = false
+	Cursors.use_grab()
+
+
+func update_hand_drag_preview(delta: float) -> void:
+	if hand_drag_preview == null or not is_instance_valid(hand_drag_preview):
+		return
+	var screen_position := get_viewport().get_mouse_position()
+	var target_node := get_3d_node_under_screen_position(screen_position)
+	var target_slot := find_board_slot_from_node(target_node)
+	hand_drag_preview_target_scale = Vector3(1.12, 1.12, 1.12)
+	if target_slot != null and current_phase == BattlePhase.DEPLOYMENT:
+		var card_point := target_slot.get_node_or_null("CardPoint") as Node3D
+		hand_drag_preview_target_position = (
+			card_point.global_position if card_point != null else (target_slot as Node3D).global_position
+		) + Vector3(0.0, 0.48, 0.0)
+		hand_drag_preview_target_scale = Vector3(1.18, 1.18, 1.18)
+	elif battleplan_hand_cleanup_active and is_node_inside_target(target_node, discard_pile):
+		hand_drag_preview_target_position = discard_pile.global_position + Vector3(0.0, 0.52, 0.0)
+		hand_drag_preview_target_scale = Vector3(1.18, 1.18, 1.18)
+	elif is_node_inside_target(target_node, tribute_pile) and current_phase == BattlePhase.TRIBUTE:
+		hand_drag_preview_target_position = tribute_pile.global_position + Vector3(0.0, 0.52, 0.0)
+		hand_drag_preview_target_scale = Vector3(1.18, 1.18, 1.18)
+	else:
+		hand_drag_preview_target_position = screen_to_battle_plane(screen_position, 0.62)
+	hand_drag_preview.global_position = hand_drag_preview.global_position.lerp(
+		hand_drag_preview_target_position,
+		clampf(delta * 16.0, 0.0, 1.0)
+	)
+	hand_drag_preview.scale = hand_drag_preview.scale.lerp(
+		hand_drag_preview_target_scale,
+		clampf(delta * 11.0, 0.0, 1.0)
+	)
+	hand_drag_preview.rotation = hand_drag_preview.rotation.lerp(
+		Vector3.ZERO,
+		clampf(delta * 12.0, 0.0, 1.0)
+	)
+
+
+func finish_hand_drag_preview() -> void:
+	if hand_drag_preview != null and is_instance_valid(hand_drag_preview):
+		hand_drag_preview.queue_free()
+	hand_drag_preview = null
+	Cursors.use_normal()
+
+
+func disable_preview_collision(node: Node) -> void:
+	if node is CollisionObject3D:
+		var collision_object := node as CollisionObject3D
+		collision_object.collision_layer = 0
+		collision_object.collision_mask = 0
+	for child in node.get_children():
+		disable_preview_collision(child)
+
+
+func screen_to_battle_plane(screen_position: Vector2, plane_y: float) -> Vector3:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return Vector3.ZERO
+	var origin := camera.project_ray_origin(screen_position)
+	var direction := camera.project_ray_normal(screen_position)
+	if absf(direction.y) < 0.0001:
+		return origin
+	var distance := (plane_y - origin.y) / direction.y
+	return origin + direction * distance
+
+
 func deal_starting_hand() -> void:
 	if hand == null or player_deck == null:
 		log_msg("Hand or PlayerDeck is missing.")
@@ -967,16 +1356,19 @@ func deal_starting_hand() -> void:
 func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
 	if waiting_for_battle_plan:
 		return
+	var is_awarded_draw := current_phase == BattlePhase.BATTLEPLAN and pending_battleplan_draws > 0
+	if current_phase == BattlePhase.BATTLEPLAN and not is_awarded_draw:
+		return
 	if current_phase == BattlePhase.DEPLOYMENT or current_phase == BattlePhase.COMBAT:
 		log_msg("You cannot draw cards after Deployment has begun.")
 		return
 	if hand == null or player_deck == null:
 		return
-	if not hand.can_accept_card():
+	if not is_awarded_draw and not hand.can_accept_card():
 		log_msg("Hand is full. Max hand size: " + str(hand.max_hand_size))
 		return
 	var preview_card: CardData = player_deck.peek_top_card()
-	var started: bool = hand.start_draw_pile_drag(screen_position, preview_card)
+	var started: bool = hand.start_draw_pile_drag(screen_position, preview_card, is_awarded_draw)
 	if started:
 		log_msg("Dragging card from Draw Pile.")
 	else:
@@ -994,18 +1386,26 @@ func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
 	if not hand.is_screen_position_in_hand_drop_zone(screen_position):
 		hand.finish_draw_pile_drag(screen_position, null)
 		return
-	if not hand.can_accept_card():
+	var is_awarded_draw := current_phase == BattlePhase.BATTLEPLAN and pending_battleplan_draws > 0
+	if not is_awarded_draw and not hand.can_accept_card():
 		hand.finish_draw_pile_drag(screen_position, null)
 		log_msg("Draw cancelled. Hand is full. Max hand size: " + str(hand.max_hand_size))
 		return
 	var drawn_card: CardData = player_deck.draw_top_card()
-	var accepted: bool = hand.finish_draw_pile_drag(screen_position, drawn_card)
+	var accepted: bool = hand.finish_draw_pile_drag(screen_position, drawn_card, is_awarded_draw)
 	if accepted:
 		draw_pile.consume_top_card()
 		log_msg("Card drawn into hand. Deck remaining: " + str(player_deck.cards_remaining()))
+		if is_awarded_draw:
+			pending_battleplan_draws = maxi(pending_battleplan_draws - 1, 0)
+			update_phase_ui()
+			if pending_battleplan_draws <= 0:
+				begin_battleplan_hand_cleanup_or_tribute()
 
 
 func _on_slot_clicked(slot: Node) -> void:
+	if is_prebattle_modal_open():
+		return
 	if current_phase == BattlePhase.COMBAT:
 		# Combat must never auto-resolve from a normal slot click.
 		# Right-click menu actions are the only valid player combat actions.
@@ -1020,6 +1420,9 @@ func _on_slot_clicked(slot: Node) -> void:
 	if current_phase != BattlePhase.DEPLOYMENT:
 		log_msg("Cards can only be deployed during the Deployment Phase.")
 		return
+	if player_passed_deployment:
+		log_msg("Deployment has already been passed. Proceed to Combat Phase.")
+		return
 	var placed := try_place_selected_card_on_slot(slot)
 	if placed:
 		if hand != null:
@@ -1028,6 +1431,8 @@ func _on_slot_clicked(slot: Node) -> void:
 
 
 func _on_slot_right_clicked(slot: Node) -> void:
+	if is_prebattle_modal_open():
+		return
 	show_board_slot_action_menu(slot)
 
 
@@ -1048,6 +1453,8 @@ func _on_tribute_pile_clicked() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if is_prebattle_modal_open():
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_SPACE:
 			if hand != null and hand.has_method("toggle_hand"):
@@ -1444,7 +1851,7 @@ func update_slot_highlights() -> void:
 		if has_promotion_highlight:
 			slot.set_promotion_highlight(false)
 
-		if not has_selected_card or current_phase != BattlePhase.DEPLOYMENT:
+		if not has_selected_card or current_phase != BattlePhase.DEPLOYMENT or player_passed_deployment:
 			continue
 
 		if can_promote_selected_card_on_slot(slot):

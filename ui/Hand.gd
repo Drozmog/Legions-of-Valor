@@ -455,8 +455,8 @@ func remove_selected_card() -> void:
 # DRAW PILE DRAG INTO HAND
 # ------------------------------------------------------------
 
-func start_draw_pile_drag(screen_position: Vector2, preview_card_data: CardData) -> bool:
-	if not can_accept_card():
+func start_draw_pile_drag(screen_position: Vector2, preview_card_data: CardData, allow_over_limit: bool = false) -> bool:
+	if not allow_over_limit and not can_accept_card():
 		return false
 	
 	if preview_card_data == null:
@@ -470,7 +470,7 @@ func start_draw_pile_drag(screen_position: Vector2, preview_card_data: CardData)
 	draw_drag_card.setup(pending_draw_data)
 	draw_drag_card.show_back()
 
-	draw_drag_card.scale = Vector2(card_scale, card_scale)
+	draw_drag_card.scale = Vector2(card_scale * 1.06, card_scale * 1.06)
 	draw_drag_card.rotation_degrees = 0
 	draw_drag_card.move_to_front()
 
@@ -482,10 +482,12 @@ func update_draw_pile_drag(screen_position: Vector2) -> void:
 	if draw_drag_card == null:
 		return
 
-	draw_drag_card.global_position = screen_position - draw_drag_card.size * card_scale / 2.0
+	var target := screen_position - draw_drag_card.size * draw_drag_card.scale.x / 2.0
+	draw_drag_card.global_position = draw_drag_card.global_position.lerp(target, 0.46)
+	draw_drag_card.rotation_degrees = lerpf(draw_drag_card.rotation_degrees, 0.0, 0.35)
 
 
-func finish_draw_pile_drag(screen_position: Vector2, drawn_card_data: CardData) -> bool:
+func finish_draw_pile_drag(screen_position: Vector2, drawn_card_data: CardData, allow_over_limit: bool = false) -> bool:
 	if draw_drag_card == null:
 		return false
 
@@ -501,7 +503,7 @@ func finish_draw_pile_drag(screen_position: Vector2, drawn_card_data: CardData) 
 		pending_draw_data = null
 		return false
 
-	if not can_accept_card():
+	if not allow_over_limit and not can_accept_card():
 		draw_drag_card.queue_free()
 		draw_drag_card = null
 		pending_draw_data = null
@@ -531,9 +533,12 @@ func animate_draw_flip_into_hand(card: CardUI) -> void:
 	card.rotation_degrees = 0
 
 	var tween := create_tween()
-	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tween.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN_OUT)
 
-	tween.tween_property(card, "scale", Vector2(0.0, card_scale), 0.12)
+	tween.tween_property(card, "scale", Vector2(card_scale * 1.12, card_scale * 1.12), 0.08)
+	tween.parallel().tween_property(card, "rotation_degrees", -2.0, 0.08)
+	tween.tween_property(card, "scale", Vector2(0.0, card_scale * 1.12), 0.14)
 	tween.tween_callback(Callable(card, "show_front"))
-	tween.tween_property(card, "scale", Vector2(card_scale, card_scale), 0.12)
+	tween.tween_property(card, "scale", Vector2(card_scale * 1.08, card_scale * 1.08), 0.16)
+	tween.parallel().tween_property(card, "rotation_degrees", 0.0, 0.16)
 	tween.tween_callback(Callable(self, "arrange_fan"))

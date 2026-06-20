@@ -8,6 +8,10 @@ extends PanelContainer
 @export var display_offset_top: float = -750.0
 @export var display_offset_bottom: float = -45.0
 
+@export var center_on_screen: bool = false
+@export var centered_display_size: Vector2 = Vector2(760.0, 1000.0)
+@export_range(0.5, 1.0, 0.01) var centered_viewport_limit: float = 0.90
+
 @export var preview_render_scale: float = 3.0
 
 @export var fly_time: float = 0.34
@@ -79,6 +83,13 @@ func clear_old_preview_children() -> void:
 
 
 func setup_position() -> void:
+	if center_on_screen:
+		set_anchors_preset(Control.PRESET_TOP_LEFT)
+		var centered_rect := get_display_rect()
+		global_position = centered_rect.position
+		size = centered_rect.size
+		return
+
 	anchor_left = 1.0
 	anchor_right = 1.0
 	anchor_top = 1.0
@@ -579,6 +590,15 @@ func update_viewport_size() -> void:
 
 func get_display_rect() -> Rect2:
 	var viewport_size: Vector2 = get_viewport_rect().size
+	if center_on_screen:
+		var target_size := centered_display_size
+		var maximum_size := viewport_size * centered_viewport_limit
+		var fit_scale := minf(
+			1.0,
+			minf(maximum_size.x / target_size.x, maximum_size.y / target_size.y)
+		)
+		target_size *= fit_scale
+		return Rect2((viewport_size - target_size) * 0.5, target_size)
 
 	var top_left := Vector2(
 		viewport_size.x + display_offset_left,

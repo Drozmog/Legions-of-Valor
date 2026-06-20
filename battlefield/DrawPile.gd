@@ -81,7 +81,7 @@ func build_stack() -> void:
 	for i in range(visible_count):
 		var card := CardPileVisual.create_card_back_visual(card_width, card_height)
 		card.position = Vector3(0, 0.025 + float(i) * (card_thickness + card_gap), 0)
-		card.rotation_degrees = Vector3(0, float(i % 4) * 1.5, 0)
+		card.rotation_degrees = Vector3.ZERO
 		add_child(card)
 		stacked_cards.append(card)
 

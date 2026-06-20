@@ -7,20 +7,32 @@ const MENU_SCENE_PATH := "res://ui/prototype_menu.tscn"
 const SAVE_PATH := "user://lov_player_deck.json"
 
 const MIN_DECK_SIZE := 10
-const MAX_DECK_SIZE := 50
+const MAX_DECK_SIZE := 40
 const COPY_LIMIT := 2
+const DECK_SLOT_COUNT := 10
+const DECK_CHIP_WALL_X := 2.40
+const DECK_CHIP_TOTAL_WIDTH := 3.40
+const DECK_CHIP_SLOT_PITCH := 0.34
+const DECK_CHIP_HIDDEN_POSITION := Vector3(5.98, 0.09, -2.20)
+const DECK_CHIP_SHOWN_POSITION := Vector3(2.40, 0.09, -2.20)
+const DECK_RACK_EXIT_OFFSET := Vector3(0.0, 0.0, 6.0)
+const DECK_RACK_ENTRY_OFFSET := Vector3(0.0, 0.0, -6.0)
 
 # Card sizing and library layout.
 # The library is a continuous horizontal strip made of 5x2 card groups.
 const CARD_SCALE_LIBRARY := Vector3(1.35, 1.35, 1.35)
-const CARD_SCALE_DRAG := Vector3(1.05, 1.05, 1.05)
-const CARD_SCALE_RACK := Vector3(0.70, 0.70, 0.70)
+const CARD_SCALE_LIBRARY_HOVER := Vector3(1.60, 1.60, 1.60)
+const CARD_SCALE_RACK_HOVER := Vector3(1.24, 1.24, 1.24)
+const CARD_SCALE_RACK := Vector3(1.12, 1.12, 1.12)
 
 const LIBRARY_Y := 0.085
-const RACK_Y := 0.12
-const DRAG_Y := 0.42
+const RACK_Y := 0.42
+const LIBRARY_HOVER_Y := 0.50
+const RACK_HOVER_Y := 0.80
+const RACK_CARD_TILT_DEGREES := 23.0
+const RACK_CARD_REVEAL_SPACING := 0.215
 
-const LIBRARY_BASE_X := -5.15
+const LIBRARY_BASE_X := -4.90
 const LIBRARY_BASE_Z := -0.20
 const LIBRARY_COLUMNS_PER_GROUP := 5
 const LIBRARY_ROWS_PER_GROUP := 2
@@ -33,18 +45,35 @@ const LIBRARY_GROUP_SPACING := 7.75
 const LIBRARY_SCROLL_WHEEL_STEP := 0.62
 const LIBRARY_SCROLL_LERP_SPEED := 9.0
 
-# Cull cards at the exact cloth boundaries. The 2D fog overlay handles the visual fade.
-const LIBRARY_VISIBLE_MIN_X := -6.50
-const LIBRARY_VISIBLE_MAX_X := 2.40
-const LIBRARY_CULL_PADDING := 0.20
+# Card-center bounds inside the red cloth. The right boundary deliberately ends
+# before the rack wall so even a wide card is gone before entering the rack.
+const LIBRARY_VISIBLE_MIN_X := -6.60
+const LIBRARY_VISIBLE_MAX_X := 1.78
+const LIBRARY_FADE_WIDTH    := 0.18
 
-const RACK_X := 5.15
-const RACK_Z_TOP := -2.20
-const RACK_Z_BOTTOM := 2.30
-const RACK_MIN_X := 3.35
-const RACK_MAX_X := 6.85
-const RACK_MIN_Z := -2.75
-const RACK_MAX_Z := 2.75
+const CARD_PICK_LAYER_LIBRARY := 1
+const CARD_PICK_LAYER_DECK := 2
+const DECK_SLOT_PICK_LAYER := 4
+const CARD_ACTION_INSPECT := 1
+const CARD_ACTION_CANCEL := 99
+
+# Rack bounds from deck_builder.tscn (scene-accurate).
+# Inner left wall X=2.496, inner right wall X=5.496, center X=3.996.
+# Z range inner: -2.33 to 3.31, center Z=0.49.
+const RACK_COL_LEFT  := 3.25
+const RACK_COL_RIGHT := 4.54
+const RACK_MAX_PER_COL := 20
+const RACK_STACK_START_Z := -1.56
+const RACK_Z_TOP    := -2.28   # just inside top wall
+const RACK_Z_BOTTOM :=  3.26   # just inside bottom wall
+const RACK_MIN_X := 2.52
+const RACK_MAX_X := 5.45
+const RACK_MIN_Z := -2.50
+const RACK_MAX_Z :=  3.50
+# Cards lean toward the camera and can be approached from well above the rack's
+# top wall onscreen. This expanded top edge is used only while dragging.
+const RACK_DROP_MIN_Z := -4.25
+const RACK_DROP_MAX_X := 6.75
 
 const TABLE_PLANE_Y := 0.0
 
@@ -57,19 +86,27 @@ var library_nodes: Array[Node3D] = []
 
 var library_root: Node3D
 var rack_root: Node3D
+var rack_root_home_position := Vector3.ZERO
+var rack_assembly_root: Node3D
+var rack_assembly_home_position := Vector3.ZERO
 var dragging_node: Node3D = null
 var dragging_card: CardData = null
 var dragging_from_library := false
 var dragging_deck_original_index := -1
 var dragging_target_position := Vector3.ZERO
+var drag_pointer_offset := Vector3.ZERO
+var drag_pointer_screen_position := Vector2.ZERO
+var drag_card_center_screen_offset := Vector2.ZERO
+var dragging_over_rack := false
+var drag_rack_blend := 0.0
 var drag_preview_insert_index := 0
 var library_scroll := 0.0
 var library_scroll_target := 0.0
 var library_scroll_min := 0.0
 var library_scroll_max := 0.0
 
-var active_race_filter := ""
-var active_type_filter := ""
+var active_race_filters: Dictionary = {}
+var active_type_filters: Dictionary = {}
 var search_text := ""
 
 var camera_3d: Camera3D
@@ -81,6 +118,26 @@ var save_button: Button
 var play_button: Button
 var search_box: LineEdit
 var card_detail_label: RichTextLabel
+var card_detail_name_3d: Label3D
+var card_detail_stats_3d: Label3D
+var library_controls_label_3d: Label3D
+var deck_ledger_label_3d: Label3D
+var tabletop_ui_surfaces: Array[Dictionary] = []
+var active_tabletop_viewport: SubViewport
+var saved_decks: Array[Dictionary] = []
+var active_deck_slot := 0
+var deck_slot_roots: Array[Node3D] = []
+var deck_slot_number_labels: Array[Label3D] = []
+var deck_slot_count_labels: Array[Label3D] = []
+var deck_slot_fill_meshes: Array[MeshInstance3D] = []
+var deck_chip_root: Node3D
+var deck_chip_tween: Tween
+var deck_chip_is_out := false
+var deck_switch_in_progress := false
+var scene_transition_requested: bool = false
+var card_action_menu: PopupMenu
+var card_action_target: Node3D
+var card_inspect_panel: CardInspectPanel
 var race_buttons: Dictionary = {}
 var type_buttons: Dictionary = {}
 
@@ -90,6 +147,7 @@ func _ready() -> void:
 		return get_card_sort_key(a) < get_card_sort_key(b)
 	)
 	build_card_lookup()
+	initialize_deck_slots()
 	build_3d_scene()
 	build_overlay_ui()
 	load_deck_from_disk()
@@ -107,14 +165,51 @@ func _process(delta: float) -> void:
 
 	animate_collection(library_nodes, delta)
 	animate_collection(deck_nodes, delta)
+	update_deck_chip_wall_clipping()
 
 	if dragging_node != null and is_instance_valid(dragging_node):
-		dragging_node.global_position = dragging_node.global_position.lerp(dragging_target_position, clampf(delta * 18.0, 0.0, 1.0))
-		dragging_node.scale = dragging_node.scale.lerp(CARD_SCALE_DRAG, clampf(delta * 12.0, 0.0, 1.0))
+		drag_rack_blend = lerpf(
+			drag_rack_blend,
+			1.0 if dragging_over_rack else 0.0,
+			clampf(delta * 9.0, 0.0, 1.0)
+		)
+		refresh_drag_target_position()
+		var hover_scale := CARD_SCALE_LIBRARY_HOVER.lerp(CARD_SCALE_RACK_HOVER, drag_rack_blend)
+		var hover_rotation := Vector3(
+			lerpf(0.0, RACK_CARD_TILT_DEGREES, drag_rack_blend),
+			0.0,
+			0.0
+		)
+		dragging_node.global_position = dragging_node.global_position.lerp(
+			dragging_target_position,
+			clampf(delta * 16.0, 0.0, 1.0)
+		)
+		dragging_node.scale = dragging_node.scale.lerp(hover_scale, clampf(delta * 10.0, 0.0, 1.0))
+		dragging_node.rotation_degrees = dragging_node.rotation_degrees.lerp(
+			hover_rotation,
+			clampf(delta * 10.0, 0.0, 1.0)
+		)
 		set_card_alpha(dragging_node, 1.0)
 
 
 func _input(event: InputEvent) -> void:
+	if scene_transition_requested or not is_inside_tree():
+		return
+	if deck_switch_in_progress:
+		var current_viewport := get_viewport()
+		if current_viewport != null:
+			current_viewport.set_input_as_handled()
+		return
+
+	if event is InputEventMouseMotion and dragging_node == null:
+		update_cursor_for_screen_position((event as InputEventMouseMotion).position)
+
+	if route_tabletop_ui_input(event):
+		var current_viewport := get_viewport()
+		if current_viewport != null and is_inside_tree():
+			current_viewport.set_input_as_handled()
+		return
+
 	# Mouse-wheel scrolling must work even when the overlay UI is present.
 	# Only block it while the search field is actively being typed in.
 	if event is InputEventMouseButton:
@@ -132,10 +227,25 @@ func _input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			return
 
+		if mouse_event.button_index == MOUSE_BUTTON_RIGHT and mouse_event.pressed:
+			if card_inspect_panel != null and card_inspect_panel.visible:
+				card_inspect_panel.hide_card()
+				get_viewport().set_input_as_handled()
+				return
+			if not is_pointer_over_ui():
+				show_card_action_menu(mouse_event.position)
+				get_viewport().set_input_as_handled()
+			return
+
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT:
 			if is_pointer_over_ui():
 				return
 			if mouse_event.pressed:
+				var slot_index := pick_deck_slot_index(mouse_event.position)
+				if slot_index >= 0:
+					_on_deck_slot_pressed(slot_index)
+					get_viewport().set_input_as_handled()
+					return
 				begin_drag_from_mouse(mouse_event.position)
 			else:
 				finish_drag(mouse_event.position)
@@ -145,7 +255,9 @@ func _input(event: InputEvent) -> void:
 		if dragging_node != null:
 			update_drag_target((event as InputEventMouseMotion).position)
 			if not dragging_from_library:
-				drag_preview_insert_index = get_deck_insert_index_from_world(dragging_target_position)
+				drag_preview_insert_index = get_deck_insert_index_from_screen(
+					(event as InputEventMouseMotion).position
+				)
 				layout_deck_rack(false, drag_preview_insert_index)
 
 
@@ -178,6 +290,82 @@ func build_3d_scene() -> void:
 		rack_root = Node3D.new()
 		rack_root.name = "DeckRackCards"
 		add_child(rack_root)
+	rack_root_home_position = rack_root.position
+	setup_rack_assembly()
+
+	build_tabletop_ui_labels()
+
+
+func setup_rack_assembly() -> void:
+	rack_assembly_root = get_node_or_null("DeckRackAssembly") as Node3D
+	if rack_assembly_root == null:
+		rack_assembly_root = Node3D.new()
+		rack_assembly_root.name = "DeckRackAssembly"
+		add_child(rack_assembly_root)
+
+	# The rack shell and its cards move as one physical object during deck swaps.
+	for node_name in [
+		"RightPhysicalDeckRack",
+		"RackLeftWall",
+		"RackRightWall",
+		"RackTopWall",
+		"RackBottomWall",
+		"RackTitle3D",
+		"DeckRackCards",
+	]:
+		var rack_piece := get_node_or_null(node_name) as Node3D
+		if rack_piece != null and rack_piece.get_parent() != rack_assembly_root:
+			rack_piece.reparent(rack_assembly_root, true)
+
+	rack_assembly_home_position = rack_assembly_root.position
+
+
+func build_tabletop_ui_labels() -> void:
+	card_detail_name_3d = make_tabletop_label(
+		"CardDetailName3D",
+		"",
+		Vector3(0.2, 0.095, -2.20),
+		26,
+		0.0075,
+		Color(1.0, 0.83, 0.35, 1.0)
+	)
+	card_detail_stats_3d = make_tabletop_label(
+		"CardDetailStats3D",
+		"",
+		Vector3(0.2, 0.094, -1.90),
+		18,
+		0.0070,
+		Color(0.96, 0.88, 0.69, 1.0)
+	)
+	card_detail_name_3d.visible = false
+	card_detail_stats_3d.visible = false
+
+
+
+func make_tabletop_label(
+	node_name: String,
+	label_text: String,
+	world_position: Vector3,
+	label_font_size: int,
+	label_pixel_size: float,
+	label_color: Color
+) -> Label3D:
+	var label := get_node_or_null(node_name) as Label3D
+	if label == null:
+		label = Label3D.new()
+		label.name = node_name
+		add_child(label)
+	label.text = label_text
+	label.position = world_position
+	label.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	label.font_size = label_font_size
+	label.pixel_size = label_pixel_size
+	label.modulate = label_color
+	label.outline_size = 8
+	label.outline_modulate = Color(0.035, 0.012, 0.004, 0.95)
+	label.no_depth_test = false
+	return label
+
 
 func create_table_mesh() -> void:
 	var table := MeshInstance3D.new()
@@ -272,163 +460,513 @@ func build_overlay_ui() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	ui_layer.add_child(root)
 
-	var top_panel := PanelContainer.new()
-	top_panel.name = "TopCommandPanel"
-	top_panel.anchor_left = 0.0
-	top_panel.anchor_right = 1.0
-	top_panel.anchor_top = 0.0
-	top_panel.anchor_bottom = 0.135
-	top_panel.add_theme_stylebox_override("panel", make_panel_style(Color(0.018, 0.012, 0.007, 0.96), Color(0.52, 0.38, 0.10, 1.0), 1))
-	root.add_child(top_panel)
+	card_inspect_panel = CardInspectPanel.new()
+	card_inspect_panel.name = "CardInspectPanel"
+	card_inspect_panel.center_on_screen = true
+	card_inspect_panel.centered_display_size = Vector2(760.0, 1000.0)
+	card_inspect_panel.preview_render_scale = 3.0
+	root.add_child(card_inspect_panel)
 
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 8)
-	margin.add_theme_constant_override("margin_bottom", 8)
-	top_panel.add_child(margin)
+	card_action_menu = PopupMenu.new()
+	card_action_menu.name = "CardActionMenu"
+	card_action_menu.exclusive = false
+	card_action_menu.id_pressed.connect(_on_card_action_selected)
+	root.add_child(card_action_menu)
 
-	var top_rows := VBoxContainer.new()
-	top_rows.add_theme_constant_override("separation", 6)
-	margin.add_child(top_rows)
+	tabletop_ui_surfaces.clear()
+	var library_ui := create_tabletop_ui_surface(
+		"LibraryTabletopUI",
+		Vector2i(1100, 100),
+		Vector3(-1.9, 0.105, 3.48),
+		Vector2(6.50, 0.555)
+	)
+	var library_ui_root: Control = library_ui["control"]
+	var deck_ui := create_tabletop_ui_surface(
+		"DeckTabletopUI",
+		Vector2i(520, 100),
+		Vector3(4.10, 0.105, 3.48),
+		Vector2(3.20, 0.555)
+	)
+	var deck_ui_root: Control = deck_ui["control"]
 
-	# --- Row 1: navigation + title + deck save actions ---
-	var first_row := HBoxContainer.new()
-	first_row.add_theme_constant_override("separation", 10)
-	first_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	top_rows.add_child(first_row)
+	var plaque_style := make_panel_style(
+		Color(0.105, 0.045, 0.014, 0.80),
+		Color(0.72, 0.49, 0.13, 0.96),
+		2
+	)
 
-	var back_button := make_button("← Menu", Vector2(90, 34))
-	back_button.pressed.connect(func(): get_tree().change_scene_to_file(MENU_SCENE_PATH))
-	first_row.add_child(back_button)
+	# A floating wooden plaque over the lower-left table, not a screen-wide bar.
+	var library_plaque := PanelContainer.new()
+	library_plaque.name = "LibraryControlPlaque"
+	library_plaque.set_anchors_preset(Control.PRESET_FULL_RECT)
+	library_plaque.offset_left = 10.0
+	library_plaque.offset_top = 10.0
+	library_plaque.offset_right = -10.0
+	library_plaque.offset_bottom = -10.0
+	library_plaque.add_theme_stylebox_override("panel", plaque_style)
+	library_ui_root.add_child(library_plaque)
 
-	var sep1 := VSeparator.new()
-	sep1.add_theme_color_override("color", Color(0.50, 0.36, 0.10, 0.60))
-	sep1.custom_minimum_size = Vector2(1, 0)
-	first_row.add_child(sep1)
+	var library_margin := MarginContainer.new()
+	library_margin.add_theme_constant_override("margin_left", 12)
+	library_margin.add_theme_constant_override("margin_right", 12)
+	library_margin.add_theme_constant_override("margin_top", 6)
+	library_margin.add_theme_constant_override("margin_bottom", 6)
+	library_plaque.add_child(library_margin)
 
-	var title := Label.new()
-	title.text = "DECK BUILDER"
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color", Color(0.82, 0.68, 0.34, 1.0))
-	first_row.add_child(title)
+	var library_rows := VBoxContainer.new()
+	library_rows.add_theme_constant_override("separation", 5)
+	library_margin.add_child(library_rows)
 
-	var name_label := Label.new()
-	name_label.text = "Deck:"
-	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", 13)
-	name_label.add_theme_color_override("font_color", Color(0.62, 0.55, 0.40, 1.0))
-	first_row.add_child(name_label)
+	var command_row := HBoxContainer.new()
+	command_row.add_theme_constant_override("separation", 8)
+	library_rows.add_child(command_row)
+
+	var back_button := make_button("<  MENU", Vector2(88, 32))
+	back_button.pressed.connect(request_scene_change.bind(MENU_SCENE_PATH))
+	command_row.add_child(back_button)
+
+	var title_label := Label.new()
+	title_label.text = "DECK BUILDER"
+	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 16)
+	title_label.add_theme_color_override("font_color", Color(0.96, 0.78, 0.31, 1.0))
+	command_row.add_child(title_label)
+
+	search_box = LineEdit.new()
+	search_box.placeholder_text = "Search the card archives..."
+	search_box.custom_minimum_size = Vector2(250, 32)
+	search_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	search_box.add_theme_font_size_override("font_size", 12)
+	style_text_field(search_box)
+	search_box.text_changed.connect(_on_search_changed)
+	command_row.add_child(search_box)
+
+	var filter_row := HBoxContainer.new()
+	filter_row.add_theme_constant_override("separation", 5)
+	library_rows.add_child(filter_row)
+	add_filter_caption(filter_row, "FACTION")
+	add_filter_buttons(filter_row, ["All", "Human", "Dwarf", "Orc", "Elf", "Neutral"], race_buttons, _on_race_filter_pressed)
+	add_filter_caption(filter_row, "CARD")
+	add_filter_buttons(filter_row, ["All", "Unit", "Gambit", "Equipment"], type_buttons, _on_type_filter_pressed)
+
+	# A separate deck ledger over the lower-right table leaves open space between.
+	var deck_plaque := PanelContainer.new()
+	deck_plaque.name = "DeckLedgerPlaque"
+	deck_plaque.set_anchors_preset(Control.PRESET_FULL_RECT)
+	deck_plaque.offset_left = 10.0
+	deck_plaque.offset_top = 10.0
+	deck_plaque.offset_right = -10.0
+	deck_plaque.offset_bottom = -10.0
+	deck_plaque.add_theme_stylebox_override("panel", plaque_style)
+	deck_ui_root.add_child(deck_plaque)
+
+	var deck_margin := MarginContainer.new()
+	deck_margin.add_theme_constant_override("margin_left", 12)
+	deck_margin.add_theme_constant_override("margin_right", 12)
+	deck_margin.add_theme_constant_override("margin_top", 6)
+	deck_margin.add_theme_constant_override("margin_bottom", 6)
+	deck_plaque.add_child(deck_margin)
+
+	var deck_rows := VBoxContainer.new()
+	deck_rows.add_theme_constant_override("separation", 5)
+	deck_margin.add_child(deck_rows)
+
+	var ledger_header := HBoxContainer.new()
+	ledger_header.add_theme_constant_override("separation", 6)
+	deck_rows.add_child(ledger_header)
+
+	var ledger_label := Label.new()
+	ledger_label.text = "WAR DECK LEDGER"
+	ledger_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ledger_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ledger_label.add_theme_font_size_override("font_size", 14)
+	ledger_label.add_theme_color_override("font_color", Color(0.96, 0.78, 0.31, 1.0))
+	ledger_header.add_child(ledger_label)
+
+	deck_count_label = Label.new()
+	deck_count_label.custom_minimum_size = Vector2(76, 28)
+	deck_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	deck_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	deck_count_label.add_theme_font_size_override("font_size", 13)
+	deck_count_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.30, 1.0))
+	ledger_header.add_child(deck_count_label)
+
+	var slots_button := make_button("SLOTS", Vector2(58, 28))
+	slots_button.pressed.connect(toggle_deck_chip)
+	ledger_header.add_child(slots_button)
+
+	var clear_button := make_button("CLEAR", Vector2(62, 28))
+	clear_button.pressed.connect(_on_clear_pressed)
+	ledger_header.add_child(clear_button)
+
+	var sort_button := make_button("SORT", Vector2(62, 28))
+	sort_button.pressed.connect(_on_sort_pressed)
+	ledger_header.add_child(sort_button)
+
+	var deck_row := HBoxContainer.new()
+	deck_row.add_theme_constant_override("separation", 7)
+	deck_rows.add_child(deck_row)
 
 	deck_name_edit = LineEdit.new()
 	deck_name_edit.text = "Custom Warband"
-	deck_name_edit.custom_minimum_size = Vector2(200, 32)
-	deck_name_edit.add_theme_font_size_override("font_size", 13)
-	first_row.add_child(deck_name_edit)
+	deck_name_edit.custom_minimum_size = Vector2(170, 34)
+	deck_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	deck_name_edit.add_theme_font_size_override("font_size", 12)
+	style_text_field(deck_name_edit)
+	deck_row.add_child(deck_name_edit)
 
-	save_button = make_button("Save", Vector2(80, 32))
+	var delete_button := make_button("DELETE", Vector2(72, 34))
+	delete_button.pressed.connect(delete_active_deck_slot)
+	deck_row.add_child(delete_button)
+
+	save_button = make_button("SAVE", Vector2(72, 34))
 	save_button.pressed.connect(save_deck_to_disk)
-	first_row.add_child(save_button)
+	deck_row.add_child(save_button)
 
-	play_button = make_button("Save + Battle", Vector2(120, 32), true)
+	play_button = make_button("TO BATTLE", Vector2(102, 34), true)
 	play_button.pressed.connect(_on_save_and_battle_pressed)
-	first_row.add_child(play_button)
-
-	# --- Row 2: search + filters ---
-	var second_row := HBoxContainer.new()
-	second_row.add_theme_constant_override("separation", 6)
-	second_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	top_rows.add_child(second_row)
-
-	search_box = LineEdit.new()
-	search_box.placeholder_text = "Search by name, race, type, ability, or lore…"
-	search_box.custom_minimum_size = Vector2(320, 30)
-	search_box.add_theme_font_size_override("font_size", 13)
-	search_box.text_changed.connect(_on_search_changed)
-	second_row.add_child(search_box)
-
-	var sep2 := VSeparator.new()
-	sep2.add_theme_color_override("color", Color(0.50, 0.36, 0.10, 0.50))
-	second_row.add_child(sep2)
-
-	var race_label := Label.new()
-	race_label.text = "Faction"
-	race_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	race_label.add_theme_font_size_override("font_size", 12)
-	race_label.add_theme_color_override("font_color", Color(0.62, 0.55, 0.40, 1.0))
-	second_row.add_child(race_label)
-	add_filter_buttons(second_row, ["All", "Human", "Dwarf", "Orc", "Elf", "Neutral"], race_buttons, _on_race_filter_pressed)
-
-	var sep3 := VSeparator.new()
-	sep3.add_theme_color_override("color", Color(0.50, 0.36, 0.10, 0.50))
-	second_row.add_child(sep3)
-
-	var type_label := Label.new()
-	type_label.text = "Type"
-	type_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	type_label.add_theme_font_size_override("font_size", 12)
-	type_label.add_theme_color_override("font_color", Color(0.62, 0.55, 0.40, 1.0))
-	second_row.add_child(type_label)
-	add_filter_buttons(second_row, ["All", "Unit", "Gambit", "Equipment"], type_buttons, _on_type_filter_pressed)
-
-	var bottom_panel := PanelContainer.new()
-	bottom_panel.name = "BottomStatusPanel"
-	bottom_panel.anchor_left = 0.665
-	bottom_panel.anchor_right = 1.0
-	bottom_panel.anchor_top = 0.90
-	bottom_panel.anchor_bottom = 1.0
-	bottom_panel.add_theme_stylebox_override("panel", make_panel_style(Color(0.018, 0.012, 0.007, 0.96), Color(0.52, 0.38, 0.10, 1.0), 1))
-	root.add_child(bottom_panel)
-
-	var bottom_margin := MarginContainer.new()
-	bottom_margin.add_theme_constant_override("margin_left", 16)
-	bottom_margin.add_theme_constant_override("margin_right", 16)
-	bottom_margin.add_theme_constant_override("margin_top", 6)
-	bottom_margin.add_theme_constant_override("margin_bottom", 6)
-	bottom_panel.add_child(bottom_margin)
-
-	var bottom_row := HBoxContainer.new()
-	bottom_row.add_theme_constant_override("separation", 10)
-	bottom_margin.add_child(bottom_row)
-
-	deck_count_label = Label.new()
-	deck_count_label.custom_minimum_size = Vector2(90, 1)
-	deck_count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	deck_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	deck_count_label.add_theme_font_size_override("font_size", 15)
-	deck_count_label.add_theme_color_override("font_color", Color(0.90, 0.76, 0.34, 1.0))
-	bottom_row.add_child(deck_count_label)
+	deck_row.add_child(play_button)
 
 	status_label = Label.new()
-	status_label.custom_minimum_size = Vector2(1, 1)
 	status_label.visible = false
-	bottom_row.add_child(status_label)
+	root.add_child(status_label)
 
-	var clear_button := make_button("Clear", Vector2(74, 30))
-	clear_button.pressed.connect(_on_clear_pressed)
-	bottom_row.add_child(clear_button)
-
-	var sort_button := make_button("Sort", Vector2(74, 30))
-	sort_button.pressed.connect(_on_sort_pressed)
-	bottom_row.add_child(sort_button)
-
-	card_detail_label = RichTextLabel.new()
-	card_detail_label.name = "CardDetailLabel"
-	card_detail_label.bbcode_enabled = true
-	card_detail_label.fit_content = false
-	card_detail_label.scroll_active = false
-	card_detail_label.anchor_left = 0.03
-	card_detail_label.anchor_right = 0.33
-	card_detail_label.anchor_top = 0.17
-	card_detail_label.anchor_bottom = 0.30
-	card_detail_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card_detail_label.add_theme_color_override("default_color", Color(0.86, 0.80, 0.66, 1.0))
-	root.add_child(card_detail_label)
-
-	_build_library_fog(root)
+	build_deck_slot_chip()
 	refresh_filter_buttons()
+
+
+func create_tabletop_ui_surface(
+	surface_name: String,
+	viewport_size: Vector2i,
+	world_position: Vector3,
+	world_size: Vector2
+) -> Dictionary:
+	var viewport := SubViewport.new()
+	viewport.name = surface_name + "Viewport"
+	viewport.size = viewport_size
+	viewport.transparent_bg = true
+	viewport.disable_3d = true
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	viewport.gui_embed_subwindows = true
+	add_child(viewport)
+
+	var control_root := Control.new()
+	control_root.name = surface_name + "ControlRoot"
+	control_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	control_root.mouse_filter = Control.MOUSE_FILTER_PASS
+	viewport.add_child(control_root)
+
+	var surface := MeshInstance3D.new()
+	surface.name = surface_name + "Surface"
+	var quad := QuadMesh.new()
+	quad.size = world_size
+	surface.mesh = quad
+	surface.position = world_position
+	surface.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+	var material := StandardMaterial3D.new()
+	material.albedo_texture = viewport.get_texture()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	surface.material_override = material
+	add_child(surface)
+
+	var entry := {
+		"viewport": viewport,
+		"control": control_root,
+		"surface": surface,
+		"viewport_size": viewport_size,
+		"world_size": world_size,
+		"interactive": true,
+	}
+	tabletop_ui_surfaces.append(entry)
+	return entry
+
+
+func initialize_deck_slots() -> void:
+	saved_decks.clear()
+	for index in range(DECK_SLOT_COUNT):
+		saved_decks.append({
+			"deck_name": "Deck " + str(index + 1),
+			"cards": [],
+		})
+
+
+func build_deck_slot_chip() -> void:
+	deck_chip_root = Node3D.new()
+	deck_chip_root.name = "PhysicalDeckSlotCartridge"
+	deck_chip_root.position = DECK_CHIP_HIDDEN_POSITION
+	add_child(deck_chip_root)
+	build_deck_chip_shell(deck_chip_root)
+	deck_chip_root.visible = false
+
+	refresh_deck_slot_chip()
+
+
+func build_deck_chip_shell(parent: Node3D) -> void:
+	deck_slot_roots.clear()
+	deck_slot_number_labels.clear()
+	deck_slot_count_labels.clear()
+	deck_slot_fill_meshes.clear()
+
+	for slot_index in range(DECK_SLOT_COUNT):
+		var slot := Node3D.new()
+		slot.name = "DeckSlot" + str(slot_index + 1)
+		slot.position.x = (
+			-DECK_CHIP_TOTAL_WIDTH
+			+ (float(slot_index) + 0.5) * DECK_CHIP_SLOT_PITCH
+		)
+		parent.add_child(slot)
+		deck_slot_roots.append(slot)
+
+		# A slightly oversized dark plate sits beneath each compartment. Adjacent
+		# plates overlap by a few millimetres, producing one continuous contact
+		# shadow that blocks tabletop labels from showing through the slot gaps.
+		var shadow_backing := MeshInstance3D.new()
+		shadow_backing.name = "SlotShadowBacking"
+		var shadow_mesh := BoxMesh.new()
+		shadow_mesh.size = Vector3(0.345, 0.020, 0.70)
+		shadow_backing.mesh = shadow_mesh
+		shadow_backing.position = Vector3(0.0, 0.008, 0.008)
+		shadow_backing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		shadow_backing.material_override = make_mat(Color(0.012, 0.006, 0.003, 1.0), 0.92, 0.0)
+		slot.add_child(shadow_backing)
+
+		var body := MeshInstance3D.new()
+		body.name = "SlotBody"
+		var body_mesh := BoxMesh.new()
+		body_mesh.size = Vector3(0.315, 0.12, 0.66)
+		body.mesh = body_mesh
+		body.material_override = make_mat(Color(0.095, 0.042, 0.014, 1.0), 0.46, 0.30)
+		slot.add_child(body)
+
+		var inset := MeshInstance3D.new()
+		inset.name = "SlotInset"
+		var inset_mesh := BoxMesh.new()
+		inset_mesh.size = Vector3(0.265, 0.018, 0.50)
+		inset.mesh = inset_mesh
+		inset.position.y = 0.068
+		inset.material_override = make_mat(Color(0.018, 0.009, 0.004, 1.0), 0.58, 0.12)
+		slot.add_child(inset)
+
+		var fill := MeshInstance3D.new()
+		fill.name = "SlotFill"
+		var fill_mesh := BoxMesh.new()
+		fill_mesh.size = Vector3(0.245, 0.024, 0.018)
+		fill.mesh = fill_mesh
+		fill.position = Vector3(0.0, 0.082, 0.196)
+		fill.material_override = make_mat(Color(0.92, 0.58, 0.08, 1.0), 0.30, 0.46)
+		slot.add_child(fill)
+		deck_slot_fill_meshes.append(fill)
+
+		var number_label := make_deck_slot_label(
+			"SLOT " + str(slot_index + 1),
+			Vector3(0.0, 0.104, -0.145),
+			13
+		)
+		slot.add_child(number_label)
+		deck_slot_number_labels.append(number_label)
+
+		var count_label := make_deck_slot_label(
+			"0 / " + str(MAX_DECK_SIZE),
+			Vector3(0.0, 0.103, 0.125),
+			11
+		)
+		slot.add_child(count_label)
+		deck_slot_count_labels.append(count_label)
+
+		var front_lip := MeshInstance3D.new()
+		front_lip.name = "SlotFrontLip"
+		var lip_mesh := BoxMesh.new()
+		lip_mesh.size = Vector3(0.335, 0.16, 0.055)
+		front_lip.mesh = lip_mesh
+		front_lip.position = Vector3(0.0, 0.045, 0.325)
+		front_lip.material_override = make_mat(Color(0.39, 0.20, 0.045, 1.0), 0.34, 0.42)
+		slot.add_child(front_lip)
+
+		var pick_area := Area3D.new()
+		pick_area.name = "SlotPickArea"
+		pick_area.collision_layer = DECK_SLOT_PICK_LAYER
+		pick_area.collision_mask = 0
+		pick_area.set_meta("deck_slot_index", slot_index)
+		slot.add_child(pick_area)
+		var pick_shape := CollisionShape3D.new()
+		var pick_box := BoxShape3D.new()
+		pick_box.size = Vector3(0.315, 0.24, 0.66)
+		pick_shape.shape = pick_box
+		pick_shape.position.y = 0.08
+		pick_area.add_child(pick_shape)
+
+	# A pull tab belongs to slot one so it is swallowed by the same wall clipping.
+	var handle := MeshInstance3D.new()
+	handle.name = "CartridgePullTab"
+	var handle_mesh := BoxMesh.new()
+	handle_mesh.size = Vector3(0.18, 0.18, 0.46)
+	handle.mesh = handle_mesh
+	handle.position = Vector3(-0.245, 0.04, 0.0)
+	handle.material_override = make_mat(Color(0.48, 0.25, 0.055, 1.0), 0.30, 0.50)
+	deck_slot_roots[0].add_child(handle)
+
+
+func make_deck_slot_label(label_text: String, local_position: Vector3, font_size: int) -> Label3D:
+	var label := Label3D.new()
+	label.text = label_text
+	label.position = local_position
+	label.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	label.font_size = font_size
+	label.pixel_size = 0.00225
+	label.modulate = Color(1.0, 0.88, 0.57, 1.0)
+	label.outline_size = 5
+	label.outline_modulate = Color(0.015, 0.006, 0.002, 0.95)
+	label.no_depth_test = false
+	return label
+
+
+func refresh_deck_slot_chip() -> void:
+	for slot_index in range(mini(DECK_SLOT_COUNT, deck_slot_count_labels.size())):
+		var data: Dictionary = saved_decks[slot_index]
+		var card_ids: Array = data.get("cards", [])
+		var card_count := card_ids.size()
+		deck_slot_count_labels[slot_index].text = str(card_count) + " / " + str(MAX_DECK_SIZE)
+		deck_slot_number_labels[slot_index].modulate = (
+			Color(1.0, 0.70, 0.18, 1.0)
+			if slot_index == active_deck_slot
+			else Color(1.0, 0.88, 0.57, 1.0)
+		)
+		var fill := deck_slot_fill_meshes[slot_index]
+		var fill_box := fill.mesh as BoxMesh
+		var fill_ratio := clampf(float(card_count) / float(MAX_DECK_SIZE), 0.0, 1.0)
+		var fill_length := maxf(0.018, 0.42 * fill_ratio)
+		fill_box.size = Vector3(0.245, 0.024, fill_length)
+		fill.position.z = 0.205 - fill_length * 0.5
+		fill.visible = card_count > 0
+
+
+func toggle_deck_chip() -> void:
+	if deck_switch_in_progress:
+		return
+	if deck_chip_is_out:
+		retract_deck_chip()
+	else:
+		extend_deck_chip()
+
+
+func extend_deck_chip() -> void:
+	if deck_chip_root == null or deck_chip_is_out:
+		return
+	if deck_chip_tween != null:
+		deck_chip_tween.kill()
+	deck_chip_root.visible = true
+	deck_chip_root.position = DECK_CHIP_HIDDEN_POSITION
+	update_deck_chip_wall_clipping()
+	deck_chip_tween = create_tween()
+	deck_chip_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	deck_chip_tween.tween_property(deck_chip_root, "position", DECK_CHIP_SHOWN_POSITION, 0.38)
+	await deck_chip_tween.finished
+	deck_chip_is_out = true
+	update_deck_chip_wall_clipping()
+
+
+func retract_deck_chip() -> void:
+	if deck_chip_root == null or not deck_chip_root.visible:
+		deck_chip_is_out = false
+		return
+	if deck_chip_tween != null:
+		deck_chip_tween.kill()
+	deck_chip_tween = create_tween()
+	deck_chip_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	deck_chip_tween.tween_property(deck_chip_root, "position", DECK_CHIP_HIDDEN_POSITION, 0.30)
+	await deck_chip_tween.finished
+	deck_chip_root.visible = false
+	deck_chip_is_out = false
+
+
+func update_deck_chip_wall_clipping() -> void:
+	if deck_chip_root == null or not deck_chip_root.visible:
+		return
+	for slot in deck_slot_roots:
+		if slot == null:
+			continue
+		# Each compartment only becomes visible after clearing the rack's left
+		# wall. On retraction the wall swallows them one by one; nothing travels
+		# visibly across the rack interior.
+		var slot_right_edge := slot.global_position.x + 0.158
+		slot.visible = slot_right_edge <= DECK_CHIP_WALL_X + 0.012
+
+
+func pick_deck_slot_index(screen_position: Vector2) -> int:
+	if not deck_chip_is_out or camera_3d == null:
+		return -1
+	var origin := camera_3d.project_ray_origin(screen_position)
+	var end := origin + camera_3d.project_ray_normal(screen_position) * 1000.0
+	var query := PhysicsRayQueryParameters3D.create(origin, end)
+	query.collide_with_areas = true
+	query.collide_with_bodies = false
+	query.collision_mask = DECK_SLOT_PICK_LAYER
+	var result := get_world_3d().direct_space_state.intersect_ray(query)
+	if result.is_empty():
+		return -1
+	var collider := result.get("collider") as Area3D
+	if collider == null or not collider.has_meta("deck_slot_index"):
+		return -1
+	return int(collider.get_meta("deck_slot_index"))
+
+
+func route_tabletop_ui_input(event: InputEvent) -> bool:
+	if scene_transition_requested or not is_inside_tree():
+		return false
+	if event is InputEventKey:
+		if active_tabletop_viewport != null and active_tabletop_viewport.gui_get_focus_owner() != null:
+			active_tabletop_viewport.push_input(event)
+			return true
+		return false
+
+	if not (event is InputEventMouse):
+		return false
+
+	var mouse_event := event as InputEventMouse
+	var mapped := map_screen_to_tabletop_ui(mouse_event.position)
+	if mapped.is_empty():
+		if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
+			active_tabletop_viewport = null
+		return false
+
+	var viewport: SubViewport = mapped["viewport"]
+	if viewport == null or not is_instance_valid(viewport) or not viewport.is_inside_tree():
+		return false
+	active_tabletop_viewport = viewport
+	var forwarded := event.duplicate() as InputEventMouse
+	forwarded.position = mapped["position"]
+	forwarded.global_position = mapped["position"]
+	viewport.push_input(forwarded, true)
+	return true
+
+
+func map_screen_to_tabletop_ui(screen_position: Vector2) -> Dictionary:
+	if camera_3d == null:
+		return {}
+	for entry in tabletop_ui_surfaces:
+		if not bool(entry.get("interactive", true)):
+			continue
+		var surface: MeshInstance3D = entry["surface"]
+		var world_size: Vector2 = entry["world_size"]
+		var hit := screen_to_horizontal_plane(screen_position, surface.global_position.y)
+		var local := surface.to_local(hit)
+		if absf(local.x) > world_size.x * 0.5 or absf(local.y) > world_size.y * 0.5:
+			continue
+		var viewport_size: Vector2i = entry["viewport_size"]
+		var pixel_position := Vector2(
+			(local.x / world_size.x + 0.5) * float(viewport_size.x),
+			(0.5 - local.y / world_size.y) * float(viewport_size.y)
+		)
+		return {
+			"viewport": entry["viewport"],
+			"position": pixel_position,
+		}
+	return {}
 
 
 func make_button(text: String, min_size: Vector2, primary: bool = false) -> Button:
@@ -436,6 +974,7 @@ func make_button(text: String, min_size: Vector2, primary: bool = false) -> Butt
 	button.text = text
 	button.custom_minimum_size = min_size
 	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
 	var bg_normal := Color(0.10, 0.065, 0.032, 0.94) if not primary else Color(0.38, 0.24, 0.06, 0.96)
 	var border_normal := Color(0.48, 0.34, 0.10, 0.85) if not primary else Color(0.85, 0.64, 0.18, 1.0)
@@ -464,8 +1003,10 @@ func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
 	s.border_color = border
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(6)
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(4)
+	s.shadow_color = Color(0.01, 0.005, 0.002, 0.70)
+	s.shadow_size = 3
 	s.content_margin_left = 8.0
 	s.content_margin_right = 8.0
 	s.content_margin_top = 4.0
@@ -473,9 +1014,38 @@ func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
 	return s
 
 
+func style_text_field(field: LineEdit) -> void:
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.035, 0.018, 0.009, 0.92)
+	normal.border_color = Color(0.52, 0.34, 0.10, 0.92)
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(4)
+	normal.content_margin_left = 10.0
+	normal.content_margin_right = 10.0
+	var focus := normal.duplicate() as StyleBoxFlat
+	focus.bg_color = Color(0.075, 0.038, 0.014, 0.97)
+	focus.border_color = Color(0.95, 0.70, 0.20, 1.0)
+	field.add_theme_stylebox_override("normal", normal)
+	field.add_theme_stylebox_override("focus", focus)
+	field.add_theme_color_override("font_color", Color(0.96, 0.88, 0.68, 1.0))
+	field.add_theme_color_override("font_placeholder_color", Color(0.62, 0.52, 0.35, 0.90))
+	field.add_theme_color_override("caret_color", Color(1.0, 0.77, 0.25, 1.0))
+
+
+func add_filter_caption(parent: HBoxContainer, caption: String) -> void:
+	var label := Label.new()
+	label.text = caption
+	label.custom_minimum_size = Vector2(66, 28)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color", Color(0.78, 0.61, 0.27, 1.0))
+	parent.add_child(label)
+
+
 func add_filter_buttons(parent: HBoxContainer, labels: Array[String], store: Dictionary, callback: Callable) -> void:
 	for label_text in labels:
-		var button := make_button(label_text, Vector2(68, 28))
+		var button := make_button(label_text, Vector2(58, 26))
 		var s_active := _make_btn_style(Color(0.58, 0.40, 0.08, 1.0), Color(0.95, 0.74, 0.24, 1.0))
 		button.add_theme_stylebox_override("pressed", s_active)
 		var filter_key := label_text.to_lower()
@@ -488,11 +1058,11 @@ func add_filter_buttons(parent: HBoxContainer, labels: Array[String], store: Dic
 func refresh_filter_buttons() -> void:
 	for key in race_buttons.keys():
 		var b: Button = race_buttons[key]
-		b.button_pressed = (key == "all" and active_race_filter == "") or key == active_race_filter
+		b.button_pressed = (key == "all" and active_race_filters.is_empty()) or active_race_filters.has(key)
 
 	for key in type_buttons.keys():
 		var b: Button = type_buttons[key]
-		b.button_pressed = (key == "all" and active_type_filter == "") or key == active_type_filter
+		b.button_pressed = (key == "all" and active_type_filters.is_empty()) or active_type_filters.has(key)
 
 
 func refresh_library() -> void:
@@ -550,19 +1120,19 @@ func layout_library(instant: bool = false) -> void:
 		if instant:
 			node.position = target
 			node.scale = CARD_SCALE_LIBRARY
-			set_card_alpha(node, alpha)
-			node.visible = alpha > 0.02
+			node.set_meta("current_alpha", alpha)
+			set_card_pickable(node, alpha > 0.02)
+			if alpha < 0.01:
+				node.visible = false
+			else:
+				node.visible = true
+				set_card_alpha(node, alpha)
 
 
 func layout_deck_rack(instant: bool = false, preview_insert_index: int = -1) -> void:
 	var count_with_gap := deck_nodes.size()
-	if dragging_node != null and not dragging_from_library and is_point_in_rack(dragging_target_position):
+	if dragging_node != null and not dragging_from_library and dragging_over_rack:
 		count_with_gap += 1
-
-	var available_span := RACK_Z_BOTTOM - RACK_Z_TOP
-	var spacing := 0.205
-	if count_with_gap > 1:
-		spacing = min(0.205, available_span / float(max(1, count_with_gap - 1)))
 
 	var visual_index := 0
 	for i in range(deck_nodes.size()):
@@ -571,13 +1141,17 @@ func layout_deck_rack(instant: bool = false, preview_insert_index: int = -1) -> 
 		var node := deck_nodes[i]
 		if node == dragging_node:
 			continue
-		var target := Vector3(RACK_X, RACK_Y + float(visual_index) * 0.004, RACK_Z_TOP + float(visual_index) * spacing)
+
+		var target := get_rack_slot_position(visual_index, count_with_gap)
+		target.y += float(visual_index) * 0.002
 		node.set_meta("target_position", target)
 		node.set_meta("target_scale", CARD_SCALE_RACK)
-		node.set_meta("target_rotation", Vector3(0, 0, 0))
+		var target_rotation := Vector3(RACK_CARD_TILT_DEGREES, 0, 0)
+		node.set_meta("target_rotation", target_rotation)
 		if instant:
 			node.position = target
 			node.scale = CARD_SCALE_RACK
+			node.rotation_degrees = target_rotation
 		visual_index += 1
 
 
@@ -599,8 +1173,9 @@ func create_card_node(card_data: CardData, source_zone: String) -> Node3D:
 func add_pick_area(card_node: Node3D) -> void:
 	var area := Area3D.new()
 	area.name = "DeckBuilderPickArea"
-	area.collision_layer = 1
-	area.collision_mask = 1
+	var source_zone := String(card_node.get_meta("source_zone", ""))
+	area.collision_layer = CARD_PICK_LAYER_DECK if source_zone == "deck" else CARD_PICK_LAYER_LIBRARY
+	area.collision_mask = 0
 	area.set_meta("card_node", card_node)
 	card_node.add_child(area)
 
@@ -615,6 +1190,7 @@ func add_pick_area(card_node: Node3D) -> void:
 func begin_drag_from_mouse(screen_position: Vector2) -> void:
 	var picked := pick_card_node(screen_position)
 	if picked == null:
+		update_cursor_for_screen_position(screen_position)
 		return
 
 	var card_data: CardData = picked.get_meta("card_data", null) as CardData
@@ -624,7 +1200,18 @@ func begin_drag_from_mouse(screen_position: Vector2) -> void:
 	dragging_node = picked
 	dragging_card = card_data
 	dragging_from_library = String(picked.get_meta("source_zone", "")) == "library"
+	drag_rack_blend = 0.0 if dragging_from_library else 1.0
 	dragging_deck_original_index = -1
+	var grab_hit := screen_to_horizontal_plane(screen_position, picked.global_position.y)
+	drag_pointer_offset = Vector3(
+		picked.global_position.x - grab_hit.x,
+		0.0,
+		picked.global_position.z - grab_hit.z
+	)
+	if camera_3d != null:
+		drag_card_center_screen_offset = (
+			camera_3d.unproject_position(picked.global_position) - screen_position
+		)
 
 	if dragging_from_library:
 		set_status("Dragging " + card_data.card_name + " toward the deck rack.")
@@ -639,20 +1226,34 @@ func begin_drag_from_mouse(screen_position: Vector2) -> void:
 
 	dragging_node.visible = true
 	dragging_node.set_as_top_level(true)
+	Cursors.use_grab()
 	update_drag_target(screen_position)
 
 
 func update_drag_target(screen_position: Vector2) -> void:
-	var hit := screen_to_table_point(screen_position)
-	dragging_target_position = Vector3(hit.x, DRAG_Y, hit.z)
+	drag_pointer_screen_position = screen_position
+	var table_hit := screen_to_table_point(screen_position)
+	dragging_over_rack = is_point_in_rack_drop_zone(table_hit)
+	refresh_drag_target_position()
+
+
+func refresh_drag_target_position() -> void:
+	var hover_y := lerpf(LIBRARY_HOVER_Y, RACK_HOVER_Y, drag_rack_blend)
+	var hit := screen_to_horizontal_plane(drag_pointer_screen_position, hover_y)
+	dragging_target_position = Vector3(
+		hit.x + drag_pointer_offset.x,
+		hover_y,
+		hit.z + drag_pointer_offset.z
+	)
 
 
 func finish_drag(screen_position: Vector2) -> void:
 	if dragging_node == null or dragging_card == null:
+		update_cursor_for_screen_position(screen_position)
 		return
 
 	update_drag_target(screen_position)
-	var released_in_rack := is_point_in_rack(dragging_target_position)
+	var released_in_rack := dragging_over_rack
 
 	if dragging_from_library:
 		if released_in_rack:
@@ -660,7 +1261,7 @@ func finish_drag(screen_position: Vector2) -> void:
 		animate_library_card_home(dragging_node)
 	else:
 		if released_in_rack:
-			var insert_index := get_deck_insert_index_from_world(dragging_target_position)
+			var insert_index := get_deck_insert_index_from_screen(screen_position)
 			insert_index = clamp(insert_index, 0, deck_cards.size())
 			deck_cards.insert(insert_index, dragging_card)
 			deck_nodes.insert(insert_index, dragging_node)
@@ -677,10 +1278,31 @@ func finish_drag(screen_position: Vector2) -> void:
 	dragging_card = null
 	dragging_from_library = false
 	dragging_deck_original_index = -1
+	drag_pointer_offset = Vector3.ZERO
+	drag_pointer_screen_position = Vector2.ZERO
+	drag_card_center_screen_offset = Vector2.ZERO
+	dragging_over_rack = false
+	drag_rack_blend = 0.0
 	drag_preview_insert_index = 0
 	layout_library(false)
 	layout_deck_rack(false)
 	update_deck_status()
+	Cursors.use_normal()
+
+
+func update_cursor_for_screen_position(screen_position: Vector2) -> void:
+	if dragging_node != null:
+		Cursors.use_grab()
+		return
+	if (
+		pick_deck_slot_index(screen_position) >= 0
+		or pick_card_node(screen_position) != null
+		or not map_screen_to_tabletop_ui(screen_position).is_empty()
+		or is_pointer_over_ui()
+	):
+		Cursors.use_pointing()
+	else:
+		Cursors.use_normal()
 
 
 func try_add_library_card_to_deck(card_data: CardData) -> bool:
@@ -695,11 +1317,12 @@ func try_add_library_card_to_deck(card_data: CardData) -> bool:
 
 	var new_node := create_card_node(card_data, "deck")
 	new_node.name = "Deck_" + card_data.card_name.replace(" ", "_")
-	new_node.scale = CARD_SCALE_DRAG
+	new_node.scale = CARD_SCALE_RACK_HOVER
 	new_node.position = dragging_target_position
+	new_node.rotation_degrees = Vector3(RACK_CARD_TILT_DEGREES, 0.0, 0.0)
 	rack_root.add_child(new_node)
 
-	var insert_index := get_deck_insert_index_from_world(dragging_target_position)
+	var insert_index := get_deck_insert_index_from_screen(drag_pointer_screen_position)
 	insert_index = clamp(insert_index, 0, deck_cards.size())
 	deck_cards.insert(insert_index, card_data)
 	deck_nodes.insert(insert_index, new_node)
@@ -727,21 +1350,25 @@ func animate_collection(nodes: Array[Node3D], delta: float) -> void:
 		var target_position: Vector3 = node.get_meta("target_position", node.position)
 		var target_scale: Vector3 = node.get_meta("target_scale", node.scale)
 		var target_rotation: Vector3 = node.get_meta("target_rotation", node.rotation_degrees)
-		var target_alpha: float = float(node.get_meta("target_alpha", 1.0))
 		var weight: float = clampf(delta * 10.0, 0.0, 1.0)
 		node.position = node.position.lerp(target_position, weight)
 		node.scale = node.scale.lerp(target_scale, weight)
 		node.rotation_degrees = node.rotation_degrees.lerp(target_rotation, weight)
 
-		# Alpha is now binary (0 or 1). Snap immediately so culled cards don't
-		# bleed through the fog overlay during a lerp transition.
-		var next_alpha: float = target_alpha
-		node.set_meta("current_alpha", next_alpha)
-		if target_alpha < 0.5:
+		# Opacity follows the card's rendered position, not its destination. Position
+		# already moves smoothly, so this remains smooth even during rapid scrolling
+		# without leaving a delayed translucent card over the rack.
+		var source_zone := String(node.get_meta("source_zone", ""))
+		var alpha := get_library_edge_alpha(node.position.x) if source_zone == "library" else 1.0
+		node.set_meta("current_alpha", alpha)
+		# Every visibly rendered library card remains grabbable. Rack clicks still
+		# query only the deck collision layer, so edge cards cannot steal rack input.
+		set_card_pickable(node, source_zone != "library" or alpha > 0.02)
+		if alpha <= 0.001:
 			node.visible = false
 		else:
 			node.visible = true
-			set_card_alpha(node, 1.0)
+			set_card_alpha(node, alpha)
 
 
 func set_library_scroll(value: float) -> void:
@@ -749,13 +1376,27 @@ func set_library_scroll(value: float) -> void:
 
 
 func get_library_edge_alpha(x_position: float) -> float:
-	# Binary cull: hide only when past cloth edge + padding.
-	# The 2D fog overlay (see _build_library_fog) provides the visual fade.
-	if x_position < LIBRARY_VISIBLE_MIN_X - LIBRARY_CULL_PADDING:
+	if x_position <= LIBRARY_VISIBLE_MIN_X or x_position >= LIBRARY_VISIBLE_MAX_X:
 		return 0.0
-	if x_position > LIBRARY_VISIBLE_MAX_X + LIBRARY_CULL_PADDING:
-		return 0.0
-	return 1.0
+	var left_alpha := smoothstep(
+		LIBRARY_VISIBLE_MIN_X,
+		LIBRARY_VISIBLE_MIN_X + LIBRARY_FADE_WIDTH,
+		x_position
+	)
+	var right_alpha := 1.0 - smoothstep(
+		LIBRARY_VISIBLE_MAX_X - LIBRARY_FADE_WIDTH,
+		LIBRARY_VISIBLE_MAX_X,
+		x_position
+	)
+	return minf(left_alpha, right_alpha)
+
+
+func set_card_pickable(card_node: Node3D, pickable: bool) -> void:
+	var area := card_node.get_node_or_null("DeckBuilderPickArea") as Area3D
+	if area != null:
+		var source_zone := String(card_node.get_meta("source_zone", ""))
+		var base_layer := CARD_PICK_LAYER_DECK if source_zone == "deck" else CARD_PICK_LAYER_LIBRARY
+		area.collision_layer = base_layer if pickable else 0
 
 
 func set_card_alpha(card_node: Node, alpha: float) -> void:
@@ -782,7 +1423,9 @@ func set_card_alpha(card_node: Node, alpha: float) -> void:
 
 
 func apply_mesh_alpha(mesh_instance: MeshInstance3D, alpha: float) -> void:
-	var material: Material = mesh_instance.get_meta("deck_builder_alpha_material", null) as Material
+	var material: Material = null
+	if mesh_instance.has_meta("deck_builder_alpha_material"):
+		material = mesh_instance.get_meta("deck_builder_alpha_material") as Material
 
 	if material == null:
 		var source_material: Material = mesh_instance.material_override
@@ -796,7 +1439,11 @@ func apply_mesh_alpha(mesh_instance: MeshInstance3D, alpha: float) -> void:
 
 	if material is BaseMaterial3D:
 		var base_material := material as BaseMaterial3D
-		base_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		base_material.transparency = (
+			BaseMaterial3D.TRANSPARENCY_DISABLED
+			if alpha >= 0.999
+			else BaseMaterial3D.TRANSPARENCY_ALPHA
+		)
 		var material_color := base_material.albedo_color
 		material_color.a = alpha
 		base_material.albedo_color = material_color
@@ -807,9 +1454,26 @@ func pick_card_node(screen_position: Vector2) -> Node3D:
 		return null
 	var origin := camera_3d.project_ray_origin(screen_position)
 	var end := origin + camera_3d.project_ray_normal(screen_position) * 1000.0
+
+	# Rack cards lean toward the camera, so their visible upper halves can project
+	# outside the rack's floor rectangle. Always test the deck layer first instead
+	# of choosing a layer from the table-plane hit position.
+	var deck_card := ray_pick_card_on_layer(origin, end, CARD_PICK_LAYER_DECK)
+	if deck_card != null:
+		return deck_card
+
+	# Empty rack space must never pick a library card behind or beneath the rack.
+	var table_point := screen_to_table_point(screen_position)
+	if is_point_in_rack(table_point):
+		return null
+	return ray_pick_card_on_layer(origin, end, CARD_PICK_LAYER_LIBRARY)
+
+
+func ray_pick_card_on_layer(origin: Vector3, end: Vector3, collision_layer: int) -> Node3D:
 	var query := PhysicsRayQueryParameters3D.create(origin, end)
 	query.collide_with_areas = true
-	query.collide_with_bodies = true
+	query.collide_with_bodies = false
+	query.collision_mask = collision_layer
 	var result := get_world_3d().direct_space_state.intersect_ray(query)
 	if result.is_empty():
 		return null
@@ -821,14 +1485,56 @@ func pick_card_node(screen_position: Vector2) -> Node3D:
 	return null
 
 
+func show_card_action_menu(screen_position: Vector2) -> void:
+	if card_action_menu == null:
+		return
+	var picked := pick_card_node(screen_position)
+	if picked == null:
+		card_action_target = null
+		card_action_menu.hide()
+		return
+
+	card_action_target = picked
+	card_action_menu.clear()
+	card_action_menu.add_item("Inspect", CARD_ACTION_INSPECT)
+	card_action_menu.add_separator()
+	card_action_menu.add_item("Cancel", CARD_ACTION_CANCEL)
+	card_action_menu.position = Vector2i(int(screen_position.x), int(screen_position.y))
+	card_action_menu.popup()
+
+
+func _on_card_action_selected(action_id: int) -> void:
+	if action_id == CARD_ACTION_INSPECT:
+		inspect_card_node(card_action_target)
+	card_action_target = null
+	if card_action_menu != null:
+		card_action_menu.hide()
+
+
+func inspect_card_node(card_node: Node3D) -> void:
+	if card_node == null or not is_instance_valid(card_node) or card_inspect_panel == null:
+		return
+	var card_data := card_node.get_meta("card_data", null) as CardData
+	if card_data == null:
+		return
+	var source_position := get_viewport().get_mouse_position()
+	card_inspect_panel.last_source_rect = Rect2(source_position, Vector2(130.0, 180.0))
+	card_inspect_panel.show_card(null, card_data)
+	set_status("Inspecting " + card_data.card_name + ". Right-click or press Escape to close.")
+
+
 func screen_to_table_point(screen_position: Vector2) -> Vector3:
+	return screen_to_horizontal_plane(screen_position, TABLE_PLANE_Y)
+
+
+func screen_to_horizontal_plane(screen_position: Vector2, plane_y: float) -> Vector3:
 	if camera_3d == null:
 		return Vector3.ZERO
 	var origin := camera_3d.project_ray_origin(screen_position)
 	var direction := camera_3d.project_ray_normal(screen_position)
 	if abs(direction.y) < 0.0001:
 		return origin
-	var t := (TABLE_PLANE_Y - origin.y) / direction.y
+	var t := (plane_y - origin.y) / direction.y
 	return origin + direction * t
 
 
@@ -836,10 +1542,58 @@ func is_point_in_rack(point: Vector3) -> bool:
 	return point.x >= RACK_MIN_X and point.x <= RACK_MAX_X and point.z >= RACK_MIN_Z and point.z <= RACK_MAX_Z
 
 
+func is_point_in_rack_drop_zone(point: Vector3) -> bool:
+	return (
+		point.x >= RACK_MIN_X
+		and point.x <= RACK_DROP_MAX_X
+		and point.z >= RACK_DROP_MIN_Z
+		and point.z <= RACK_MAX_Z
+	)
+
+
+func get_deck_insert_index_from_screen(screen_position: Vector2) -> int:
+	if camera_3d == null:
+		return get_deck_insert_index_from_world(dragging_target_position)
+	var intended_card_center := screen_position + drag_card_center_screen_offset
+	var prospective_count := deck_cards.size() + 1
+	var nearest_index := 0
+	var nearest_distance := INF
+	for index in range(prospective_count):
+		var local_slot := get_rack_slot_position(index, prospective_count)
+		var slot_screen := camera_3d.unproject_position(rack_root.to_global(local_slot))
+		var distance := intended_card_center.distance_squared_to(slot_screen)
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest_index = index
+	return nearest_index
+
+
 func get_deck_insert_index_from_world(point: Vector3) -> int:
-	var t := inverse_lerp(RACK_Z_TOP, RACK_Z_BOTTOM, clamp(point.z, RACK_Z_TOP, RACK_Z_BOTTOM))
-	var count: int = int(max(1, deck_cards.size() + 1))
-	return clamp(int(round(t * float(count - 1))), 0, deck_cards.size())
+	var prospective_count := deck_cards.size() + 1
+	var nearest_index := 0
+	var nearest_distance := INF
+	for index in range(prospective_count):
+		var slot := get_rack_slot_position(index, prospective_count)
+		var distance := Vector2(point.x - slot.x, point.z - slot.z).length_squared()
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest_index = index
+	return nearest_index
+
+
+func get_rack_slot_position(index: int, total_count: int) -> Vector3:
+	var safe_count := maxi(total_count, 1)
+	var left_count := (safe_count + 1) / 2
+	var in_right_column := index >= left_count
+	var column_count := safe_count / 2 if in_right_column else left_count
+	var column_index := index - left_count if in_right_column else index
+	# Fable-style stack: expose primarily the title strip of each card. The final
+	# card in a column remains unobstructed, giving the stack a clear visual end.
+	var spacing := RACK_CARD_REVEAL_SPACING
+	if column_count > 1:
+		spacing = minf(spacing, (RACK_Z_BOTTOM - RACK_STACK_START_Z) / float(column_count - 1))
+	var x := RACK_COL_RIGHT if in_right_column else RACK_COL_LEFT
+	return Vector3(x, RACK_Y, RACK_STACK_START_Z + float(column_index) * spacing)
 
 
 func card_matches_filters(card_data: CardData) -> bool:
@@ -848,9 +1602,9 @@ func card_matches_filters(card_data: CardData) -> bool:
 	var race := card_data.race.to_lower().strip_edges()
 	var card_type := card_data.card_type.to_lower().strip_edges()
 
-	if active_race_filter != "" and race != active_race_filter:
+	if not active_race_filters.is_empty() and not active_race_filters.has(race):
 		return false
-	if active_type_filter != "" and card_type != active_type_filter:
+	if not active_type_filters.is_empty() and not active_type_filters.has(card_type):
 		return false
 
 	if search_text != "":
@@ -902,6 +1656,13 @@ func get_deck_copy_count(card_data: CardData) -> int:
 func update_deck_status() -> void:
 	if deck_count_label != null:
 		deck_count_label.text = "Deck " + str(deck_cards.size()) + "/" + str(MAX_DECK_SIZE)
+	if deck_ledger_label_3d != null:
+		deck_ledger_label_3d.text = (
+			"WAR DECK LEDGER  •  DECK "
+			+ str(deck_cards.size())
+			+ "/"
+			+ str(MAX_DECK_SIZE)
+		)
 	var valid := deck_cards.size() >= MIN_DECK_SIZE and deck_cards.size() <= MAX_DECK_SIZE
 	if play_button != null:
 		play_button.disabled = not valid
@@ -910,9 +1671,6 @@ func update_deck_status() -> void:
 
 
 func save_deck_to_disk() -> void:
-	if deck_cards.size() < MIN_DECK_SIZE:
-		set_status("Deck needs at least " + str(MIN_DECK_SIZE) + " cards before saving for battle.")
-		return
 	if deck_cards.size() > MAX_DECK_SIZE:
 		set_status("Deck cannot exceed " + str(MAX_DECK_SIZE) + " cards.")
 		return
@@ -921,9 +1679,43 @@ func save_deck_to_disk() -> void:
 	for card in deck_cards:
 		card_ids.append(get_card_key(card))
 
-	var data := {
-		"deck_name": deck_name_edit.text.strip_edges(),
+	var deck_name := deck_name_edit.text.strip_edges()
+	if deck_name == "":
+		deck_name = "Deck " + str(active_deck_slot + 1)
+		deck_name_edit.text = deck_name
+	saved_decks[active_deck_slot] = {
+		"deck_name": deck_name,
 		"cards": card_ids,
+	}
+	write_deck_slots_to_disk()
+	refresh_deck_slot_chip()
+	set_status(
+		"Saved slot " + str(active_deck_slot + 1) + ": "
+		+ deck_name + " (" + str(deck_cards.size()) + "/" + str(MAX_DECK_SIZE) + " cards)."
+	)
+	extend_deck_chip()
+
+
+func delete_active_deck_slot() -> void:
+	if deck_switch_in_progress:
+		return
+	var deleted_slot := active_deck_slot
+	saved_decks[deleted_slot] = {
+		"deck_name": "Deck " + str(deleted_slot + 1),
+		"cards": [],
+	}
+	write_deck_slots_to_disk()
+	load_deck_slot_into_rack(deleted_slot)
+	refresh_deck_slot_chip()
+	extend_deck_chip()
+	set_status("Deleted saved deck slot " + str(deleted_slot + 1) + ".")
+
+
+func write_deck_slots_to_disk() -> void:
+	var data := {
+		"version": 2,
+		"active_slot": active_deck_slot,
+		"decks": saved_decks,
 	}
 
 	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
@@ -932,17 +1724,12 @@ func save_deck_to_disk() -> void:
 		return
 	file.store_string(JSON.stringify(data, "\t"))
 	file.close()
-	set_status("Saved deck: " + deck_name_edit.text + " (" + str(deck_cards.size()) + " cards).")
 
 
 func load_deck_from_disk() -> void:
-	deck_cards.clear()
-	for node in deck_nodes:
-		if node != null and is_instance_valid(node):
-			node.queue_free()
-	deck_nodes.clear()
-
 	if not FileAccess.file_exists(SAVE_PATH):
+		load_deck_slot_into_rack(active_deck_slot)
+		refresh_deck_slot_chip()
 		return
 
 	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
@@ -956,9 +1743,52 @@ func load_deck_from_disk() -> void:
 		return
 
 	var data: Dictionary = parsed
-	deck_name_edit.text = String(data.get("deck_name", "Custom Warband"))
-	var card_ids: Array = data.get("cards", [])
+	if data.has("decks") and data["decks"] is Array:
+		var raw_decks: Array = data["decks"]
+		for slot_index in range(mini(DECK_SLOT_COUNT, raw_decks.size())):
+			if raw_decks[slot_index] is Dictionary:
+				saved_decks[slot_index] = sanitize_saved_deck(raw_decks[slot_index], slot_index)
+		active_deck_slot = clampi(int(data.get("active_slot", 0)), 0, DECK_SLOT_COUNT - 1)
+	else:
+		# Migrate the original single-deck save into slot 1.
+		saved_decks[0] = sanitize_saved_deck(data, 0)
+		active_deck_slot = 0
+		write_deck_slots_to_disk()
 
+	load_deck_slot_into_rack(active_deck_slot)
+	refresh_deck_slot_chip()
+
+
+func sanitize_saved_deck(raw_data: Dictionary, slot_index: int) -> Dictionary:
+	var clean_cards: Array[String] = []
+	var raw_cards: Array = raw_data.get("cards", [])
+	for raw_id in raw_cards:
+		if clean_cards.size() >= MAX_DECK_SIZE:
+			break
+		clean_cards.append(String(raw_id))
+	var deck_name := String(raw_data.get("deck_name", "Deck " + str(slot_index + 1))).strip_edges()
+	if deck_name == "":
+		deck_name = "Deck " + str(slot_index + 1)
+	return {
+		"deck_name": deck_name,
+		"cards": clean_cards,
+	}
+
+
+func clear_current_deck() -> void:
+	deck_cards.clear()
+	for node in deck_nodes:
+		if node != null and is_instance_valid(node):
+			node.visible = false
+			node.queue_free()
+	deck_nodes.clear()
+
+
+func load_deck_slot_into_rack(slot_index: int) -> void:
+	clear_current_deck()
+	var data: Dictionary = saved_decks[slot_index]
+	deck_name_edit.text = String(data.get("deck_name", "Deck " + str(slot_index + 1)))
+	var card_ids: Array = data.get("cards", [])
 	for raw_id in card_ids:
 		var key := String(raw_id)
 		if not card_lookup.has(key):
@@ -973,12 +1803,71 @@ func load_deck_from_disk() -> void:
 		node.scale = CARD_SCALE_RACK
 		rack_root.add_child(node)
 		deck_nodes.append(node)
+	layout_deck_rack(true)
+	update_deck_status()
+
+
+func _on_deck_slot_pressed(slot_index: int) -> void:
+	if deck_switch_in_progress or slot_index == active_deck_slot:
+		return
+	switch_to_deck_slot(slot_index)
+
+
+func switch_to_deck_slot(slot_index: int) -> void:
+	deck_switch_in_progress = true
+	await retract_deck_chip()
+
+	var exit_tween := create_tween()
+	exit_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	exit_tween.tween_property(
+		rack_assembly_root,
+		"position",
+		rack_assembly_home_position + DECK_RACK_EXIT_OFFSET,
+		0.38
+	)
+	await exit_tween.finished
+
+	active_deck_slot = clampi(slot_index, 0, DECK_SLOT_COUNT - 1)
+	rack_assembly_root.position = rack_assembly_home_position + DECK_RACK_ENTRY_OFFSET
+	load_deck_slot_into_rack(active_deck_slot)
+	write_deck_slots_to_disk()
+	refresh_deck_slot_chip()
+
+	var entry_tween := create_tween()
+	entry_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	entry_tween.tween_property(
+		rack_assembly_root,
+		"position",
+		rack_assembly_home_position,
+		0.52
+	)
+	await entry_tween.finished
+
+	deck_switch_in_progress = false
+	extend_deck_chip()
+	set_status(
+		"Loaded deck slot " + str(active_deck_slot + 1) + ": "
+		+ String(saved_decks[active_deck_slot].get("deck_name", "Deck")) + "."
+	)
 
 
 func show_card_detail(card_data: CardData) -> void:
-	if card_detail_label == null or card_data == null:
+	if card_data == null:
 		return
-	card_detail_label.text = "[b]" + card_data.card_name + "[/b]  [color=#d7bd64]TP " + str(card_data.tribute_cost) + "[/color]\n" + card_data.race.capitalize() + "  |  " + card_data.card_type.capitalize() + "  |  AP " + str(card_data.ap) + " / DP " + str(card_data.dp)
+	if card_detail_name_3d != null:
+		card_detail_name_3d.text = card_data.card_name + "  •  TP " + str(card_data.tribute_cost)
+		card_detail_name_3d.visible = true
+	if card_detail_stats_3d != null:
+		card_detail_stats_3d.text = (
+			card_data.race.capitalize()
+			+ "  •  "
+			+ card_data.card_type.capitalize()
+			+ "  •  AP "
+			+ str(card_data.ap)
+			+ " / DP "
+			+ str(card_data.dp)
+		)
+		card_detail_stats_3d.visible = true
 
 
 func set_status(message: String) -> void:
@@ -992,13 +1881,23 @@ func _on_search_changed(new_text: String) -> void:
 
 
 func _on_race_filter_pressed(filter_value: String) -> void:
-	active_race_filter = "" if filter_value == "all" else filter_value
+	if filter_value == "all":
+		active_race_filters.clear()
+	elif active_race_filters.has(filter_value):
+		active_race_filters.erase(filter_value)
+	else:
+		active_race_filters[filter_value] = true
 	refresh_filter_buttons()
 	refresh_library()
 
 
 func _on_type_filter_pressed(filter_value: String) -> void:
-	active_type_filter = "" if filter_value == "all" else filter_value
+	if filter_value == "all":
+		active_type_filters.clear()
+	elif active_type_filters.has(filter_value):
+		active_type_filters.erase(filter_value)
+	else:
+		active_type_filters[filter_value] = true
 	refresh_filter_buttons()
 	refresh_library()
 
@@ -1018,7 +1917,7 @@ func _on_sort_pressed() -> void:
 	for i in range(deck_cards.size()):
 		pairs.append({"card": deck_cards[i], "node": deck_nodes[i]})
 	pairs.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return get_card_sort_key(a["card"]) < get_card_sort_key(b["card"])
+		return get_deck_sort_key(a["card"]) < get_deck_sort_key(b["card"])
 	)
 	deck_cards.clear()
 	deck_nodes.clear()
@@ -1026,20 +1925,48 @@ func _on_sort_pressed() -> void:
 		deck_cards.append(pair["card"])
 		deck_nodes.append(pair["node"])
 	layout_deck_rack(false)
-	set_status("Deck rack sorted smoothly by type, faction, and name.")
+	set_status("Deck rack sorted by tribute cost, then type and name.")
+
+
+func get_deck_sort_key(card_data: CardData) -> String:
+	if card_data == null:
+		return "999:zzzz"
+	return "%03d:%s:%s" % [
+		card_data.tribute_cost,
+		card_data.card_type.to_lower(),
+		card_data.card_name.to_lower(),
+	]
 
 
 func _on_save_and_battle_pressed() -> void:
 	save_deck_to_disk()
 	if deck_cards.size() >= MIN_DECK_SIZE:
-		get_tree().change_scene_to_file(BATTLE_SCENE_PATH)
+		request_scene_change(BATTLE_SCENE_PATH)
+
+
+func request_scene_change(scene_path: String) -> void:
+	if scene_transition_requested:
+		return
+	scene_transition_requested = true
+	active_tabletop_viewport = null
+	for entry in tabletop_ui_surfaces:
+		entry["interactive"] = false
+	call_deferred("_perform_scene_change", scene_path)
+
+
+func _perform_scene_change(scene_path: String) -> void:
+	var tree := get_tree()
+	if tree != null:
+		tree.change_scene_to_file(scene_path)
 
 
 func is_pointer_over_ui() -> bool:
 	var hovered := get_viewport().gui_get_hovered_control()
 	if hovered == null:
 		return false
-	return hovered.mouse_filter != Control.MOUSE_FILTER_IGNORE
+	# Only block 3D input when a STOP-filter control is under the cursor.
+	# PASS controls (e.g. the full-screen root overlay) must not swallow clicks.
+	return hovered.mouse_filter == Control.MOUSE_FILTER_STOP
 
 
 func make_mat(albedo: Color, roughness: float = 0.75, metallic: float = 0.0) -> StandardMaterial3D:
@@ -1051,55 +1978,46 @@ func make_mat(albedo: Color, roughness: float = 0.75, metallic: float = 0.0) -> 
 
 
 func _build_library_fog(root: Control) -> void:
-	# Two fixed gradient bands rendered over the 3D scene via CanvasLayer.
-	# Cards keep alpha=1 always; the bands create the "fog" appearance at edges.
-	#
-	# All pixel coords are in the logical 1920×1080 canvas space.
-	# Cloth left edge ≈ px 75, cloth right edge ≈ px 940 (before the rack wall).
-	# The cull boundary (CULL_PADDING=0.50) hides cards when their center is
-	# 0.50 units outside the cloth — that maps to ≈px 27 (left) and ≈px 988 (right),
-	# both deep inside the solid-fog zone, so the pop is never visible.
+	# Two gradient bands positioned as screen-fraction anchors so they scale
+	# with any resolution. Cards are binary visible/hidden; these bands provide
+	# the smooth visual fade at the cloth boundaries.
+	# Color matches the dark-brown wooden table surrounding the cloth.
 	var fog := Control.new()
 	fog.name = "LibraryFogBands"
 	fog.set_anchors_preset(Control.PRESET_FULL_RECT)
 	fog.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(fog)
 
-	var fog_color := Color(0.020, 0.010, 0.005, 1.0)
+	var fog_color := Color(0.23, 0.11, 0.05, 1.0)   # warm dark wood, not black
 
-	# Left: solid 0–75 px (covers wood frame outside cloth),
-	#        gradient 75–145 px (fades into cloth interior).
+	# Left band: 0% → 13% of screen width.
+	# Solid at left (matching wood frame), fades right into the cloth interior.
 	var left_band := TextureRect.new()
 	left_band.name = "FogLeft"
-	left_band.texture = _make_fog_image(fog_color, 75, 70)
+	left_band.texture = _make_fog_image(fog_color, 55, 110)
 	left_band.stretch_mode = TextureRect.STRETCH_SCALE
 	left_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left_band.anchor_left   = 0.0
-	left_band.anchor_right  = 0.0
-	left_band.anchor_top    = 0.135
+	left_band.anchor_right  = 0.13
+	left_band.anchor_top    = 0.10
 	left_band.anchor_bottom = 1.0
-	left_band.offset_left   = 0.0
-	left_band.offset_right  = 145.0
 	fog.add_child(left_band)
 
-	# Right: gradient 860–940 px (fades toward cloth right edge),
-	#         solid 940–960 px (small buffer covering the rack wall seam).
+	# Right band: 55% → 66.5% of screen width.
+	# Fades left-to-right from transparent into solid wood, ending at the rack wall.
 	var right_band := TextureRect.new()
 	right_band.name = "FogRight"
-	right_band.texture = _make_fog_image_right(fog_color, 80, 20)
+	right_band.texture = _make_fog_image_right(fog_color, 110, 40)
 	right_band.stretch_mode = TextureRect.STRETCH_SCALE
 	right_band.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	right_band.anchor_left   = 0.0
-	right_band.anchor_right  = 0.0
-	right_band.anchor_top    = 0.135
+	right_band.anchor_left   = 0.55
+	right_band.anchor_right  = 0.665
+	right_band.anchor_top    = 0.10
 	right_band.anchor_bottom = 1.0
-	right_band.offset_left   = 860.0
-	right_band.offset_right  = 960.0
 	fog.add_child(right_band)
 
 
-# Builds a left-side fog image: [solid_px] columns of fog_color,
-# then [fade_px] columns fading linearly to transparent.
+# Left-side fog: [solid_px] columns of fog_color, then [fade_px] fading to transparent.
 func _make_fog_image(fog_color: Color, solid_px: int, fade_px: int) -> ImageTexture:
 	var w := solid_px + fade_px
 	var img := Image.create(w, 2, false, Image.FORMAT_RGBA8)
@@ -1115,8 +2033,7 @@ func _make_fog_image(fog_color: Color, solid_px: int, fade_px: int) -> ImageText
 	return ImageTexture.create_from_image(img)
 
 
-# Builds a right-side fog image: [fade_px] columns fading from transparent → fog_color,
-# then [solid_px] columns of fog_color.
+# Right-side fog: [fade_px] fading from transparent → fog_color, then [solid_px] solid.
 func _make_fog_image_right(fog_color: Color, fade_px: int, solid_px: int) -> ImageTexture:
 	var w := fade_px + solid_px
 	var img := Image.create(w, 2, false, Image.FORMAT_RGBA8)
@@ -1140,5 +2057,7 @@ func make_panel_style(bg: Color, border: Color, border_width: int) -> StyleBoxFl
 	style.border_width_right = border_width
 	style.border_width_top = border_width
 	style.border_width_bottom = border_width
-	style.set_corner_radius_all(0)
+	style.set_corner_radius_all(10)
+	style.shadow_color = Color(0.01, 0.004, 0.001, 0.72)
+	style.shadow_size = 8
 	return style

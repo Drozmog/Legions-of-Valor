@@ -96,14 +96,8 @@ func build_stack() -> void:
 		var card_data: CardData = tribute_cards[start_index + i]
 		var card_node := CardPileVisual.create_face_up_card_visual(card_data, card_scale)
 
-		# Cleaner stack: slight diagonal overlap, not wild offsets.
-		card_node.position = Vector3(
-			float(i) * 0.025,
-			0.045 + float(i) * (card_thickness + stack_gap),
-			float(i) * 0.018
-		)
-
-		card_node.rotation_degrees = Vector3(0.0, float(i) * 1.0, 0.0)
+		card_node.position = Vector3(0.0, 0.045 + float(i) * (card_thickness + stack_gap), 0.0)
+		card_node.rotation_degrees = Vector3.ZERO
 
 		add_child(card_node)
 		stacked_cards.append(card_node)
