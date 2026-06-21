@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://d226xmh0gjdy3"]
 
 [ext_resource type="Script" uid="uid://cedl2qflls1en" path="res://ui/DeckBuilder.gd" id="1_builder"]
+[ext_resource type="Script" uid="uid://dli3s65r2bbkj" path="res://ui/DeckBuilderLibrarySortPatch.gd" id="2_sort_patch"]
 [ext_resource type="Texture2D" uid="uid://c5sxw3n3uqrml" path="res://Textures/Deck Builder/heavy_wooden_deck_builder_table (2).png" id="3_lltvm"]
 [ext_resource type="Texture2D" uid="uid://cy34hadl7kml0" path="res://Textures/Deck Builder/red_cloth.png" id="3_mn2kh"]
 [ext_resource type="Texture2D" uid="uid://dnkwi7uhean6a" path="res://Textures/Deck Builder/rack_surface.png" id="4_mn2kh"]
@@ -70,6 +71,9 @@ uv1_offset = Vector3(0.005, 0, 0)
 
 [node name="DeckBuilder" type="Node3D" unique_id=120904735]
 script = ExtResource("1_builder")
+
+[node name="DeckBuilderLibrarySortPatch" type="Node" parent="."]
+script = ExtResource("2_sort_patch")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=179726442]
 environment = SubResource("Environment_uy14w")
