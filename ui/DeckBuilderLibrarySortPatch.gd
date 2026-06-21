@@ -12,7 +12,9 @@ const SORT_LABELS := {
 	SORT_DP: "DP",
 }
 
-var sort_menu: MenuButton = null
+var ui_root: Control = null
+var sort_button: Button = null
+var sort_dropdown_panel: PanelContainer = null
 var current_sort_id := SORT_NAME
 var library_sort_ascending := true
 var has_applied_library_sort := false
@@ -35,12 +37,12 @@ func _attach_sort_dropdown() -> void:
 		_retry_attach()
 		return
 
-	var root := viewport.get_node_or_null("LibraryTabletopUIControlRoot") as Control
-	if root == null:
+	ui_root = viewport.get_node_or_null("LibraryTabletopUIControlRoot") as Control
+	if ui_root == null:
 		_retry_attach()
 		return
 
-	var plaque := root.get_node_or_null("LibraryControlPlaque") as Control
+	var plaque := ui_root.get_node_or_null("LibraryControlPlaque") as Control
 	if plaque == null:
 		_retry_attach()
 		return
@@ -49,27 +51,21 @@ func _attach_sort_dropdown() -> void:
 	if command_row == null:
 		_retry_attach()
 		return
-	if command_row.get_node_or_null("LibrarySortMenuButton") != null:
+	if command_row.get_node_or_null("LibrarySortButton") != null:
 		return
 
-	sort_menu = MenuButton.new()
-	sort_menu.name = "LibrarySortMenuButton"
-	sort_menu.text = _sort_button_text()
-	sort_menu.custom_minimum_size = Vector2(76, 32)
-	sort_menu.focus_mode = Control.FOCUS_NONE
-	sort_menu.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	_apply_button_style(sort_menu)
+	sort_button = Button.new()
+	sort_button.name = "LibrarySortButton"
+	sort_button.text = _sort_button_text()
+	sort_button.custom_minimum_size = Vector2(76, 32)
+	sort_button.focus_mode = Control.FOCUS_NONE
+	sort_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	sort_button.pressed.connect(_toggle_sort_dropdown)
+	_apply_button_style(sort_button)
+	command_row.add_child(sort_button)
 
-	var popup := sort_menu.get_popup()
-	popup.clear()
-	popup.add_radio_check_item("Name", SORT_NAME)
-	popup.add_radio_check_item("TP", SORT_TP)
-	popup.add_radio_check_item("AP", SORT_AP)
-	popup.add_radio_check_item("DP", SORT_DP)
-	popup.id_pressed.connect(_on_sort_option_selected)
-	_update_sort_popup_checks()
-
-	command_row.add_child(sort_menu)
+	_build_sort_dropdown_panel()
+	call_deferred("_position_sort_dropdown")
 
 
 func _retry_attach() -> void:
@@ -87,6 +83,78 @@ func _find_first_hbox(node: Node) -> HBoxContainer:
 	return null
 
 
+func _build_sort_dropdown_panel() -> void:
+	if ui_root == null:
+		return
+
+	sort_dropdown_panel = PanelContainer.new()
+	sort_dropdown_panel.name = "LibrarySortDropdown"
+	sort_dropdown_panel.visible = false
+	sort_dropdown_panel.z_index = 250
+	sort_dropdown_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	sort_dropdown_panel.custom_minimum_size = Vector2(132, 58)
+	sort_dropdown_panel.add_theme_stylebox_override(
+		"panel",
+		_make_dropdown_style(Color(0.055, 0.026, 0.010, 0.98), Color(0.72, 0.49, 0.13, 1.0))
+	)
+	ui_root.add_child(sort_dropdown_panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 5)
+	margin.add_theme_constant_override("margin_right", 5)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	sort_dropdown_panel.add_child(margin)
+
+	var option_grid := GridContainer.new()
+	option_grid.columns = 2
+	option_grid.add_theme_constant_override("h_separation", 4)
+	option_grid.add_theme_constant_override("v_separation", 4)
+	margin.add_child(option_grid)
+
+	_add_sort_option_button(option_grid, "Name", SORT_NAME)
+	_add_sort_option_button(option_grid, "TP", SORT_TP)
+	_add_sort_option_button(option_grid, "AP", SORT_AP)
+	_add_sort_option_button(option_grid, "DP", SORT_DP)
+
+
+func _add_sort_option_button(parent: Control, label: String, sort_id: int) -> void:
+	var option_button := Button.new()
+	option_button.text = label
+	option_button.custom_minimum_size = Vector2(58, 22)
+	option_button.focus_mode = Control.FOCUS_NONE
+	option_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	option_button.pressed.connect(_on_sort_option_selected.bind(sort_id))
+	_apply_button_style(option_button)
+	parent.add_child(option_button)
+
+
+func _toggle_sort_dropdown() -> void:
+	if sort_dropdown_panel == null:
+		return
+	_position_sort_dropdown()
+	sort_dropdown_panel.visible = not sort_dropdown_panel.visible
+
+
+func _position_sort_dropdown() -> void:
+	if sort_button == null or sort_dropdown_panel == null or ui_root == null:
+		return
+
+	var button_rect := sort_button.get_global_rect()
+	var root_rect := ui_root.get_global_rect()
+	var dropdown_size := Vector2(132, 58)
+	var available_size := ui_root.size
+	if available_size.x <= 0.0 or available_size.y <= 0.0:
+		available_size = Vector2(1100, 100)
+
+	var x_position := button_rect.position.x - root_rect.position.x + button_rect.size.x - dropdown_size.x
+	var y_position := button_rect.position.y - root_rect.position.y + button_rect.size.y + 3.0
+	x_position = clampf(x_position, 10.0, maxf(10.0, available_size.x - dropdown_size.x - 10.0))
+	y_position = clampf(y_position, 10.0, maxf(10.0, available_size.y - dropdown_size.y - 10.0))
+	sort_dropdown_panel.position = Vector2(x_position, y_position)
+	sort_dropdown_panel.size = dropdown_size
+
+
 func _on_sort_option_selected(sort_id: int) -> void:
 	if has_applied_library_sort and sort_id == current_sort_id:
 		library_sort_ascending = not library_sort_ascending
@@ -95,8 +163,9 @@ func _on_sort_option_selected(sort_id: int) -> void:
 		library_sort_ascending = true
 	has_applied_library_sort = true
 	_apply_library_sort()
-	_update_sort_menu_text()
-	_update_sort_popup_checks()
+	_update_sort_button_text()
+	if sort_dropdown_panel != null:
+		sort_dropdown_panel.visible = false
 
 
 func _apply_library_sort() -> void:
@@ -183,17 +252,9 @@ func _sort_button_text() -> String:
 	return "SORT ▲" if library_sort_ascending else "SORT ▼"
 
 
-func _update_sort_menu_text() -> void:
-	if sort_menu != null:
-		sort_menu.text = _sort_button_text()
-
-
-func _update_sort_popup_checks() -> void:
-	if sort_menu == null:
-		return
-	var popup := sort_menu.get_popup()
-	for item_index in range(popup.get_item_count()):
-		popup.set_item_checked(item_index, popup.get_item_id(item_index) == current_sort_id)
+func _update_sort_button_text() -> void:
+	if sort_button != null:
+		sort_button.text = _sort_button_text()
 
 
 func _apply_button_style(button: Button) -> void:
@@ -220,4 +281,15 @@ func _make_button_style(bg: Color, border: Color) -> StyleBoxFlat:
 	style.content_margin_right = 8.0
 	style.content_margin_top = 4.0
 	style.content_margin_bottom = 4.0
+	return style
+
+
+func _make_dropdown_style(bg: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	style.shadow_color = Color(0.01, 0.005, 0.002, 0.82)
+	style.shadow_size = 5
 	return style
