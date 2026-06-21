@@ -18,69 +18,52 @@ var sort_dropdown_panel: PanelContainer = null
 var current_sort_id := SORT_NAME
 var library_sort_ascending := true
 var has_applied_library_sort := false
-var attach_attempts := 0
+var attached := false
 
 
 func _ready() -> void:
-	call_deferred("_attach_sort_dropdown")
+	set_process(true)
+
+
+func _process(_delta: float) -> void:
+	if attached:
+		return
+	_attach_sort_dropdown()
 
 
 func _attach_sort_dropdown() -> void:
-	attach_attempts += 1
 	var deck_builder := get_parent()
 	if deck_builder == null:
-		_retry_attach()
 		return
 
 	var viewport := deck_builder.get_node_or_null("LibraryTabletopUIViewport") as SubViewport
 	if viewport == null:
-		_retry_attach()
 		return
 
 	ui_root = viewport.get_node_or_null("LibraryTabletopUIControlRoot") as Control
 	if ui_root == null:
-		_retry_attach()
 		return
 
-	var plaque := ui_root.get_node_or_null("LibraryControlPlaque") as Control
-	if plaque == null:
-		_retry_attach()
+	if ui_root.get_node_or_null("LibrarySortButton") != null:
+		attached = true
 		return
 
-	var command_row := _find_first_hbox(plaque)
-	if command_row == null:
-		_retry_attach()
-		return
-	if command_row.get_node_or_null("LibrarySortButton") != null:
-		return
+	attached = true
 
 	sort_button = Button.new()
 	sort_button.name = "LibrarySortButton"
 	sort_button.text = _sort_button_text()
-	sort_button.custom_minimum_size = Vector2(76, 32)
+	sort_button.custom_minimum_size = Vector2(86, 32)
+	sort_button.size = Vector2(86, 32)
+	sort_button.position = Vector2(998, 16)
+	sort_button.z_index = 240
 	sort_button.focus_mode = Control.FOCUS_NONE
 	sort_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	sort_button.pressed.connect(_toggle_sort_dropdown)
 	_apply_button_style(sort_button)
-	command_row.add_child(sort_button)
+	ui_root.add_child(sort_button)
 
 	_build_sort_dropdown_panel()
-	call_deferred("_position_sort_dropdown")
-
-
-func _retry_attach() -> void:
-	if attach_attempts < 10:
-		call_deferred("_attach_sort_dropdown")
-
-
-func _find_first_hbox(node: Node) -> HBoxContainer:
-	if node is HBoxContainer:
-		return node as HBoxContainer
-	for child in node.get_children():
-		var found := _find_first_hbox(child)
-		if found != null:
-			return found
-	return null
 
 
 func _build_sort_dropdown_panel() -> void:
@@ -90,9 +73,11 @@ func _build_sort_dropdown_panel() -> void:
 	sort_dropdown_panel = PanelContainer.new()
 	sort_dropdown_panel.name = "LibrarySortDropdown"
 	sort_dropdown_panel.visible = false
-	sort_dropdown_panel.z_index = 250
+	sort_dropdown_panel.position = Vector2(952, 50)
+	sort_dropdown_panel.size = Vector2(132, 42)
+	sort_dropdown_panel.custom_minimum_size = Vector2(132, 42)
+	sort_dropdown_panel.z_index = 260
 	sort_dropdown_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	sort_dropdown_panel.custom_minimum_size = Vector2(132, 58)
 	sort_dropdown_panel.add_theme_stylebox_override(
 		"panel",
 		_make_dropdown_style(Color(0.055, 0.026, 0.010, 0.98), Color(0.72, 0.49, 0.13, 1.0))
@@ -106,22 +91,20 @@ func _build_sort_dropdown_panel() -> void:
 	margin.add_theme_constant_override("margin_bottom", 4)
 	sort_dropdown_panel.add_child(margin)
 
-	var option_grid := GridContainer.new()
-	option_grid.columns = 2
-	option_grid.add_theme_constant_override("h_separation", 4)
-	option_grid.add_theme_constant_override("v_separation", 4)
-	margin.add_child(option_grid)
+	var option_row := HBoxContainer.new()
+	option_row.add_theme_constant_override("separation", 4)
+	margin.add_child(option_row)
 
-	_add_sort_option_button(option_grid, "Name", SORT_NAME)
-	_add_sort_option_button(option_grid, "TP", SORT_TP)
-	_add_sort_option_button(option_grid, "AP", SORT_AP)
-	_add_sort_option_button(option_grid, "DP", SORT_DP)
+	_add_sort_option_button(option_row, "Name", SORT_NAME)
+	_add_sort_option_button(option_row, "TP", SORT_TP)
+	_add_sort_option_button(option_row, "AP", SORT_AP)
+	_add_sort_option_button(option_row, "DP", SORT_DP)
 
 
 func _add_sort_option_button(parent: Control, label: String, sort_id: int) -> void:
 	var option_button := Button.new()
 	option_button.text = label
-	option_button.custom_minimum_size = Vector2(58, 22)
+	option_button.custom_minimum_size = Vector2(28 if label != "Name" else 42, 24)
 	option_button.focus_mode = Control.FOCUS_NONE
 	option_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	option_button.pressed.connect(_on_sort_option_selected.bind(sort_id))
@@ -132,27 +115,7 @@ func _add_sort_option_button(parent: Control, label: String, sort_id: int) -> vo
 func _toggle_sort_dropdown() -> void:
 	if sort_dropdown_panel == null:
 		return
-	_position_sort_dropdown()
 	sort_dropdown_panel.visible = not sort_dropdown_panel.visible
-
-
-func _position_sort_dropdown() -> void:
-	if sort_button == null or sort_dropdown_panel == null or ui_root == null:
-		return
-
-	var button_rect := sort_button.get_global_rect()
-	var root_rect := ui_root.get_global_rect()
-	var dropdown_size := Vector2(132, 58)
-	var available_size := ui_root.size
-	if available_size.x <= 0.0 or available_size.y <= 0.0:
-		available_size = Vector2(1100, 100)
-
-	var x_position := button_rect.position.x - root_rect.position.x + button_rect.size.x - dropdown_size.x
-	var y_position := button_rect.position.y - root_rect.position.y + button_rect.size.y + 3.0
-	x_position = clampf(x_position, 10.0, maxf(10.0, available_size.x - dropdown_size.x - 10.0))
-	y_position = clampf(y_position, 10.0, maxf(10.0, available_size.y - dropdown_size.y - 10.0))
-	sort_dropdown_panel.position = Vector2(x_position, y_position)
-	sort_dropdown_panel.size = dropdown_size
 
 
 func _on_sort_option_selected(sort_id: int) -> void:
@@ -174,9 +137,11 @@ func _apply_library_sort() -> void:
 		return
 
 	var cards: Array = deck_builder.get("all_cards")
-	cards.sort_custom(func(a: Variant, b: Variant) -> bool:
+	cards.sort_custom(func(a, b) -> bool:
 		var comparison := _compare_cards(a, b)
-		return comparison < 0 if library_sort_ascending else comparison > 0
+		if library_sort_ascending:
+			return comparison < 0
+		return comparison > 0
 	)
 	deck_builder.set("all_cards", cards)
 	deck_builder.set("library_scroll", 0.0)
@@ -192,7 +157,7 @@ func _apply_library_sort() -> void:
 		)
 
 
-func _compare_cards(a: Variant, b: Variant) -> int:
+func _compare_cards(a, b) -> int:
 	match current_sort_id:
 		SORT_TP:
 			var tp_compare := _compare_int(_card_int(a, "tribute_cost"), _card_int(b, "tribute_cost"))
@@ -218,18 +183,22 @@ func _compare_cards(a: Variant, b: Variant) -> int:
 	return _compare_string(_card_string(a, "race"), _card_string(b, "race"))
 
 
-func _card_string(card: Variant, property_name: String) -> String:
+func _card_string(card, property_name: String) -> String:
 	if card == null:
 		return ""
 	var value = card.get(property_name)
-	return "" if value == null else String(value).to_lower()
+	if value == null:
+		return ""
+	return String(value).to_lower()
 
 
-func _card_int(card: Variant, property_name: String) -> int:
+func _card_int(card, property_name: String) -> int:
 	if card == null:
 		return 0
 	var value = card.get(property_name)
-	return 0 if value == null else int(value)
+	if value == null:
+		return 0
+	return int(value)
 
 
 func _compare_string(left: String, right: String) -> int:
@@ -277,10 +246,10 @@ func _make_button_style(bg: Color, border: Color) -> StyleBoxFlat:
 	style.set_corner_radius_all(4)
 	style.shadow_color = Color(0.01, 0.005, 0.002, 0.70)
 	style.shadow_size = 3
-	style.content_margin_left = 8.0
-	style.content_margin_right = 8.0
-	style.content_margin_top = 4.0
-	style.content_margin_bottom = 4.0
+	style.content_margin_left = 7.0
+	style.content_margin_right = 7.0
+	style.content_margin_top = 3.0
+	style.content_margin_bottom = 3.0
 	return style
 
 
