@@ -421,7 +421,8 @@ func force_return_card_to_hand(card: CardUI) -> void:
 func consume_dragged_card(card: CardUI) -> void:
 	if card != null:
 		cards.erase(card)
-		card.queue_free()
+		if is_instance_valid(card) and not card.is_queued_for_deletion():
+			card.queue_free()
 
 	dragged_card = null
 	selected_card = null
@@ -455,7 +456,8 @@ func remove_selected_card() -> void:
 		return
 
 	cards.erase(selected_card)
-	selected_card.queue_free()
+	if is_instance_valid(selected_card) and not selected_card.is_queued_for_deletion():
+		selected_card.queue_free()
 	selected_card = null
 	dragged_card = null
 
@@ -467,6 +469,8 @@ func remove_selected_card() -> void:
 # ------------------------------------------------------------
 
 func start_draw_pile_drag(screen_position: Vector2, preview_card_data: CardData, allow_over_limit: bool = false) -> bool:
+	if draw_drag_card != null and is_instance_valid(draw_drag_card):
+		return false
 	if not allow_over_limit and not can_accept_card():
 		return false
 	

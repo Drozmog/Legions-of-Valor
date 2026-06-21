@@ -12,6 +12,7 @@ var surfaces: Array[Dictionary] = []
 var active_viewport: SubViewport
 
 var main_surface: MeshInstance3D
+var right_surface: MeshInstance3D
 var log_surface: MeshInstance3D
 var plan_surface: MeshInstance3D
 var log_viewport: SubViewport
@@ -49,10 +50,96 @@ func _ready() -> void:
 
 
 func build_main_bar() -> void:
-	var entry := create_surface("BattleHud", Vector2i(2100, 110), Vector3(0.0, 0.075, 3.87), Vector2(10.5, 0.40), true)
-	main_surface = entry["surface"]
-	var root: Control = entry["control"]
+	# Equal left/right plaques. Their Y and Z match the previous single HUD exactly.
+	# The viewport and mesh are both 10:1. Matching their aspect ratios keeps
+	# the rendered controls from being stretched across the tabletop plaque.
+	var left_entry := create_surface("BattleHudLeft", Vector2i(1600, 200), Vector3(-4, 0.075, 3.87), Vector2(3, 0.30), true)
+	var right_entry := create_surface("BattleHudRight", Vector2i(1600, 200), Vector3(4, 0.075, 3.87), Vector2(3, 0.30), true)
+	main_surface = left_entry["surface"]
+	right_surface = right_entry["surface"]
+	var left_row := make_main_panel_row(left_entry["control"] as Control, 0)
+	var right_row := make_main_panel_row(right_entry["control"] as Control, 0)
 
+	var log_button := make_button("▲ LOG", Vector2(0, 54))
+	log_button.pressed.connect(toggle_log)
+	add_hud_cell(left_row, log_button, 0.07)
+
+	var portrait := TextureRect.new()
+	portrait.texture = preload("res://ui/Profile Pictures/siegmere.png")
+	portrait.custom_minimum_size = Vector2(140, 140)
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_hud_cell(left_row, portrait, 0.05)
+
+	var identity := VBoxContainer.new()
+	identity.custom_minimum_size = Vector2(142, 20)
+	identity.alignment = BoxContainer.ALIGNMENT_CENTER
+	var player_name := Label.new()
+	player_name.text = "DROZMOG"
+	player_name.add_theme_font_size_override("font_size", 60)
+	player_name.add_theme_color_override("font_color", PALE_GOLD)
+	identity.add_child(player_name)
+	var role := Label.new()
+	role.text = "Grand Marshal"
+	role.add_theme_font_size_override("font_size", 30)
+	role.add_theme_color_override("font_color", Color(0.72, 0.57, 0.34, 1.0))
+	identity.add_child(role)
+	add_hud_cell(left_row, identity, 0.05)
+
+	var plans_button := make_button("BATTLEPLANS", Vector2(0, 54))
+	plans_button.pressed.connect(toggle_plans)
+	add_hud_cell(left_row, plans_button, 0.10)
+
+	var phase_info := VBoxContainer.new()
+	phase_info.alignment = BoxContainer.ALIGNMENT_CENTER
+	phase_info.add_theme_constant_override("separation", 0)
+	score_label = Label.new()
+	score_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	score_label.add_theme_font_size_override("font_size", 45)
+	score_label.add_theme_color_override("font_color", Color.WHITE)
+	phase_info.add_child(score_label)
+	instruction_label = Label.new()
+	instruction_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	instruction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	instruction_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	instruction_label.add_theme_font_size_override("font_size", 30)
+	instruction_label.add_theme_color_override("font_color", Color(0.84, 0.75, 0.61, 1.0))
+	instruction_label.visible = false
+	phase_info.add_child(instruction_label)
+
+	var phase_heading := HBoxContainer.new()
+	phase_heading.custom_minimum_size = Vector2(205, 0)
+	phase_heading.alignment = BoxContainer.ALIGNMENT_CENTER
+	phase_heading.add_theme_constant_override("separation", 18)
+	phase_label = Label.new()
+	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	phase_label.add_theme_font_size_override("font_size", 50)
+	phase_label.add_theme_color_override("font_color", PALE_GOLD)
+	phase_heading.add_child(phase_label)
+	turn_label = Label.new()
+	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	turn_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	turn_label.add_theme_font_size_override("font_size", 50)
+	turn_label.add_theme_color_override("font_color", GOLD)
+	phase_heading.add_child(turn_label)
+
+	var status_stack := VBoxContainer.new()
+	status_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	status_stack.add_theme_constant_override("separation", 0)
+	status_stack.add_child(phase_heading)
+	status_stack.add_child(phase_info)
+	add_hud_cell(right_row, status_stack, 1)
+
+	phase_button = make_button("CONTINUE", Vector2(0, 54), true)
+	phase_button.pressed.connect(func(): phase_action_pressed.emit())
+	add_hud_cell(right_row, phase_button, 0.70)
+
+
+func make_main_panel_row(root: Control, separation: int) -> HBoxContainer:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.offset_left = 5.0
@@ -61,99 +148,32 @@ func build_main_bar() -> void:
 	panel.offset_bottom = -5.0
 	panel.add_theme_stylebox_override("panel", panel_style())
 	root.add_child(panel)
-
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 25)
+	margin.add_theme_constant_override("margin_bottom", 25)
 	panel.add_child(margin)
-
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 40)
+	row.add_theme_constant_override("separation", separation)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	margin.add_child(row)
+	return row
 
-	var log_button := make_button("▲ LOG", Vector2(20, 20))
-	log_button.pressed.connect(toggle_log)
-	row.add_child(log_button)
 
-	var portrait := TextureRect.new()
-	portrait.texture = preload("res://ui/Profile Pictures/siegmere.png")
-	portrait.custom_minimum_size = Vector2(70, 70)
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(portrait)
-
-	var identity := VBoxContainer.new()
-	identity.custom_minimum_size = Vector2(142, 20)
-	identity.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_child(identity)
-	var player_name := Label.new()
-	player_name.text = "DROZMOG"
-	player_name.add_theme_font_size_override("font_size", 30)
-	player_name.add_theme_color_override("font_color", PALE_GOLD)
-	identity.add_child(player_name)
-	var role := Label.new()
-	role.text = "Grand Marshal"
-	role.add_theme_font_size_override("font_size", 16)
-	role.add_theme_color_override("font_color", Color(0.72, 0.57, 0.34, 1.0))
-	identity.add_child(role)
-
-	var plans_button := make_button("BATTLEPLANS", Vector2(150, 10))
-	plans_button.pressed.connect(toggle_plans)
-	row.add_child(plans_button)
-
-	var divider := VSeparator.new()
-	row.add_child(divider)
-
-	var phase_info := VBoxContainer.new()
-	phase_info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	phase_info.alignment = BoxContainer.ALIGNMENT_CENTER
-	phase_info.add_theme_constant_override("separation", 0)
-	row.add_child(phase_info)
-	score_label = Label.new()
-	score_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	score_label.add_theme_font_size_override("font_size", 20)
-	score_label.add_theme_color_override("font_color", Color.WHITE)
-	phase_info.add_child(score_label)
-	instruction_label = Label.new()
-	instruction_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	instruction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	instruction_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	instruction_label.add_theme_font_size_override("font_size", 18)
-	instruction_label.add_theme_color_override("font_color", Color(0.84, 0.75, 0.61, 1.0))
-	instruction_label.visible = false
-	phase_info.add_child(instruction_label)
-
-	var phase_heading := VBoxContainer.new()
-	phase_heading.custom_minimum_size = Vector2(205, 0)
-	phase_heading.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_child(phase_heading)
-	phase_label = Label.new()
-	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	phase_label.add_theme_font_size_override("font_size", 25)
-	phase_label.add_theme_color_override("font_color", PALE_GOLD)
-	phase_heading.add_child(phase_label)
-	turn_label = Label.new()
-	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	turn_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	turn_label.add_theme_font_size_override("font_size", 20)
-	turn_label.add_theme_color_override("font_color", GOLD)
-	phase_heading.add_child(turn_label)
-
-	phase_button = make_button("CONTINUE", Vector2(170, 46), true)
-	phase_button.pressed.connect(func(): phase_action_pressed.emit())
-	row.add_child(phase_button)
+func add_hud_cell(row: HBoxContainer, content: Control, width_ratio: float) -> void:
+	var cell := CenterContainer.new()
+	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	cell.size_flags_stretch_ratio = width_ratio
+	cell.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_child(cell)
+	cell.add_child(content)
 
 
 func build_log_foldout() -> void:
-	log_open_position = Vector3(-3.00, 0.115, 2.6)
-	log_closed_position = Vector3(-3.00, 0.115, 3.58)
+	log_open_position = Vector3(-3.22, 0.115, 2.6)
+	log_closed_position = Vector3(-3.22, 0.115, 3.58)
 	var entry := create_surface("BattleLog", Vector2i(900, 430), log_closed_position, Vector2(4.45, 2.05), true)
 	log_surface = entry["surface"]
 	log_viewport = entry["viewport"]
@@ -182,8 +202,8 @@ func build_log_foldout() -> void:
 
 
 func build_plan_foldout() -> void:
-	plan_open_position = Vector3(0.2, 0.118, 2.2)
-	plan_closed_position = Vector3(0.2, 0.118, 3.50)
+	plan_open_position = Vector3(-0.3, 0.118, 2.2)
+	plan_closed_position = Vector3(-0.3, 0.118, 3.50)
 	var entry := create_surface("BattlePlans", Vector2i(1240, 560), plan_closed_position, Vector2(6.25, 2.75), false)
 	plan_surface = entry["surface"]
 	plan_viewport = entry["viewport"]
@@ -409,7 +429,7 @@ func make_button(text_value: String, minimum: Vector2, primary: bool = false) ->
 	button.add_theme_stylebox_override("disabled", button_style(Color(0.055, 0.03, 0.015, 0.78), Color(0.28, 0.20, 0.08, 0.55), 1, 0))
 	button.add_theme_color_override("font_color", PALE_GOLD)
 	button.add_theme_color_override("font_disabled_color", Color(0.42, 0.36, 0.28, 0.75))
-	button.add_theme_font_size_override("font_size", 14)
+	button.add_theme_font_size_override("font_size", 50)
 	return button
 
 
@@ -437,10 +457,10 @@ func button_style(bg: Color, border: Color, width: int, shadow: int) -> StyleBox
 	style.border_color = border
 	style.set_border_width_all(width)
 	style.set_corner_radius_all(7)
-	style.content_margin_left = 10.0
-	style.content_margin_right = 10.0
-	style.content_margin_top = 6.0
-	style.content_margin_bottom = 6.0
+	style.content_margin_left = 16.0
+	style.content_margin_right = 16.0
+	style.content_margin_top = 10.0
+	style.content_margin_bottom = 10.0
 	if shadow > 0:
 		style.shadow_color = Color(1.0, 0.55, 0.06, 0.55)
 		style.shadow_size = shadow

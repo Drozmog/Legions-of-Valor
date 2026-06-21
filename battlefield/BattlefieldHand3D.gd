@@ -377,6 +377,10 @@ func finish_draw_preview_into_hand(proxy: CardUI) -> void:
 		cancel_draw_preview(false)
 		return
 	draw_preview_following = false
+	# Transfer ownership to this animation immediately. A fast subsequent draw
+	# may create a new active preview without cancelling/freeing this settling card.
+	var held_card := draw_preview
+	draw_preview = null
 	var card_id := proxy.get_instance_id()
 	hidden_card_ids[card_id] = true
 	sync_card_visuals()
@@ -385,7 +389,6 @@ func finish_draw_preview_into_hand(proxy: CardUI) -> void:
 	target_position.y += float(maxi(target_index, 0)) * 0.008
 	var target_rotation := Vector3(0.0, deg_to_rad(-proxy.rotation_degrees), 0.0)
 	var target_scale := get_proxy_target_scale(proxy)
-	var held_card := draw_preview
 	var tween := create_tween()
 	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(held_card, "global_position", target_position + Vector3(0.0, 0.24, 0.0), 0.18)
@@ -394,6 +397,8 @@ func finish_draw_preview_into_hand(proxy: CardUI) -> void:
 	tween.parallel().tween_property(held_card, "global_rotation", Vector3(0.0, target_rotation.y, PI * 0.5), 0.18)
 	await tween.finished
 	if held_card == null or not is_instance_valid(held_card):
+		hidden_card_ids.erase(card_id)
+		sync_card_visuals()
 		return
 	held_card.show_front()
 	held_card.global_rotation = Vector3(0.0, target_rotation.y, -PI * 0.5)
@@ -403,15 +408,19 @@ func finish_draw_preview_into_hand(proxy: CardUI) -> void:
 	settle.parallel().tween_property(held_card, "global_rotation", target_rotation, 0.23)
 	settle.parallel().tween_property(held_card, "scale", target_scale, 0.23)
 	await settle.finished
+	if held_card == null or not is_instance_valid(held_card):
+		hidden_card_ids.erase(card_id)
+		sync_card_visuals()
+		return
 	var persistent := card_visuals.get(card_id) as Node3D
 	if persistent != null and is_instance_valid(persistent):
 		persistent.global_position = target_position
 		persistent.global_rotation = target_rotation
 		persistent.scale = target_scale
 	hidden_card_ids.erase(card_id)
-	held_card.queue_free()
-	draw_preview = null
-	Cursors.use_normal()
+	_queue_free_safely(held_card)
+	if draw_preview == null:
+		Cursors.use_normal()
 
 
 func cancel_draw_preview(animate_back: bool = true) -> void:
@@ -427,10 +436,16 @@ func cancel_draw_preview(animate_back: bool = true) -> void:
 		tween.tween_property(old_preview, "global_position", draw_preview_source_position, 0.20)
 		tween.parallel().tween_property(old_preview, "global_rotation", draw_preview_source_rotation, 0.20)
 		tween.parallel().tween_property(old_preview, "scale", Vector3.ONE * 0.96, 0.20)
-		tween.tween_callback(old_preview.queue_free)
+		tween.tween_callback(_queue_free_safely.bind(old_preview))
 	else:
-		old_preview.queue_free()
+		_queue_free_safely(old_preview)
 	Cursors.use_normal()
+
+
+func _queue_free_safely(node: Node) -> void:
+	if node == null or not is_instance_valid(node) or node.is_queued_for_deletion():
+		return
+	node.queue_free()
 
 
 func get_reference_hand_scale() -> Vector3:

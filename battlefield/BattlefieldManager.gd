@@ -6,6 +6,7 @@ extends Node3D
 
 const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
 const MENU_SCENE_PATH := "res://ui/Menu/prototype_menu.tscn"
+const BOARD_SLOT_ACTION_BUTTONS_SCENE: PackedScene = preload("res://battlefield/BoardSlotActionButtons3D.tscn")
 
 const ARCH_WIZARD_MAELCOR: CardData = CardDatabase.ARCH_WIZARD_MAELCOR
 
@@ -191,6 +192,8 @@ const BOARD_ACTION_CANCEL: int = 99
 
 var board_action_menu: PopupMenu = null
 
+var board_slot_action_rails: Dictionary = {}
+
 var board_action_target_slot: Node = null
 
 const BOARD_ACTION_ATTACK: int = 2
@@ -247,6 +250,7 @@ func _ready() -> void:
 	create_aurion_counter_ui()
 	disable_keyboard_focus_for_all_buttons($UI)
 	create_board_slot_action_menu()
+	create_board_slot_action_buttons()
 	patch_game_log_for_scrolling()
 	set_process(true)
 
@@ -256,6 +260,7 @@ func _process(delta: float) -> void:
 	update_battleplan_hand_cleanup(delta)
 	update_phase_progress_state()
 	refresh_bottom_hud_log()
+	refresh_board_slot_action_buttons()
 
 
 func connect_main_signals() -> void:
@@ -2758,18 +2763,27 @@ func show_game_result(player_won: bool) -> void:
 		return
 	game_over = true
 	cancel_selected_card()
+	if battle_plan_selection_screen != null:
+		battle_plan_selection_screen.visible = false
+	if deck_selection_screen != null:
+		deck_selection_screen.visible = false
+	if spell_choice_panel != null:
+		spell_choice_panel.visible = false
+	if board_action_menu != null:
+		board_action_menu.hide()
 
 	game_result_overlay = Control.new()
 	game_result_overlay.name = "GameResultOverlay"
-	game_result_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	game_result_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	game_result_overlay.z_index = 500
 	$UI.add_child(game_result_overlay)
+	game_result_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	$UI.move_child(game_result_overlay, $UI.get_child_count() - 1)
 
 	var dim := ColorRect.new()
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.color = Color(0.01, 0.005, 0.002, 0.82)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	game_result_overlay.add_child(dim)
 
 	var panel := PanelContainer.new()
@@ -2781,6 +2795,8 @@ func show_game_result(player_won: bool) -> void:
 	panel.offset_right = 260.0
 	panel.offset_top = -155.0
 	panel.offset_bottom = 155.0
+	panel.mouse_filter = Control.MOUSE_FILTER_PASS
+	panel.z_index = 1
 	var panel_style := StyleBoxFlat.new()
 	panel_style.bg_color = Color(0.055, 0.025, 0.012, 0.98)
 	panel_style.border_color = Color(0.92, 0.68, 0.18, 1.0)
@@ -2821,9 +2837,18 @@ func show_game_result(player_won: bool) -> void:
 	menu_button.text = "RETURN TO MENU"
 	menu_button.custom_minimum_size = Vector2(270, 48)
 	menu_button.focus_mode = Control.FOCUS_NONE
+	menu_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	menu_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	menu_button.pressed.connect(func(): get_tree().change_scene_to_file(MENU_SCENE_PATH))
+	menu_button.z_index = 2
+	menu_button.pressed.connect(_return_to_menu_from_result)
 	content.add_child(menu_button)
+
+
+func _return_to_menu_from_result() -> void:
+	Cursors.use_normal()
+	var tree := get_tree()
+	if tree != null:
+		tree.change_scene_to_file(MENU_SCENE_PATH)
 
 
 func disable_keyboard_focus_for_all_buttons(root: Node) -> void:
@@ -4493,6 +4518,67 @@ func create_board_slot_action_menu() -> void:
 	board_action_menu.id_pressed.connect(_on_board_slot_action_selected)
 
 	$UI.add_child(board_action_menu)
+
+
+func create_board_slot_action_buttons() -> void:
+	if board_slots == null:
+		return
+	for slot in board_slots.get_children():
+		if not slot is Node3D:
+			continue
+		var slot_id := String(slot.get_meta("slot_id", ""))
+		var slide_direction := -1.0 if slot_id.ends_with("_Right") else 1.0
+		var rail := BOARD_SLOT_ACTION_BUTTONS_SCENE.instantiate() as BoardSlotActionButtons3D
+		(slot as Node3D).add_child(rail)
+		rail.setup(slot as Node3D, slide_direction)
+		rail.action_pressed.connect(_on_board_slot_action_button_pressed)
+		board_slot_action_rails[slot.get_instance_id()] = rail
+
+
+func refresh_board_slot_action_buttons() -> void:
+	if board_slot_action_rails.is_empty() or board_slots == null:
+		return
+	var controls_blocked := (
+		game_over
+		or current_phase != BattlePhase.COMBAT
+		or combat_resolution_running
+		or parry_system.active
+		or is_prebattle_modal_open()
+	)
+	for slot in board_slots.get_children():
+		var rail := board_slot_action_rails.get(slot.get_instance_id()) as BoardSlotActionButtons3D
+		if rail == null:
+			continue
+		var actions: Array[int] = []
+		if not controls_blocked:
+			var lane := get_slot_lane(slot)
+			var can_pass := can_player_pass_lane_from_menu(lane)
+			var slot_owner := String(slot.get_meta("owner", ""))
+			var slot_row := String(slot.get_meta("row", ""))
+			var card_data := get_slot_card_data(slot)
+			if can_pass and slot_owner == "enemy" and slot_row == "front":
+				if can_player_attack_lane_from_menu(lane):
+					actions.append(BOARD_ACTION_ATTACK)
+				var enemy_back_slot := find_slot_by_owner_row_lane("enemy", "back", lane)
+				var enemy_back_card := get_slot_card_data(enemy_back_slot)
+				var has_hidden_back := (
+					enemy_back_slot != null
+					and enemy_back_card != null
+					and bool(enemy_back_slot.get_meta("face_down", false))
+				)
+				if has_hidden_back and can_player_check_lane_from_menu(lane):
+					actions.append(BOARD_ACTION_CHECK)
+				actions.append(BOARD_ACTION_PASS)
+			if can_pass and card_data != null:
+				actions.append(BOARD_ACTION_INSPECT)
+		rail.set_actions(actions)
+
+
+func _on_board_slot_action_button_pressed(action_id: int, slot: Node) -> void:
+	if slot == null or game_over:
+		return
+	board_action_target_slot = slot
+	await _on_board_slot_action_selected(action_id)
 
 
 func show_board_slot_action_menu(slot: Node) -> void:

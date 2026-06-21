@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://c6akjckpnmpvk" path="res://ui/PrototypeMenu.gd" id="1_tlvfg"]
 [ext_resource type="Texture2D" uid="uid://bcw2yvuqgn2qu" path="res://ui/Menu/Artwork/castle_warm.png" id="2_pogxh"]
 [ext_resource type="Texture2D" uid="uid://djcpomh1n3euu" path="res://ui/Menu/Artwork/full_logo_white.png" id="3_bl5mb"]
+[ext_resource type="Texture2D" uid="uid://cusjf6ipe8p56" path="res://ui/Menu/Artwork/full_logo.png" id="4_bl5mb"]
 
 [node name="PrototypeMenu" type="Control" unique_id=1415191127]
 layout_mode = 3
@@ -24,6 +25,12 @@ layout_mode = 0
 offset_right = 2560.0
 offset_bottom = 1440.0
 texture = ExtResource("3_bl5mb")
+
+[node name="IntroLogo" type="TextureRect" parent="." unique_id=261565708]
+layout_mode = 0
+offset_right = 2560.0
+offset_bottom = 1440.0
+texture = ExtResource("4_bl5mb")
 
 [node name="MenuChoices" type="VBoxContainer" parent="." unique_id=1744871481]
 layout_mode = 0

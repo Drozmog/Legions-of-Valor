@@ -107,7 +107,7 @@ func _on_click_area_input_event(
 ) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			if card_count <= 0:
+			if card_count <= 0 or is_dragging_from_pile:
 				return
 
 			is_dragging_from_pile = true
