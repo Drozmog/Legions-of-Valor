@@ -35,6 +35,20 @@ static func is_equipment_card(card_data: CardData) -> bool:
 	return get_clean_card_type(card_data) == "equipment"
 
 
+static func is_elite_card(card_data: CardData) -> bool:
+	return card_data != null and card_data.rarity.to_lower().strip_edges() == "elite"
+
+
+static func get_deck_copy_limit(card_data: CardData) -> int:
+	return 2 if is_elite_card(card_data) else 3
+
+
+static func get_defeat_aurion_reward(card_data: CardData) -> int:
+	if is_unit_card(card_data) and is_elite_card(card_data):
+		return 2
+	return 1
+
+
 static func is_trap_card(_card_data: CardData) -> bool:
 	return false
 

@@ -129,6 +129,10 @@ var player_aurion_points: int = 0
 
 var ai_aurion_points: int = 0
 
+var game_over := false
+
+var game_result_overlay: Control = null
+
 var aurion_panel: PanelContainer = null
 
 var aurion_label: Label = null
@@ -512,7 +516,7 @@ func begin_game_after_battle_plan_selection() -> void:
 	game_has_started = true
 
 	setup_ai_deck()
-	ai_draw_cards(5)
+	ai_draw_cards(3)
 	ai_has_starting_hand = true
 
 	update_tribute_counter()
@@ -853,6 +857,10 @@ func player_has_remaining_deployment_move() -> bool:
 					and player_card_passes_faction_gate(card_data, false)
 				):
 					return true
+				if not occupied and row == "back":
+					var equipment_shadowtax := get_player_face_down_card_deployment_cost(card_data, true)
+					if equipment_shadowtax <= available_tp:
+						return true
 				continue
 			if occupied or (row != "front" and row != "back"):
 				continue
@@ -1221,7 +1229,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 			cancel_selected_card()
 			return
 
-		if card_type == "equipment":
+		if card_type == "equipment" and not can_place_selected_equipment_face_down(target_slot):
 			if card != null and is_instance_valid(card):
 				card.visible = false
 
@@ -1289,7 +1297,7 @@ func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void
 		var place_face_down: bool = false
 		var slot_row: String = String(target_slot.get_meta("row", ""))
 
-		if is_unit_card(selected_card_data) and slot_row == "back":
+		if (is_unit_card(selected_card_data) or is_equipment_card(selected_card_data)) and slot_row == "back":
 			place_face_down = true
 
 		if card != null and is_instance_valid(card):
@@ -1440,14 +1448,14 @@ func deal_starting_hand() -> void:
 	if hand == null or player_deck == null:
 		log_msg("Hand or PlayerDeck is missing.")
 		return
-	for i in range(5):
+	for i in range(3):
 		var drawn_card: CardData = player_deck.draw_top_card()
 		if drawn_card == null:
 			return
 		hand.add_card_to_hand(drawn_card, false)
 	if draw_pile != null:
 		draw_pile.set_card_count(player_deck.cards_remaining())
-	log_msg("Starting hand dealt. Deck remaining: " + str(player_deck.cards_remaining()))
+	log_msg("Starting hand of 3 cards dealt. Deck remaining: " + str(player_deck.cards_remaining()))
 
 
 func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
@@ -1671,19 +1679,19 @@ func try_place_selected_card_on_slot(slot: Node) -> bool:
 	if can_promote_selected_card_on_slot(slot):
 		return try_promote_selected_card_on_slot(slot)
 
-	if card_type == "equipment":
+	if card_type == "equipment" and not can_place_selected_equipment_face_down(slot):
 		return try_attach_selected_equipment_to_slot(slot)
 
 	if not is_valid_slot_for_selected_card(slot):
 		log_msg("Invalid placement for " + selected_card_data.card_name + " on " + slot_id)
 		return false
 
-	if not player_card_passes_faction_gate(selected_card_data):
+	if not should_skip_player_faction_gate_for_slot(selected_card_data, slot) and not player_card_passes_faction_gate(selected_card_data):
 		return false
 
 	var place_face_down: bool = false
 
-	if card_type == "unit" and slot_row == "back":
+	if (card_type == "unit" or card_type == "equipment") and slot_row == "back":
 		place_face_down = true
 
 	if is_gambit_card(selected_card_data):
@@ -1764,7 +1772,7 @@ func should_skip_player_faction_gate_for_slot(card_data: CardData, slot: Node) -
 
 	# Gambits in the back row can be chosen face down from the visibility prompt,
 	# so the slot should remain legal even without faction access.
-	if is_gambit_card(card_data):
+	if is_gambit_card(card_data) or is_equipment_card(card_data):
 		return true
 
 	return false
@@ -1928,7 +1936,7 @@ func is_valid_slot_for_selected_card(slot: Node) -> bool:
 
 	if card_type == "equipment":
 		if not slot_occupied:
-			return false
+			return slot_row == "back"
 
 		if not slot.has_method("can_attach_equipment"):
 			return false
@@ -1950,6 +1958,17 @@ func is_valid_slot_for_selected_card(slot: Node) -> bool:
 		return (slot_row == "front" or slot_row == "back") and not slot_occupied
 
 	return false
+
+
+func can_place_selected_equipment_face_down(slot: Node) -> bool:
+	if slot == null or selected_card_data == null:
+		return false
+	return (
+		is_equipment_card(selected_card_data)
+		and String(slot.get_meta("owner", "")) == "player"
+		and String(slot.get_meta("row", "")) == "back"
+		and not bool(slot.get_meta("occupied", false))
+	)
 
 
 func update_slot_highlights() -> void:
@@ -2213,7 +2232,7 @@ func resolve_directed_clash(
 	)
 
 	var defender_score_owner: String = "ai" if player_is_attacker else "player"
-	add_aurion(defender_score_owner, 1, "Destroyed " + attacker_card.card_name + " after it knowingly attacked a higher-AP unit.")
+	add_aurion(defender_score_owner, get_unit_defeat_aurion_reward(attacker_card), "Destroyed " + attacker_card.card_name + " after it knowingly attacked a higher-AP unit.")
 	return
 
 
@@ -2226,7 +2245,7 @@ func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defe
 	if available_dp < required:
 		send_slot_card_to_discard(defender_slot)
 		log_msg("Opponent could not parry. " + defender_card.card_name + " was destroyed.")
-		add_aurion("player", 1, "Destroyed " + defender_card.card_name + " in combat.")
+		add_aurion("player", get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
 		return
 
 	log_msg("Opponent opens a Parry and needs " + str(required) + " DP.")
@@ -2253,7 +2272,7 @@ func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defe
 	else:
 		send_slot_card_to_discard(defender_slot)
 		log_msg("Opponent Parry fails. " + defender_card.card_name + " was destroyed.")
-		add_aurion("player", 1, "Destroyed " + defender_card.card_name + " in combat.")
+		add_aurion("player", get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
 	await get_tree().create_timer(0.55).timeout
 	if opponent_visuals != null and opponent_visuals.has_method("clear_parry_cards"):
 		opponent_visuals.clear_parry_cards()
@@ -2717,12 +2736,94 @@ func add_aurion(scoring_owner: String, amount: int, reason: String = "") -> void
 	check_aurion_victory()
 
 
+func get_unit_defeat_aurion_reward(card_data: CardData) -> int:
+	return CardRules.get_defeat_aurion_reward(card_data)
+
+
 func check_aurion_victory() -> void:
+	if game_over:
+		return
 	if player_aurion_points >= AURION_WIN_TARGET:
 		log_msg("Player has reached " + str(AURION_WIN_TARGET) + " Aurion.")
+		show_game_result(true)
+		return
 
 	if ai_aurion_points >= AURION_WIN_TARGET:
 		log_msg("AI has reached " + str(AURION_WIN_TARGET) + " Aurion.")
+		show_game_result(false)
+
+
+func show_game_result(player_won: bool) -> void:
+	if game_result_overlay != null:
+		return
+	game_over = true
+	cancel_selected_card()
+
+	game_result_overlay = Control.new()
+	game_result_overlay.name = "GameResultOverlay"
+	game_result_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	game_result_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	game_result_overlay.z_index = 500
+	$UI.add_child(game_result_overlay)
+
+	var dim := ColorRect.new()
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.01, 0.005, 0.002, 0.82)
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
+	game_result_overlay.add_child(dim)
+
+	var panel := PanelContainer.new()
+	panel.anchor_left = 0.5
+	panel.anchor_right = 0.5
+	panel.anchor_top = 0.5
+	panel.anchor_bottom = 0.5
+	panel.offset_left = -260.0
+	panel.offset_right = 260.0
+	panel.offset_top = -155.0
+	panel.offset_bottom = 155.0
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.055, 0.025, 0.012, 0.98)
+	panel_style.border_color = Color(0.92, 0.68, 0.18, 1.0)
+	panel_style.set_border_width_all(3)
+	panel_style.set_corner_radius_all(14)
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.75)
+	panel_style.shadow_size = 18
+	panel.add_theme_stylebox_override("panel", panel_style)
+	game_result_overlay.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 42)
+	margin.add_theme_constant_override("margin_right", 42)
+	margin.add_theme_constant_override("margin_top", 34)
+	margin.add_theme_constant_override("margin_bottom", 34)
+	panel.add_child(margin)
+
+	var content := VBoxContainer.new()
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 18)
+	margin.add_child(content)
+
+	var title := Label.new()
+	title.text = "VICTORY" if player_won else "DEFEAT"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 46)
+	title.add_theme_color_override("font_color", Color(1.0, 0.80, 0.27, 1.0) if player_won else Color(0.86, 0.25, 0.18, 1.0))
+	content.add_child(title)
+
+	var summary := Label.new()
+	summary.text = "You reached 25 Aurion." if player_won else "Your opponent reached 25 Aurion."
+	summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	summary.add_theme_font_size_override("font_size", 19)
+	summary.add_theme_color_override("font_color", Color(0.92, 0.86, 0.72, 1.0))
+	content.add_child(summary)
+
+	var menu_button := Button.new()
+	menu_button.text = "RETURN TO MENU"
+	menu_button.custom_minimum_size = Vector2(270, 48)
+	menu_button.focus_mode = Control.FOCUS_NONE
+	menu_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	menu_button.pressed.connect(func(): get_tree().change_scene_to_file(MENU_SCENE_PATH))
+	content.add_child(menu_button)
 
 
 func disable_keyboard_focus_for_all_buttons(root: Node) -> void:
@@ -3555,10 +3656,7 @@ func ai_try_deploy_one_card() -> bool:
 	if card_data == null:
 		return false
 
-	if not ai_card_passes_faction_gate(card_data, true):
-		return false
-
-	if not ai_card_passes_faction_gate(card_data):
+	if not face_down and not ai_card_passes_faction_gate(card_data, true):
 		log_msg("AI cannot play " + card_data.card_name + ": faction gate locked.")
 		return false
 
@@ -3611,7 +3709,7 @@ func ai_try_deploy_one_card() -> bool:
 
 		return false
 
-	if action_type == "unit" or action_type == "gambit":
+	if action_type == "unit" or action_type == "gambit" or action_type == "equipment_setup":
 		await play_enemy_hand_to_node_animation(card_data, target_slot, face_down)
 
 		if target_slot.has_method("place_card"):
@@ -3893,9 +3991,6 @@ func ai_find_affordable_spell_index() -> int:
 func ai_find_equipment_action() -> Dictionary:
 	var target_slot: Node = ai_find_enemy_unit_slot_that_can_take_equipment()
 
-	if target_slot == null:
-		return {}
-
 	for i in range(ai_hand.size()):
 		var card_data: CardData = ai_hand[i]
 
@@ -3905,13 +4000,13 @@ func ai_find_equipment_action() -> Dictionary:
 		if not is_equipment_card(card_data):
 			continue
 
-		if not ai_card_passes_faction_gate(card_data, false):
-			continue
+		if target_slot != null and ai_card_passes_faction_gate(card_data, false) and card_data.tribute_cost <= ai_current_tp:
+			return ai_make_deployment_action(i, target_slot, "equipment", false)
 
-		if card_data.tribute_cost > ai_current_tp:
-			continue
-
-		return ai_make_deployment_action(i, target_slot, "equipment", false)
+		var back_slot := ai_find_empty_enemy_slot("back")
+		var shadowtax := get_ai_face_down_card_deployment_cost(card_data, true)
+		if back_slot != null and shadowtax <= ai_current_tp:
+			return ai_make_deployment_action(i, back_slot, "equipment_setup", true)
 
 	return {}
 
@@ -3997,7 +4092,7 @@ func ai_should_place_card_face_down(card_data: CardData, target_slot: Node) -> b
 		return false
 
 	if row == "back":
-		return is_unit_card(card_data) or is_gambit_card(card_data)
+		return is_unit_card(card_data) or is_gambit_card(card_data) or is_equipment_card(card_data)
 
 	return false
 

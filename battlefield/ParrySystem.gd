@@ -405,7 +405,7 @@ func _on_let_die_pressed() -> void:
 
 	if defender_card != null:
 		bf.log_msg("You let " + defender_card.card_name + " die.")
-		bf.add_aurion("ai", 1, "Destroyed " + defender_card.card_name + " in combat.")
+		bf.add_aurion("ai", bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
 
 	_end_prompt()
 	await bf.advance_combat_lane_after_resolution()

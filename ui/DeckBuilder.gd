@@ -8,7 +8,6 @@ const SAVE_PATH := "user://lov_player_deck.json"
 
 const MIN_DECK_SIZE := 10
 const MAX_DECK_SIZE := 40
-const COPY_LIMIT := 2
 const DECK_SLOT_COUNT := 10
 const DECK_CHIP_WALL_X := 2.40
 const DECK_CHIP_TOTAL_WIDTH := 3.40
@@ -1167,7 +1166,26 @@ func create_card_node(card_data: CardData, source_zone: String) -> Node3D:
 	card_node.set_meta("target_alpha", 1.0)
 	card_node.set_meta("current_alpha", 1.0)
 	add_pick_area(card_node)
+	if source_zone == "library":
+		add_library_copy_badge(card_node)
 	return card_node
+
+
+func add_library_copy_badge(card_node: Node3D) -> void:
+	var badge := Label3D.new()
+	badge.name = "DeckCopyBadge"
+	badge.text = ""
+	badge.position = Vector3(0.38, 0.075, -0.56)
+	badge.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	badge.pixel_size = 0.0036
+	badge.font_size = 54
+	badge.modulate = Color(1.0, 0.86, 0.30, 1.0)
+	badge.outline_modulate = Color(0.05, 0.02, 0.0, 1.0)
+	badge.outline_size = 10
+	badge.no_depth_test = true
+	badge.render_priority = 20
+	badge.visible = false
+	card_node.add_child(badge)
 
 
 func add_pick_area(card_node: Node3D) -> void:
@@ -1311,8 +1329,9 @@ func try_add_library_card_to_deck(card_data: CardData) -> bool:
 		return false
 
 	var copies := get_deck_copy_count(card_data)
-	if copies >= COPY_LIMIT:
-		set_status("Cannot add more than " + str(COPY_LIMIT) + " copies of " + card_data.card_name + ".")
+	var copy_limit := get_card_copy_limit(card_data)
+	if copies >= copy_limit:
+		set_status("Cannot add more than " + str(copy_limit) + " copies of " + card_data.card_name + ".")
 		return false
 
 	var new_node := create_card_node(card_data, "deck")
@@ -1326,7 +1345,7 @@ func try_add_library_card_to_deck(card_data: CardData) -> bool:
 	insert_index = clamp(insert_index, 0, deck_cards.size())
 	deck_cards.insert(insert_index, card_data)
 	deck_nodes.insert(insert_index, new_node)
-	set_status("Added " + card_data.card_name + " to deck rack. " + str(copies + 1) + "/" + str(COPY_LIMIT) + " copies.")
+	set_status("Added " + card_data.card_name + " to deck rack. " + str(copies + 1) + "/" + str(copy_limit) + " copies.")
 	show_card_detail(card_data)
 	return true
 
@@ -1360,10 +1379,13 @@ func animate_collection(nodes: Array[Node3D], delta: float) -> void:
 		# without leaving a delayed translucent card over the rack.
 		var source_zone := String(node.get_meta("source_zone", ""))
 		var alpha := get_library_edge_alpha(node.position.x) if source_zone == "library" else 1.0
+		var copy_limit_reached := source_zone == "library" and is_library_card_at_copy_limit(node)
+		if copy_limit_reached:
+			alpha *= 0.28
 		node.set_meta("current_alpha", alpha)
 		# Every visibly rendered library card remains grabbable. Rack clicks still
 		# query only the deck collision layer, so edge cards cannot steal rack input.
-		set_card_pickable(node, source_zone != "library" or alpha > 0.02)
+		set_card_pickable(node, source_zone != "library" or (alpha > 0.02 and not copy_limit_reached))
 		if alpha <= 0.001:
 			node.visible = false
 		else:
@@ -1653,7 +1675,35 @@ func get_deck_copy_count(card_data: CardData) -> int:
 	return count
 
 
+func get_card_copy_limit(card_data: CardData) -> int:
+	return CardRules.get_deck_copy_limit(card_data)
+
+
+func is_library_card_at_copy_limit(card_node: Node3D) -> bool:
+	if card_node == null:
+		return false
+	var card_data := card_node.get_meta("card_data", null) as CardData
+	if card_data == null:
+		return false
+	return get_deck_copy_count(card_data) >= get_card_copy_limit(card_data)
+
+
+func refresh_library_copy_indicators() -> void:
+	for card_node in library_nodes:
+		if card_node == null or not is_instance_valid(card_node):
+			continue
+		var card_data := card_node.get_meta("card_data", null) as CardData
+		if card_data == null:
+			continue
+		var copies := get_deck_copy_count(card_data)
+		var badge := card_node.get_node_or_null("DeckCopyBadge") as Label3D
+		if badge != null:
+			badge.text = str(copies) + "x"
+			badge.visible = copies > 0
+
+
 func update_deck_status() -> void:
+	refresh_library_copy_indicators()
 	if deck_count_label != null:
 		deck_count_label.text = "Deck " + str(deck_cards.size()) + "/" + str(MAX_DECK_SIZE)
 	if deck_ledger_label_3d != null:
@@ -1794,7 +1844,7 @@ func load_deck_slot_into_rack(slot_index: int) -> void:
 		if not card_lookup.has(key):
 			continue
 		var card_data: CardData = card_lookup[key]
-		if get_deck_copy_count(card_data) >= COPY_LIMIT:
+		if get_deck_copy_count(card_data) >= get_card_copy_limit(card_data):
 			continue
 		if deck_cards.size() >= MAX_DECK_SIZE:
 			break
