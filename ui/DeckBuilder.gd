@@ -56,6 +56,13 @@ const DECK_SLOT_PICK_LAYER := 4
 const CARD_ACTION_INSPECT := 1
 const CARD_ACTION_CANCEL := 99
 
+enum LibrarySortMode {
+	NAME,
+	TP,
+	AP,
+	DP,
+}
+
 # Rack bounds from deck_builder.tscn (scene-accurate).
 # Inner left wall X=2.496, inner right wall X=5.496, center X=3.996.
 # Z range inner: -2.33 to 3.31, center Z=0.49.
@@ -107,6 +114,8 @@ var library_scroll_max := 0.0
 var active_race_filters: Dictionary = {}
 var active_type_filters: Dictionary = {}
 var search_text := ""
+var library_sort_mode: LibrarySortMode = LibrarySortMode.NAME
+var library_sort_ascending := true
 
 var camera_3d: Camera3D
 var ui_layer: CanvasLayer
@@ -116,6 +125,7 @@ var deck_name_edit: LineEdit
 var save_button: Button
 var play_button: Button
 var search_box: LineEdit
+var library_sort_button: MenuButton
 var card_detail_label: RichTextLabel
 var card_detail_name_3d: Label3D
 var card_detail_stats_3d: Label3D
@@ -547,6 +557,14 @@ func build_overlay_ui() -> void:
 	add_filter_buttons(filter_row, ["All", "Human", "Dwarf", "Orc", "Elf", "Neutral"], race_buttons, _on_race_filter_pressed)
 	add_filter_caption(filter_row, "CARD")
 	add_filter_buttons(filter_row, ["All", "Unit", "Gambit", "Equipment"], type_buttons, _on_type_filter_pressed)
+
+	var filter_spacer := Control.new()
+	filter_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	filter_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	filter_row.add_child(filter_spacer)
+
+	library_sort_button = make_library_sort_button()
+	filter_row.add_child(library_sort_button)
 
 	# A separate deck ledger over the lower-right table leaves open space between.
 	var deck_plaque := PanelContainer.new()
@@ -998,6 +1016,35 @@ func make_button(text: String, min_size: Vector2, primary: bool = false) -> Butt
 	return button
 
 
+func make_library_sort_button() -> MenuButton:
+	var button := MenuButton.new()
+	button.text = "SORT ↕"
+	button.custom_minimum_size = Vector2(76, 28)
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+
+	var bg_normal := Color(0.10, 0.065, 0.032, 0.94)
+	var border_normal := Color(0.48, 0.34, 0.10, 0.85)
+	button.add_theme_stylebox_override("normal", _make_btn_style(bg_normal, border_normal))
+	button.add_theme_stylebox_override("hover", _make_btn_style(bg_normal.lightened(0.12), border_normal.lightened(0.20)))
+	button.add_theme_stylebox_override("pressed", _make_btn_style(Color(0.52, 0.36, 0.09, 1.0), Color(0.95, 0.74, 0.24, 1.0)))
+	button.add_theme_color_override("font_color", Color(0.92, 0.84, 0.62, 1.0))
+	button.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.72, 1.0))
+	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.97, 0.85, 1.0))
+	button.add_theme_font_size_override("font_size", 13)
+
+	var popup := button.get_popup()
+	popup.add_item("Name", LibrarySortMode.NAME)
+	popup.add_item("TP", LibrarySortMode.TP)
+	popup.add_item("AP", LibrarySortMode.AP)
+	popup.add_item("DP", LibrarySortMode.DP)
+	for item_index in range(popup.item_count):
+		popup.set_item_as_radio_checkable(item_index, true)
+	popup.id_pressed.connect(_on_library_sort_selected)
+	update_library_sort_button()
+	return button
+
+
 func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
 	s.bg_color = bg
@@ -1074,6 +1121,7 @@ func refresh_library() -> void:
 	for card in all_cards:
 		if card_matches_filters(card):
 			filtered_cards.append(card)
+	filtered_cards.sort_custom(compare_library_cards)
 
 	for i in range(filtered_cards.size()):
 		var card_data: CardData = filtered_cards[i]
@@ -1175,10 +1223,10 @@ func add_library_copy_badge(card_node: Node3D) -> void:
 	var badge := Label3D.new()
 	badge.name = "DeckCopyBadge"
 	badge.text = ""
-	badge.position = Vector3(0.38, 0.075, -0.56)
+	badge.position = Vector3(0.45, 0.075, -0.73)
 	badge.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	badge.pixel_size = 0.0036
-	badge.font_size = 54
+	badge.font_size = 30
 	badge.modulate = Color(1.0, 0.86, 0.30, 1.0)
 	badge.outline_modulate = Color(0.05, 0.02, 0.0, 1.0)
 	badge.outline_size = 10
@@ -1664,6 +1712,56 @@ func get_card_sort_key(card_data: CardData) -> String:
 	if card_data == null:
 		return "zzzz"
 	return card_data.card_type.to_lower() + ":" + card_data.race.to_lower() + ":" + card_data.card_name.to_lower()
+
+
+func _on_library_sort_selected(sort_id: int) -> void:
+	var selected_mode := sort_id as LibrarySortMode
+	if selected_mode == library_sort_mode:
+		library_sort_ascending = not library_sort_ascending
+	else:
+		library_sort_mode = selected_mode
+		library_sort_ascending = true
+	update_library_sort_button()
+	refresh_library()
+
+
+func update_library_sort_button() -> void:
+	if library_sort_button == null:
+		return
+	library_sort_button.text = "SORT " + ("↑" if library_sort_ascending else "↓")
+	var popup := library_sort_button.get_popup()
+	for item_index in range(popup.item_count):
+		popup.set_item_checked(item_index, popup.get_item_id(item_index) == int(library_sort_mode))
+
+
+func compare_library_cards(a: CardData, b: CardData) -> bool:
+	if a == null:
+		return false
+	if b == null:
+		return true
+
+	var comparison := 0
+	match library_sort_mode:
+		LibrarySortMode.TP:
+			comparison = _compare_card_numbers(a.tribute_cost, b.tribute_cost)
+		LibrarySortMode.AP:
+			comparison = _compare_card_numbers(a.ap, b.ap)
+		LibrarySortMode.DP:
+			comparison = _compare_card_numbers(a.dp, b.dp)
+		_:
+			comparison = a.card_name.naturalnocasecmp_to(b.card_name)
+
+	if comparison == 0:
+		comparison = a.card_name.naturalnocasecmp_to(b.card_name)
+	return comparison < 0 if library_sort_ascending else comparison > 0
+
+
+func _compare_card_numbers(a: int, b: int) -> int:
+	if a < b:
+		return -1
+	if a > b:
+		return 1
+	return 0
 
 
 func get_deck_copy_count(card_data: CardData) -> int:
