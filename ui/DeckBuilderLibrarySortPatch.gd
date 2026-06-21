@@ -12,26 +12,20 @@ const SORT_LABELS := {
 	SORT_DP: "DP",
 }
 
-var ui_root: Control = null
 var sort_button: Button = null
 var sort_dropdown_panel: PanelContainer = null
 var current_sort_id := SORT_NAME
 var library_sort_ascending := true
 var has_applied_library_sort := false
-var attached := false
 
 
 func _ready() -> void:
-	set_process(true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	attach_sort_button()
 
 
-func _process(_delta: float) -> void:
-	if attached:
-		return
-	_attach_sort_dropdown()
-
-
-func _attach_sort_dropdown() -> void:
+func attach_sort_button() -> void:
 	var deck_builder := get_parent()
 	if deck_builder == null:
 		return
@@ -40,53 +34,44 @@ func _attach_sort_dropdown() -> void:
 	if viewport == null:
 		return
 
-	ui_root = viewport.get_node_or_null("LibraryTabletopUIControlRoot") as Control
+	var ui_root := viewport.get_node_or_null("LibraryTabletopUIControlRoot") as Control
 	if ui_root == null:
 		return
 
 	if ui_root.get_node_or_null("LibrarySortButton") != null:
-		attached = true
 		return
-
-	attached = true
 
 	sort_button = Button.new()
 	sort_button.name = "LibrarySortButton"
-	sort_button.text = _sort_button_text()
-	sort_button.custom_minimum_size = Vector2(86, 32)
-	sort_button.size = Vector2(86, 32)
-	sort_button.position = Vector2(998, 16)
-	sort_button.z_index = 240
+	sort_button.text = get_sort_button_text()
+	sort_button.custom_minimum_size = Vector2(96, 34)
+	sort_button.size = Vector2(96, 34)
+	sort_button.position = Vector2(990, 48)
+	sort_button.z_index = 500
 	sort_button.focus_mode = Control.FOCUS_NONE
 	sort_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	sort_button.pressed.connect(_toggle_sort_dropdown)
-	_apply_button_style(sort_button)
+	sort_button.pressed.connect(toggle_sort_dropdown)
+	apply_button_style(sort_button)
 	ui_root.add_child(sort_button)
 
-	_build_sort_dropdown_panel()
+	build_sort_dropdown(ui_root)
 
 
-func _build_sort_dropdown_panel() -> void:
-	if ui_root == null:
-		return
-
+func build_sort_dropdown(ui_root: Control) -> void:
 	sort_dropdown_panel = PanelContainer.new()
 	sort_dropdown_panel.name = "LibrarySortDropdown"
 	sort_dropdown_panel.visible = false
-	sort_dropdown_panel.position = Vector2(952, 50)
-	sort_dropdown_panel.size = Vector2(132, 42)
-	sort_dropdown_panel.custom_minimum_size = Vector2(132, 42)
-	sort_dropdown_panel.z_index = 260
+	sort_dropdown_panel.position = Vector2(826, 48)
+	sort_dropdown_panel.size = Vector2(160, 34)
+	sort_dropdown_panel.custom_minimum_size = Vector2(160, 34)
+	sort_dropdown_panel.z_index = 510
 	sort_dropdown_panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	sort_dropdown_panel.add_theme_stylebox_override(
-		"panel",
-		_make_dropdown_style(Color(0.055, 0.026, 0.010, 0.98), Color(0.72, 0.49, 0.13, 1.0))
-	)
+	sort_dropdown_panel.add_theme_stylebox_override("panel", make_dropdown_style())
 	ui_root.add_child(sort_dropdown_panel)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 5)
-	margin.add_theme_constant_override("margin_right", 5)
+	margin.add_theme_constant_override("margin_left", 4)
+	margin.add_theme_constant_override("margin_right", 4)
 	margin.add_theme_constant_override("margin_top", 4)
 	margin.add_theme_constant_override("margin_bottom", 4)
 	sort_dropdown_panel.add_child(margin)
@@ -95,54 +80,50 @@ func _build_sort_dropdown_panel() -> void:
 	option_row.add_theme_constant_override("separation", 4)
 	margin.add_child(option_row)
 
-	_add_sort_option_button(option_row, "Name", SORT_NAME)
-	_add_sort_option_button(option_row, "TP", SORT_TP)
-	_add_sort_option_button(option_row, "AP", SORT_AP)
-	_add_sort_option_button(option_row, "DP", SORT_DP)
+	add_sort_option(option_row, "Name", SORT_NAME, 48)
+	add_sort_option(option_row, "TP", SORT_TP, 30)
+	add_sort_option(option_row, "AP", SORT_AP, 30)
+	add_sort_option(option_row, "DP", SORT_DP, 30)
 
 
-func _add_sort_option_button(parent: Control, label: String, sort_id: int) -> void:
+func add_sort_option(parent: Control, label_text: String, sort_id: int, width: int) -> void:
 	var option_button := Button.new()
-	option_button.text = label
-	option_button.custom_minimum_size = Vector2(28 if label != "Name" else 42, 24)
+	option_button.text = label_text
+	option_button.custom_minimum_size = Vector2(width, 24)
 	option_button.focus_mode = Control.FOCUS_NONE
 	option_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	option_button.pressed.connect(_on_sort_option_selected.bind(sort_id))
-	_apply_button_style(option_button)
+	option_button.pressed.connect(on_sort_option_selected.bind(sort_id))
+	apply_button_style(option_button)
 	parent.add_child(option_button)
 
 
-func _toggle_sort_dropdown() -> void:
+func toggle_sort_dropdown() -> void:
 	if sort_dropdown_panel == null:
 		return
 	sort_dropdown_panel.visible = not sort_dropdown_panel.visible
 
 
-func _on_sort_option_selected(sort_id: int) -> void:
+func on_sort_option_selected(sort_id: int) -> void:
 	if has_applied_library_sort and sort_id == current_sort_id:
 		library_sort_ascending = not library_sort_ascending
 	else:
 		current_sort_id = sort_id
 		library_sort_ascending = true
 	has_applied_library_sort = true
-	_apply_library_sort()
-	_update_sort_button_text()
+	apply_library_sort()
+	if sort_button != null:
+		sort_button.text = get_sort_button_text()
 	if sort_dropdown_panel != null:
 		sort_dropdown_panel.visible = false
 
 
-func _apply_library_sort() -> void:
+func apply_library_sort() -> void:
 	var deck_builder := get_parent()
 	if deck_builder == null:
 		return
 
 	var cards: Array = deck_builder.get("all_cards")
-	cards.sort_custom(func(a, b) -> bool:
-		var comparison := _compare_cards(a, b)
-		if library_sort_ascending:
-			return comparison < 0
-		return comparison > 0
-	)
+	cards.sort_custom(compare_card_sort)
 	deck_builder.set("all_cards", cards)
 	deck_builder.set("library_scroll", 0.0)
 	deck_builder.set("library_scroll_target", 0.0)
@@ -150,40 +131,45 @@ func _apply_library_sort() -> void:
 	if deck_builder.has_method("refresh_library"):
 		deck_builder.call("refresh_library")
 	if deck_builder.has_method("set_status"):
-		var direction := "ascending" if library_sort_ascending else "descending"
-		deck_builder.call(
-			"set_status",
-			"Owned library sorted by " + _sort_label(current_sort_id) + " (" + direction + ")."
-		)
+		var direction := "ascending"
+		if not library_sort_ascending:
+			direction = "descending"
+		deck_builder.call("set_status", "Owned library sorted by " + get_sort_label(current_sort_id) + " (" + direction + ").")
 
 
-func _compare_cards(a, b) -> int:
-	match current_sort_id:
-		SORT_TP:
-			var tp_compare := _compare_int(_card_int(a, "tribute_cost"), _card_int(b, "tribute_cost"))
-			if tp_compare != 0:
-				return tp_compare
-		SORT_AP:
-			var ap_compare := _compare_int(_card_int(a, "ap"), _card_int(b, "ap"))
-			if ap_compare != 0:
-				return ap_compare
-		SORT_DP:
-			var dp_compare := _compare_int(_card_int(a, "dp"), _card_int(b, "dp"))
-			if dp_compare != 0:
-				return dp_compare
-
-	var name_compare := _compare_string(_card_string(a, "card_name"), _card_string(b, "card_name"))
-	if name_compare != 0:
-		return name_compare
-
-	var type_compare := _compare_string(_card_string(a, "card_type"), _card_string(b, "card_type"))
-	if type_compare != 0:
-		return type_compare
-
-	return _compare_string(_card_string(a, "race"), _card_string(b, "race"))
+func compare_card_sort(a, b) -> bool:
+	var result := compare_cards(a, b)
+	if library_sort_ascending:
+		return result < 0
+	return result > 0
 
 
-func _card_string(card, property_name: String) -> String:
+func compare_cards(a, b) -> int:
+	if current_sort_id == SORT_TP:
+		var tp_result := compare_int(get_card_int(a, "tribute_cost"), get_card_int(b, "tribute_cost"))
+		if tp_result != 0:
+			return tp_result
+	elif current_sort_id == SORT_AP:
+		var ap_result := compare_int(get_card_int(a, "ap"), get_card_int(b, "ap"))
+		if ap_result != 0:
+			return ap_result
+	elif current_sort_id == SORT_DP:
+		var dp_result := compare_int(get_card_int(a, "dp"), get_card_int(b, "dp"))
+		if dp_result != 0:
+			return dp_result
+
+	var name_result := compare_string(get_card_string(a, "card_name"), get_card_string(b, "card_name"))
+	if name_result != 0:
+		return name_result
+
+	var type_result := compare_string(get_card_string(a, "card_type"), get_card_string(b, "card_type"))
+	if type_result != 0:
+		return type_result
+
+	return compare_string(get_card_string(a, "race"), get_card_string(b, "race"))
+
+
+func get_card_string(card, property_name: String) -> String:
 	if card == null:
 		return ""
 	var value = card.get(property_name)
@@ -192,7 +178,7 @@ func _card_string(card, property_name: String) -> String:
 	return String(value).to_lower()
 
 
-func _card_int(card, property_name: String) -> int:
+func get_card_int(card, property_name: String) -> int:
 	if card == null:
 		return 0
 	var value = card.get(property_name)
@@ -201,44 +187,43 @@ func _card_int(card, property_name: String) -> int:
 	return int(value)
 
 
-func _compare_string(left: String, right: String) -> int:
+func compare_string(left: String, right: String) -> int:
 	if left == right:
 		return 0
-	return -1 if left < right else 1
+	if left < right:
+		return -1
+	return 1
 
 
-func _compare_int(left: int, right: int) -> int:
+func compare_int(left: int, right: int) -> int:
 	if left == right:
 		return 0
-	return -1 if left < right else 1
+	if left < right:
+		return -1
+	return 1
 
 
-func _sort_label(sort_id: int) -> String:
+func get_sort_label(sort_id: int) -> String:
 	return String(SORT_LABELS.get(sort_id, "Name"))
 
 
-func _sort_button_text() -> String:
-	return "SORT ▲" if library_sort_ascending else "SORT ▼"
+func get_sort_button_text() -> String:
+	if library_sort_ascending:
+		return "SORT ▲"
+	return "SORT ▼"
 
 
-func _update_sort_button_text() -> void:
-	if sort_button != null:
-		sort_button.text = _sort_button_text()
-
-
-func _apply_button_style(button: Button) -> void:
-	var bg_normal := Color(0.10, 0.065, 0.032, 0.94)
-	var border_normal := Color(0.48, 0.34, 0.10, 0.85)
-	button.add_theme_stylebox_override("normal", _make_button_style(bg_normal, border_normal))
-	button.add_theme_stylebox_override("hover", _make_button_style(bg_normal.lightened(0.12), border_normal.lightened(0.20)))
-	button.add_theme_stylebox_override("pressed", _make_button_style(Color(0.52, 0.36, 0.09, 1.0), Color(0.95, 0.74, 0.24, 1.0)))
+func apply_button_style(button: Button) -> void:
+	button.add_theme_stylebox_override("normal", make_button_style(Color(0.10, 0.065, 0.032, 0.94), Color(0.48, 0.34, 0.10, 0.85)))
+	button.add_theme_stylebox_override("hover", make_button_style(Color(0.20, 0.12, 0.045, 0.96), Color(0.82, 0.58, 0.18, 1.0)))
+	button.add_theme_stylebox_override("pressed", make_button_style(Color(0.52, 0.36, 0.09, 1.0), Color(0.95, 0.74, 0.24, 1.0)))
 	button.add_theme_color_override("font_color", Color(0.92, 0.84, 0.62, 1.0))
 	button.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.72, 1.0))
 	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.97, 0.85, 1.0))
 	button.add_theme_font_size_override("font_size", 13)
 
 
-func _make_button_style(bg: Color, border: Color) -> StyleBoxFlat:
+func make_button_style(bg: Color, border: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = bg
 	style.border_color = border
@@ -253,10 +238,10 @@ func _make_button_style(bg: Color, border: Color) -> StyleBoxFlat:
 	return style
 
 
-func _make_dropdown_style(bg: Color, border: Color) -> StyleBoxFlat:
+func make_dropdown_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = bg
-	style.border_color = border
+	style.bg_color = Color(0.055, 0.026, 0.010, 0.98)
+	style.border_color = Color(0.72, 0.49, 0.13, 1.0)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(4)
 	style.shadow_color = Color(0.01, 0.005, 0.002, 0.82)
