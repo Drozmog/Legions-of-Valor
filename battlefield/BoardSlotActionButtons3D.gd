@@ -8,10 +8,13 @@ signal action_pressed(action_id: int, slot: Node)
 @export var pass_texture: Texture2D
 @export var inspect_texture: Texture2D
 
-const BUTTON_SIZE := Vector3(0.42, 0.035, 0.27)
+# 280x130 texture ratio = 2.1538
+# X / Z should match that ratio.
+const BUTTON_SIZE := Vector3(0.42, 0.035, 0.195)
+
 const HIDDEN_X := 0.46
-const SHOWN_X := 0.83
-const BUTTON_Z_SPACING := 0.32
+const SHOWN_X := 0.76
+const BUTTON_Z_SPACING := 0.23
 const SLIDE_TIME := 0.18
 
 var slot: Node3D
@@ -36,37 +39,49 @@ func set_actions(action_ids: Array[int]) -> void:
 	var signature := ",".join(action_ids.map(func(value: int) -> String: return str(value)))
 	if signature == state_signature:
 		return
+
 	state_signature = signature
 	var action_count := action_ids.size()
 	visible = action_count > 0
+
 	for raw_id in buttons.keys():
 		var action_id := int(raw_id)
 		var button_root := buttons[action_id] as Node3D
 		var visual_index := action_ids.find(action_id)
 		var should_show := visual_index >= 0
+
 		_set_button_pickable(button_root, should_show)
+
 		if not should_show:
 			button_root.set_meta("wanted_visible", false)
+
 			if button_root.visible:
 				var retract_target := button_root.position
 				retract_target.x = slide_direction * HIDDEN_X
+
 				var retract := create_tween()
 				retract.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
 				retract.tween_property(button_root, "position", retract_target, 0.13)
 				retract.tween_callback(_hide_button_if_still_retracted.bind(button_root))
 			else:
 				button_root.position.x = slide_direction * HIDDEN_X
+
 			continue
+
 		button_root.set_meta("wanted_visible", true)
 		button_root.visible = true
+
 		var centered_index := float(visual_index) - float(action_count - 1) * 0.5
+
 		button_root.position = Vector3(
 			slide_direction * HIDDEN_X,
 			0.16 + float(visual_index) * 0.004,
 			centered_index * BUTTON_Z_SPACING
 		)
+
 		var target := button_root.position
 		target.x = slide_direction * SHOWN_X
+
 		var tween := create_tween()
 		tween.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tween.tween_property(button_root, "position", target, SLIDE_TIME)
@@ -75,6 +90,7 @@ func set_actions(action_ids: Array[int]) -> void:
 func _hide_button_if_still_retracted(button_root: Node3D) -> void:
 	if button_root == null or not is_instance_valid(button_root):
 		return
+
 	if not bool(button_root.get_meta("wanted_visible", false)):
 		button_root.visible = false
 
@@ -86,10 +102,13 @@ func _build_button(action_id: int, caption: String, node_name: String) -> void:
 
 	var surface := MeshInstance3D.new()
 	surface.name = "ButtonSurface"
+
 	var mesh := BoxMesh.new()
 	mesh.size = BUTTON_SIZE
+
 	surface.mesh = mesh
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.albedo_color = Color(0.105, 0.045, 0.016, 0.98)
@@ -98,10 +117,12 @@ func _build_button(action_id: int, caption: String, node_name: String) -> void:
 	material.emission_energy_multiplier = 0.65
 	material.no_depth_test = true
 	material.render_priority = 110
+
 	var action_texture := get_action_texture(action_id)
 	if action_texture != null:
 		material.albedo_texture = action_texture
 		material.albedo_color = Color.WHITE
+
 	surface.material_override = material
 	button_root.add_child(surface)
 
@@ -125,15 +146,19 @@ func _build_button(action_id: int, caption: String, node_name: String) -> void:
 	area.collision_layer = 8
 	area.collision_mask = 0
 	area.input_ray_pickable = true
+
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(BUTTON_SIZE.x, 0.16, BUTTON_SIZE.z)
 	collision.shape = shape
+
 	area.add_child(collision)
 	button_root.add_child(area)
+
 	area.input_event.connect(_on_button_input_event.bind(action_id))
 	area.mouse_entered.connect(_on_button_mouse_entered.bind(button_root))
 	area.mouse_exited.connect(_on_button_mouse_exited.bind(button_root))
+
 	buttons[action_id] = button_root
 
 
@@ -147,6 +172,7 @@ func get_action_texture(action_id: int) -> Texture2D:
 			return pass_texture
 		1:
 			return inspect_texture
+
 	return null
 
 
@@ -173,6 +199,7 @@ func _on_button_input_event(
 
 func _on_button_mouse_entered(button_root: Node3D) -> void:
 	Cursors.use_pointing()
+
 	var surface := button_root.get_node_or_null("ButtonSurface") as MeshInstance3D
 	if surface != null and surface.material_override is StandardMaterial3D:
 		var material := surface.material_override as StandardMaterial3D
@@ -182,6 +209,7 @@ func _on_button_mouse_entered(button_root: Node3D) -> void:
 
 func _on_button_mouse_exited(button_root: Node3D) -> void:
 	Cursors.use_normal()
+
 	var surface := button_root.get_node_or_null("ButtonSurface") as MeshInstance3D
 	if surface != null and surface.material_override is StandardMaterial3D:
 		var material := surface.material_override as StandardMaterial3D

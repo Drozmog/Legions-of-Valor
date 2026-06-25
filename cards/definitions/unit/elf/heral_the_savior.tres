@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://djlucr2p5kv1m"]
 
 [ext_resource type="Texture2D" uid="uid://25k342qbkrc0" path="res://cards/images/unit/elf/heral_the_savior.png" id="1_0ixms"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_jhlso"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_jhlso"]
 
 [resource]
@@ -16,7 +17,7 @@ dp = 2
 ability_text = "Sovereign : 1+ Aurion for objective completion.
 
 Pierce : If this unit destroys an enemy, gain +1 Aurion."
+ability_types = Array[String](["economy", "assault"])
 lore_text = "“Cael' Therin was never the name given to the city of glass and stone, it was the people. The flesh that breathed life into it. You are that City. Move through the hidden tracks. For King Ferelin!”"
 card_art = ExtResource("1_0ixms")
-ability_types = Array[String](["economy", "assault"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

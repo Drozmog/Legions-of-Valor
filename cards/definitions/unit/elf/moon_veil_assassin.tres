@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b8bwnmbhfk3u4"]
 
 [ext_resource type="Texture2D" uid="uid://0lw0c4ntywn" path="res://cards/images/unit/elf/moon_veil_assassin.png" id="1_1dw6g"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_k3efh"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_k3efh"]
 
 [resource]
@@ -16,7 +17,7 @@ dp = 1
 ability_text = "Loyalty : This unit costs 1 less TP if it is deployed as a promotion.
 
 Terrorize : On deploy: Opponent must discard 1 card from his hand."
+ability_types = Array[String](["economy", "attrition"])
 lore_text = "“Before the Guild existed, it was us. The elves will always make the best assasins because we are disciplined, measured and direct.”"
 card_art = ExtResource("1_1dw6g")
-ability_types = Array[String](["economy", "attrition"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

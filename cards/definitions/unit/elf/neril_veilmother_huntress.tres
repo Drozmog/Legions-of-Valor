@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://wxbovkpxjiu0"]
 
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_4e41u"]
 [ext_resource type="Texture2D" uid="uid://cyf6xf85qmykr" path="res://cards/images/unit/elf/neril_veilmother_huntress.png" id="1_5fwlu"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_4e41u"]
 
@@ -13,7 +14,7 @@ rarity = "normal"
 tribute_cost = 3
 ap = 4
 ability_text = "Shatter : On Monarch Strike: Opponent discards 1 card from their hand."
+ability_types = Array[String](["attrition"])
 lore_text = "\"I have watched empires crumble and men like you turn to dust. What makes you think your little threats excite me?\""
 card_art = ExtResource("1_5fwlu")
-ability_types = Array[String](["attrition"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bqh0ubueuduvb"]
 
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_7gmfo"]
 [ext_resource type="Texture2D" uid="uid://065jug5tgil4" path="res://cards/images/unit/elf/vaelori_scout.png" id="1_e8vlg"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_7gmfo"]
 
@@ -13,7 +14,7 @@ rarity = "normal"
 tribute_cost = 1
 ap = 2
 ability_text = "Equalizer : Both units defeated if Attacker AP is exactly +1 higher."
+ability_types = Array[String](["protection"])
 lore_text = "“She sees me, she sees me not, she sees me, she... I think someone's coming\""
 card_art = ExtResource("1_e8vlg")
-ability_types = Array[String](["protection"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

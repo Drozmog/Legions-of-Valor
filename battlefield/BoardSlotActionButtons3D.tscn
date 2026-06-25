@@ -1,6 +1,14 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3 uid="uid://byxjndvnutnq5"]
 
-[ext_resource type="Script" path="res://battlefield/BoardSlotActionButtons3D.gd" id="1_actions"]
+[ext_resource type="Script" uid="uid://mflktrfi3au2" path="res://battlefield/BoardSlotActionButtons3D.gd" id="1_actions"]
+[ext_resource type="Texture2D" uid="uid://bylfx8i1et0yy" path="res://ui/combat_buttons/attack_button.png" id="2_4otp8"]
+[ext_resource type="Texture2D" uid="uid://cn3skpox5ooaw" path="res://ui/combat_buttons/check_button.png" id="3_avgaq"]
+[ext_resource type="Texture2D" uid="uid://dbekam0mqltse" path="res://ui/combat_buttons/pass_button.png" id="4_5g6v4"]
+[ext_resource type="Texture2D" uid="uid://rwt8mp83m5da" path="res://ui/combat_buttons/inspect_button.png" id="5_ccdoq"]
 
-[node name="BoardSlotActionButtons3D" type="Node3D"]
+[node name="BoardSlotActionButtons3D" type="Node3D" unique_id=395342901]
 script = ExtResource("1_actions")
+attack_texture = ExtResource("2_4otp8")
+check_texture = ExtResource("3_avgaq")
+pass_texture = ExtResource("4_5g6v4")
+inspect_texture = ExtResource("5_ccdoq")

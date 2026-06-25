@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://8yebp04tmm8v"]
 
 [ext_resource type="Texture2D" uid="uid://bpefh040thokh" path="res://cards/images/unit/elf/inshi_azure_sentinel.png" id="1_0je8p"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_3dpr5"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_3dpr5"]
 
 [resource]
@@ -14,7 +15,7 @@ tribute_cost = 4
 ap = 6
 dp = 2
 ability_text = "Intel : On Deploy: Look at the top 3 cards of your deck, take 1, put the other 2 at the bottom."
+ability_types = Array[String](["insight"])
 lore_text = "“Re-route your advance, scout. I can see you in the distance. These woods belong to the high lords.”"
 card_art = ExtResource("1_0je8p")
-ability_types = Array[String](["insight"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

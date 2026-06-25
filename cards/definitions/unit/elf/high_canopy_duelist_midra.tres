@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c6w348f6th6ge"]
 
 [ext_resource type="Texture2D" uid="uid://cwghbqwo6dadb" path="res://cards/images/unit/elf/high_canopy_duelist_midra.png" id="1_6311v"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_26775"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_26775"]
 
 [resource]
@@ -14,7 +15,7 @@ tribute_cost = 3
 ap = 5
 dp = 1
 ability_text = "Volley : This unit can attack diagonal lanes."
+ability_types = Array[String](["mobility"])
 lore_text = "“We tolerated your presence as refugees; we will finalize it as corpses.”"
 card_art = ExtResource("1_6311v")
-ability_types = Array[String](["mobility"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

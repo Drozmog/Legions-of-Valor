@@ -1,5 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://7f3tasgrtobw"]
 
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_1k2ky"]
 [ext_resource type="Texture2D" uid="uid://cant7cxkuc84w" path="res://cards/images/unit/elf/tirael_calith_guard.png" id="1_gp2ho"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_1k2ky"]
 
