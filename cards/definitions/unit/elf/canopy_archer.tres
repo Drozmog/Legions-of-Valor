@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://n3aevhv18bes"]
+
+[ext_resource type="Texture2D" uid="uid://cwowtqrq61vm5" path="res://cards/images/unit/elf/canopy_archer.png" id="1_ngwwt"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_fyo78"]
+
+[resource]
+script = ExtResource("2_fyo78")
+card_id = "canopy_archer"
+card_name = "Canopy Archer"
+race = "elf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 4
+ability_text = "Volley : This unit can attack diagonal lanes."
+lore_text = "“They check the trails, never the canopy. They only hear us when the arrow is already set.”"
+card_art = ExtResource("1_ngwwt")
+ability_types = Array[String](["mobility"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

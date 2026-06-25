@@ -208,15 +208,16 @@ func rebuild_ability_icons() -> void:
 	if card_data == null:
 		return
 
-	if card_data.ability_types.is_empty():
+	var ability_categories := card_data.get_ability_categories()
+	if ability_categories.is_empty():
 		return
 
-	var icon_count := card_data.ability_types.size()
+	var icon_count := ability_categories.size()
 	var total_width := ability_icon_spacing * float(icon_count - 1)
 	var start_x := -total_width / 2.0
 
 	for i in range(icon_count):
-		var ability_type := card_data.ability_types[i].to_lower()
+		var ability_type := ability_categories[i].to_lower()
 		var icon := create_ability_icon(ability_type)
 
 		icon.position = Vector2(
@@ -263,7 +264,7 @@ func set_ability_icons_visible(show_icons: bool, instant: bool = false) -> void:
 	if card_data == null:
 		return
 
-	if card_data.ability_types.is_empty():
+	if card_data.get_ability_categories().is_empty():
 		return
 
 	if is_face_down:

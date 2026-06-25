@@ -99,7 +99,7 @@ func show_for_card(card_data: CardData) -> void:
 	current_ability_text = ""
 
 	if card_data != null:
-		current_ability_text = card_data.ability_text
+		current_ability_text = card_data.get_ability_text()
 
 	if message_label != null:
 		message_label.text = "Use " + card_data.card_name + " ability?\n\n" + current_ability_text
@@ -114,10 +114,11 @@ func get_first_ability_icon(card_data: CardData) -> Texture2D:
 	if card_data == null:
 		return null
 
-	if card_data.ability_types.is_empty():
+	var ability_categories := card_data.get_ability_categories()
+	if ability_categories.is_empty():
 		return null
 
-	var ability_type: String = card_data.ability_types[0].to_lower()
+	var ability_type: String = ability_categories[0].to_lower()
 	var icon_path: String = ABILITY_ICON_PATHS.get(ability_type, "")
 
 	if icon_path == "" or not ResourceLoader.exists(icon_path):

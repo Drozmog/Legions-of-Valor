@@ -1,0 +1,16 @@
+﻿[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://abilities/AbilityData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://ui/ability_icons/economy.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+ability_id = &"focus"
+ability_name = "Focus"
+category = "economy"
+point_cost = 4.0
+trigger = "active"
+rules_text = "Active: Skip attack. Your next face-up Gambit card costs -2 TP\n\nPoint Cost: 4.0"
+icon = ExtResource("2")
+handler_id = &"focus"
+

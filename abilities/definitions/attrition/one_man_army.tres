@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://bd0ognec5o1ab"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_piv10"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_ib8s7"]
+
+[resource]
+script = ExtResource("2_ib8s7")
+ability_id = &"one_man_army"
+ability_name = "One Man Army"
+category = "attrition"
+point_cost = 12.0
+trigger = "active"
+rules_text = "The opponent discards his entire hand but keeps 1 card of their choosing
+
+Point Cost: 12.0"
+icon = ExtResource("1_piv10")
+handler_id = &"one_man_army"

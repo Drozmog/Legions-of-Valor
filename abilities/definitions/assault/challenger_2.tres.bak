@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://abilities/AbilityData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://ui/ability_icons/assault.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+ability_id = &"challenger_2"
+ability_name = "Challenger 2"
+category = "assault"
+point_cost = 4.5
+trigger = "on_attack"
+rules_text = "This unit Gains +3 AP when attacking.\n\nPoint Cost: 4.5"
+icon = ExtResource("2")
+handler_id = &"challenger_2"
+

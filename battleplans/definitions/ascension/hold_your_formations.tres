@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://cl0ub2kp1ockd"]
+
+[ext_resource type="Texture2D" uid="uid://cg4hc7rgt3f35" path="res://battleplans/images/ascension/hold_your_formations.png" id="1_tgscg"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_kcvrh"]
+
+[resource]
+script = ExtResource("2_kcvrh")
+battle_plan_id = "hold_your_formations"
+battle_plan_name = "Hold Your Formation"
+aurion_reward = 2
+initiative = 5
+draw_amount = 3
+description = "End the Deployment Phase with an active Front Row unit present in all three lanes simultaneously."
+card_art = ExtResource("1_tgscg")

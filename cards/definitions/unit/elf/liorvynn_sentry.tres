@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dyjbu6ng7psjv"]
+
+[ext_resource type="Texture2D" uid="uid://bosbhu66cdyf7" path="res://cards/images/unit/elf/liorvynn_sentry.png" id="1_3mxt4"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_p070q"]
+
+[resource]
+script = ExtResource("2_p070q")
+card_id = "liorvynn_sentry"
+card_name = "Liorvynn Sentry"
+race = "elf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 3
+dp = 1
+ability_text = "Duelist : This unit gains +2 AP if it is your only unit on the frontline."
+lore_text = "“No human boot steps within this courtyard while I draw breath.”"
+card_art = ExtResource("1_3mxt4")
+ability_types = Array[String](["assault"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

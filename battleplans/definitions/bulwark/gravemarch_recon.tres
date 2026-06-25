@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://ld5xxurfd2yy"]
+
+[ext_resource type="Texture2D" uid="uid://6rufjjt7et7a" path="res://battleplans/images/bulwark/gravemarch_recon.png" id="1_obs6q"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_ulkr5"]
+
+[resource]
+script = ExtResource("2_ulkr5")
+battle_plan_id = "gravemarch_recon"
+battle_plan_name = "Gravemarch Recon"
+aurion_reward = 1
+initiative = 2
+draw_amount = 3
+description = "Successfully declare a Check against any enemy Face-down card, regardless of whether it is revealed to be a Gambit or not."
+card_art = ExtResource("1_obs6q")

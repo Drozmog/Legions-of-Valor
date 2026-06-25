@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dp5vwur5jitlp"]
+
+[ext_resource type="Texture2D" uid="uid://rnm6k1ixvbv" path="res://ui/ability_icons/protection.png" id="1_b7nul"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_uth2n"]
+
+[resource]
+script = ExtResource("2_uth2n")
+ability_id = &"solidarity"
+ability_name = "Solidarity"
+category = "protection"
+point_cost = 4.0
+rules_text = "Solidarity: This card gains +1 DP for every unit you have on the frontline.
+
+Point Cost: 4.0"
+icon = ExtResource("1_b7nul")
+handler_id = &"solidarity"

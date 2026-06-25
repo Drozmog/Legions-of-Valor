@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://b655nv8x1r12v"]
+
+[ext_resource type="Texture2D" uid="uid://blysbqd7ooepj" path="res://battleplans/images/vanguard/brugos_onslaught.png" id="1_oygve"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_me4dk"]
+
+[resource]
+script = ExtResource("2_me4dk")
+battle_plan_id = "brugos_onslaught"
+battle_plan_name = "Brugo's Onslaught"
+aurion_reward = 2
+initiative = 9
+hand_size = 5
+draw_amount = 1
+description = "Have an active unit in your frontline with a total Attack Power (AP) of 6 or more at the conclusion of the Deployment Phase."
+card_art = ExtResource("1_oygve")

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://bo6qsmam3m8qo"]
+
+[ext_resource type="Texture2D" uid="uid://4inej74dov3" path="res://battleplans/images/ascension/ascension_of_the_sylverin_courts.png" id="1_lewba"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_i32q5"]
+
+[resource]
+script = ExtResource("2_i32q5")
+battle_plan_id = "ascension_of_the_sylverin_courts"
+battle_plan_name = "Ascension of The Sylverin Courts"
+aurion_reward = 2
+initiative = 6
+hand_size = 6
+draw_amount = 2
+description = "Perform a vertical Promotion on a unit, and have that newly promoted unit survive the entire combat round."
+card_art = ExtResource("1_lewba")

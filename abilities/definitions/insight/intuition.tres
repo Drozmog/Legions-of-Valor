@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dx8uqqrs2hjg"]
+
+[ext_resource type="Texture2D" uid="uid://yi63soibhi0j" path="res://ui/ability_icons/insight.png" id="1_omk1h"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_7ofbf"]
+
+[resource]
+script = ExtResource("2_7ofbf")
+ability_id = &"intuition"
+ability_name = "Intuition"
+category = "insight"
+point_cost = 3.0
+trigger = "active"
+rules_text = "Active: Once per turn you can look at 1 of your opponents' gambits
+
+Point Cost: 3.0"
+icon = ExtResource("1_omk1h")
+handler_id = &"intuition"

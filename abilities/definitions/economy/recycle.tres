@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://bx80rir1mhso8"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_ns4ir"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_2pif8"]
+
+[resource]
+script = ExtResource("2_2pif8")
+ability_id = &"recycle"
+ability_name = "Recycle"
+category = "economy"
+point_cost = 3.5
+trigger = "on_discard"
+rules_text = "If this card is discarded from your hand hand: Draw 2 cards.
+
+Point Cost: 3.5"
+icon = ExtResource("1_ns4ir")
+handler_id = &"recycle"

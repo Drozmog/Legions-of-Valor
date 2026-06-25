@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dihlexchbtffl"]
+
+[ext_resource type="Texture2D" uid="uid://ccu1i41520wsl" path="res://cards/images/unit/elf/forest_oakling_ziraltan.png" id="1_lxhvh"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_k5wry"]
+
+[resource]
+script = ExtResource("2_k5wry")
+card_id = "forest_oakling_ziraltan"
+card_name = "Forest Oakling, Ziraltan"
+race = "elf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 4
+ap = 6
+dp = 1
+ability_text = "Spell Shield : This unit is not affected by enemy gambits."
+lore_text = "“The Elders taught me patience but I was a slow learner. Now they are burnt and I live. I vow to never teach restraint against agression.”"
+card_art = ExtResource("1_lxhvh")
+ability_types = Array[String](["protection"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

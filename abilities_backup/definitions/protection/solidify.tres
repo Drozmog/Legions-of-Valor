@@ -1,0 +1,16 @@
+﻿[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://abilities/AbilityData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://ui/ability_icons/protection.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+ability_id = &"solidify"
+ability_name = "Solidify"
+category = "protection"
+point_cost = 3.0
+trigger = "active"
+rules_text = "This unit cannot be moved to another lane by the opponent's effects.\n\nPoint Cost: 3.0"
+icon = ExtResource("2")
+handler_id = &"solidify"
+

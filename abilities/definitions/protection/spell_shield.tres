@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://hrlsohnncbht"]
+
+[ext_resource type="Texture2D" uid="uid://rnm6k1ixvbv" path="res://ui/ability_icons/protection.png" id="1_xcm0n"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_6luuo"]
+
+[resource]
+script = ExtResource("2_6luuo")
+ability_id = &"spell_shield"
+ability_name = "Spell-Shield"
+category = "protection"
+point_cost = 4.0
+trigger = "protection_check"
+rules_text = "This unit is not affected by enemy gambits
+
+Point Cost: 4.0"
+icon = ExtResource("1_xcm0n")
+handler_id = &"spell_shield"

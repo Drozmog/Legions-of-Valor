@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://bv5l73vt36uvr"]
+
+[ext_resource type="Texture2D" uid="uid://cg4hc7rgt3f35" path="res://battleplans/images/ascension/hold_your_formations.png" id="1_16ebb"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_yckr2"]
+
+[resource]
+script = ExtResource("2_yckr2")
+battle_plan_id = "standard_of_naereons_hearth"
+battle_plan_name = "Standard of Naereon’s Hearth"
+aurion_reward = 1
+initiative = 3
+hand_size = 8
+draw_amount = 3
+description = "End the Deployment Phase with at least 3 cards of the same Faction in your Tribute Pile."
+card_art = ExtResource("1_16ebb")

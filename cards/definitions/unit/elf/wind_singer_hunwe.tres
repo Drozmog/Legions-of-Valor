@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dnnfg3b7q52wd"]
+
+[ext_resource type="Texture2D" uid="uid://0yhn8m0l7rsb" path="res://cards/images/unit/elf/wind_singer_hunwe.png" id="1_k5u67"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_koag3"]
+
+[resource]
+script = ExtResource("2_koag3")
+card_id = "wind_singer_hunwe"
+card_name = "Wind-Singer, Hunwe"
+race = "elf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 4
+ap = 6
+dp = 3
+ability_text = "Volley : This unit can attack diagonal lanes."
+lore_text = "“Our Gods are built of the lands that you desecrate. Come madness or sanity, the winds will always blow\""
+card_art = ExtResource("1_k5u67")
+ability_types = Array[String](["mobility"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

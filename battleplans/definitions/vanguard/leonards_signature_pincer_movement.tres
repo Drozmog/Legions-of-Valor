@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://bi01fdq8pf0kw"]
+
+[ext_resource type="Texture2D" uid="uid://bilj63aoei3ou" path="res://battleplans/images/vanguard/leonards_signature_pincer_movement.png" id="1_ddhko"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_fs0j8"]
+
+[resource]
+script = ExtResource("2_fs0j8")
+battle_plan_id = "leonards_signature_pincer_movement"
+battle_plan_name = "Leonard’s Signature Pincer Movement "
+aurion_reward = 2
+initiative = 8
+hand_size = 6
+draw_amount = 2
+description = "End the turn cycle holding the higher cumulative Attack Power (AP) in both the Left and Right Side Lanes simultaneously."
+card_art = ExtResource("1_ddhko")

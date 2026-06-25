@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://tldvclxyv6x1"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_xhggf"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_2p6d3"]
+
+[resource]
+script = ExtResource("2_2p6d3")
+ability_id = &"despair"
+ability_name = "Despair"
+category = "attrition"
+point_cost = -3.0
+trigger = "on_destroyed"
+rules_text = "Penalty: On defeat, you lose 1 Aurion.
+
+Point Cost: -3.0"
+icon = ExtResource("1_xhggf")
+handler_id = &"despair"

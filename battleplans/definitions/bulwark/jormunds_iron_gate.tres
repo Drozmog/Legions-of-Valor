@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://b3n1qsys17ejv"]
+
+[ext_resource type="Texture2D" uid="uid://df6lhb0i3eqrj" path="res://battleplans/images/bulwark/jormunds_iron_gate.png" id="1_yt5ri"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_qy5b5"]
+
+[resource]
+script = ExtResource("2_qy5b5")
+battle_plan_id = "jormunds_iron_gate"
+battle_plan_name = "Jormund's Iron Gate"
+aurion_reward = 2
+initiative = 4
+draw_amount = 3
+description = "Successfully invoke a Center Lane Interception to protect an adjacent side lane, and win the clash."
+card_art = ExtResource("1_yt5ri")

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://45eqb73icqrr"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_4h2tv"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_p2arw"]
+
+[resource]
+script = ExtResource("2_p2arw")
+ability_id = &"shockwave"
+ability_name = "Shockwave"
+category = "attrition"
+point_cost = 4.0
+trigger = "on_deploy"
+rules_text = "On Deploy: Remove all equipment from 1 lane. No Equipment can be placed in this lane till this unit is defeated.
+
+Point Cost: 4.0"
+icon = ExtResource("1_4h2tv")
+handler_id = &"shockwave"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://cilvi3jgh1i05"]
+
+[ext_resource type="Texture2D" uid="uid://bf607q6sx0bwx" path="res://battleplans/images/ascension/assassins_guilds_heritage.png" id="1_cdy3n"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_cmhug"]
+
+[resource]
+script = ExtResource("2_cmhug")
+battle_plan_id = "assassins_guilds_heritage"
+battle_plan_name = "Assassin Guild’s Heritage"
+aurion_reward = 2
+initiative = 2
+hand_size = 8
+draw_amount = 4
+description = "Execute a vertical Promotion where the incoming unit successfully inherits 1 or more attached Equipment cards from the discarded unit."
+card_art = ExtResource("1_cdy3n")

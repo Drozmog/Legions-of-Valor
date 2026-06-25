@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://buacxx0pfvhie"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_se5bk"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_jum7m"]
+
+[resource]
+script = ExtResource("2_jum7m")
+ability_id = &"haste"
+ability_name = "Haste"
+point_cost = 3.5
+trigger = "combat_power"
+rules_text = "If there were any promotions this turn, this unit gains +2 AP
+
+Point Cost: 3.5"
+icon = ExtResource("1_se5bk")
+handler_id = &"haste"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cnrp7k2o231lc"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_f8wnf"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_k3ime"]
+
+[resource]
+script = ExtResource("2_k3ime")
+ability_id = &"momentum"
+ability_name = "Momentum"
+point_cost = 4.0
+trigger = "on_deploy"
+rules_text = "Gain +2 AP for each allied unit of the same faction deployed
+
+Point Cost: 4.0"
+icon = ExtResource("1_f8wnf")
+handler_id = &"momentum"

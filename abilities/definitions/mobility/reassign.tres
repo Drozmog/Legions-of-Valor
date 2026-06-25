@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://c0w6vro7i3yjh"]
+
+[ext_resource type="Texture2D" uid="uid://cibnqwmrcdvtt" path="res://ui/ability_icons/mobility.png" id="1_xltrn"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_tygdc"]
+
+[resource]
+script = ExtResource("2_tygdc")
+ability_id = &"reassign"
+ability_name = "Reassign"
+category = "mobility"
+point_cost = 4.0
+trigger = "on_deploy"
+rules_text = "On Deploy: Rearrange all your units at will on the frontline.
+
+Point Cost: 4.0"
+icon = ExtResource("1_xltrn")
+handler_id = &"reassign"

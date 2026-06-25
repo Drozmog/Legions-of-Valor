@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://abilities/AbilityData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://ui/ability_icons/attrition.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+ability_id = &"raging_cry"
+ability_name = "Raging cry"
+category = "attrition"
+point_cost = 6.0
+trigger = "on_clash_won"
+rules_text = "When this unit wins a clash: Look at 2 cards in your opponent's hand and discard 1\n\nPoint Cost: 6.0"
+icon = ExtResource("2")
+handler_id = &"raging_cry"
+

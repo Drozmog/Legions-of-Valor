@@ -1,6 +1,8 @@
 class_name CardInspectPanel
 extends PanelContainer
 
+signal inspection_closed
+
 @export var hand: HandUI
 
 @export var display_offset_left: float = -565.0
@@ -13,6 +15,7 @@ extends PanelContainer
 @export_range(0.5, 1.0, 0.01) var centered_viewport_limit: float = 0.90
 
 @export var preview_render_scale: float = 3.0
+@export var max_preview_dimension: int = 2048
 
 @export var fly_time: float = 0.34
 @export var return_time: float = 0.26
@@ -59,9 +62,21 @@ var is_holding_display_card: bool = false
 var pending_source_card: CardUI = null
 var pending_card_data: CardData = null
 var is_switching_cards: bool = false
+var default_center_on_screen: bool
+var default_centered_display_size: Vector2
+var default_card_width: float
+var default_card_height: float
+var default_card_corner_radius: float
+var custom_texture_mode := false
+var preview_render_scale_override: float = 0.0
 
 
 func _ready() -> void:
+	default_center_on_screen = center_on_screen
+	default_centered_display_size = centered_display_size
+	default_card_width = card_width
+	default_card_height = card_height
+	default_card_corner_radius = card_corner_radius
 	clear_old_preview_children()
 	setup_position()
 	setup_visuals()
@@ -341,6 +356,8 @@ func show_card(source_card: CardUI, card_data: CardData) -> void:
 		hide_card()
 		return
 
+	_restore_default_preview_shape()
+
 	last_source_card = source_card
 	last_source_rect = get_source_card_rect(source_card)
 
@@ -372,6 +389,86 @@ func show_card(source_card: CardUI, card_data: CardData) -> void:
 	current_tween.parallel().tween_property(self, "size", display_rect.size, fly_time)
 	current_tween.parallel().tween_property(self, "modulate:a", 1.0, fly_time)
 	current_tween.tween_callback(_finish_show)
+
+
+func show_texture(texture: Texture2D, source_rect: Rect2 = Rect2(), landscape: bool = false) -> void:
+	if texture == null:
+		hide_card()
+		return
+
+	pending_source_card = null
+	pending_card_data = null
+	last_source_card = null
+	custom_texture_mode = true
+	# Battlefield scenes currently request a 4x preview. On a landscape card that
+	# would create a ~4480x3200 8x-MSAA viewport, causing a large GPU stall.
+	preview_render_scale_override = 2.0
+	if preview_viewport != null:
+		preview_viewport.msaa_3d = Viewport.MSAA_4X
+	center_on_screen = true
+	if landscape:
+		centered_display_size = Vector2(1120.0, 800.0)
+		card_width = 3.50
+		card_height = 2.50
+		card_corner_radius = 0.22
+	else:
+		centered_display_size = default_centered_display_size
+		card_width = default_card_width
+		card_height = default_card_height
+		card_corner_radius = default_card_corner_radius
+	_refresh_preview_meshes()
+	card_material.albedo_texture = texture
+
+	last_source_rect = source_rect
+	if last_source_rect.size.x <= 1.0 or last_source_rect.size.y <= 1.0:
+		var viewport_size := get_viewport_rect().size
+		last_source_rect = Rect2(viewport_size * 0.5 - Vector2(80.0, 55.0), Vector2(160.0, 110.0))
+
+	visible = true
+	is_animating = true
+	is_displayed = false
+	is_holding_display_card = false
+	modulate.a = 1.0
+	reset_card_rotation()
+	display_rect = get_display_rect()
+	_update_viewport_size_for(display_rect.size)
+	global_position = last_source_rect.position
+	size = last_source_rect.size
+	pivot_offset = size / 2.0
+	scale = Vector2.ONE
+	if current_tween != null:
+		current_tween.kill()
+	current_tween = create_tween()
+	current_tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	current_tween.tween_property(self, "global_position", display_rect.position, fly_time)
+	current_tween.parallel().tween_property(self, "size", display_rect.size, fly_time)
+	current_tween.parallel().tween_property(self, "modulate:a", 1.0, fly_time)
+	current_tween.tween_callback(_finish_show)
+
+
+func _restore_default_preview_shape() -> void:
+	if not custom_texture_mode:
+		return
+	custom_texture_mode = false
+	preview_render_scale_override = 0.0
+	if preview_viewport != null:
+		preview_viewport.msaa_3d = Viewport.MSAA_8X
+	center_on_screen = default_center_on_screen
+	centered_display_size = default_centered_display_size
+	card_width = default_card_width
+	card_height = default_card_height
+	card_corner_radius = default_card_corner_radius
+	_refresh_preview_meshes()
+
+
+func _refresh_preview_meshes() -> void:
+	var rounded_mesh := create_rounded_card_mesh(card_width, card_height, card_corner_radius, card_corner_segments)
+	if card_mesh != null:
+		card_mesh.mesh = rounded_mesh
+	if card_back_mesh != null:
+		card_back_mesh.mesh = create_rounded_card_mesh(card_width, card_height, card_corner_radius, card_corner_segments)
+	if gloss_mesh != null:
+		gloss_mesh.mesh = create_rounded_card_mesh(card_width, card_height, card_corner_radius, card_corner_segments)
 
 
 func _finish_show() -> void:
@@ -479,10 +576,12 @@ func _finish_hide() -> void:
 	size = display_rect.size
 
 	reset_card_rotation()
+	inspection_closed.emit()
 
 
 func _process(delta: float) -> void:
-	if visible:
+	# Never reallocate the render target on every frame of the fly-in tween.
+	if visible and not is_animating:
 		update_viewport_size()
 
 	if not visible:
@@ -575,9 +674,21 @@ func reset_card_rotation() -> void:
 func update_viewport_size() -> void:
 	if preview_viewport == null:
 		return
+	_update_viewport_size_for(size)
 
-	var scaled_width: int = maxi(int(size.x * preview_render_scale), 16)
-	var scaled_height: int = maxi(int(size.y * preview_render_scale), 16)
+
+func _update_viewport_size_for(target_size: Vector2) -> void:
+	if preview_viewport == null:
+		return
+
+	var render_scale := preview_render_scale_override if preview_render_scale_override > 0.0 else preview_render_scale
+	var scaled_width: int = maxi(int(target_size.x * render_scale), 16)
+	var scaled_height: int = maxi(int(target_size.y * render_scale), 16)
+	var largest_dimension := maxi(scaled_width, scaled_height)
+	if largest_dimension > max_preview_dimension:
+		var fit_scale := float(max_preview_dimension) / float(largest_dimension)
+		scaled_width = maxi(int(float(scaled_width) * fit_scale), 16)
+		scaled_height = maxi(int(float(scaled_height) * fit_scale), 16)
 
 	var new_size: Vector2i = Vector2i(scaled_width, scaled_height)
 

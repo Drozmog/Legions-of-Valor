@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cldteymyyyp7c"]
+
+[ext_resource type="Texture2D" uid="uid://dm3t73y1f3ida" path="res://ui/ability_icons/control.png" id="1_8gvme"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_jcokg"]
+
+[resource]
+script = ExtResource("2_jcokg")
+ability_id = &"halt"
+ability_name = "Halt"
+category = "control"
+point_cost = 3.0
+trigger = "attack_targeting"
+rules_text = "Enemy units cannot trigger Volley while this unit is deployed.
+
+Point Cost: 3.0"
+icon = ExtResource("1_8gvme")
+handler_id = &"halt"

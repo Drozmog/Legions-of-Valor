@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://ditbglj6r45f"]
+
+[ext_resource type="Texture2D" uid="uid://c0m4g6ertq5e0" path="res://battleplans/images/vanguard/the_red_morning_at_skarfield.png" id="1_bjwu5"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_mrn1j"]
+
+[resource]
+script = ExtResource("2_mrn1j")
+battle_plan_id = "the_red_morning_at_skarfield"
+battle_plan_name = "The Red Morning at Skarfield"
+aurion_reward = 1
+initiative = 10
+hand_size = 5
+draw_amount = 1
+description = "Successfully score a Monarch Strike in any lane this turn."
+card_art = ExtResource("1_bjwu5")

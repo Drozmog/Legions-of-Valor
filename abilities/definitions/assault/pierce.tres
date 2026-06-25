@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://bhjw81k0kmdto"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_m1uvn"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_jghjp"]
+
+[resource]
+script = ExtResource("2_jghjp")
+ability_id = &"pierce"
+ability_name = "Pierce"
+point_cost = 5.0
+trigger = "on_clash_won"
+rules_text = "If this unit defeats an enemy, gain +1 Aurion.
+
+Point Cost: 5.0"
+icon = ExtResource("1_m1uvn")
+handler_id = &"pierce"

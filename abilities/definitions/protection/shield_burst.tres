@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://c3aihuup1hm2n"]
+
+[ext_resource type="Texture2D" uid="uid://rnm6k1ixvbv" path="res://ui/ability_icons/protection.png" id="1_l0t27"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_71jon"]
+
+[resource]
+script = ExtResource("2_71jon")
+ability_id = &"shield_burst"
+ability_name = "Shield Burst"
+category = "protection"
+point_cost = 6.0
+trigger = "parry_check"
+rules_text = "If this is your only card in a successful parry chain: Draw 2 cards
+
+Point Cost: 6.0"
+icon = ExtResource("1_l0t27")
+handler_id = &"shield_burst"

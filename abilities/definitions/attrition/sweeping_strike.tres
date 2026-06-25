@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://be354fmda1snp"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_b6t34"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_sv8wq"]
+
+[resource]
+script = ExtResource("2_sv8wq")
+ability_id = &"sweeping_strike"
+ability_name = "Sweeping Strike"
+category = "attrition"
+point_cost = 4.0
+trigger = "on_clash_won"
+rules_text = "If this unit wins a Clash, you also discard one opponent's face-down gambit
+
+Point Cost: 4.0"
+icon = ExtResource("1_b6t34")
+handler_id = &"sweeping_strike"

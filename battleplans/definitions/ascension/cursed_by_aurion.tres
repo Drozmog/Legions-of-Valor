@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://doss8qcnqp2iw"]
+
+[ext_resource type="Texture2D" uid="uid://58h1dekpcmle" path="res://battleplans/images/ascension/cursed_by_aurion.png" id="1_atydg"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_ulxwy"]
+
+[resource]
+script = ExtResource("2_ulxwy")
+battle_plan_id = "cursed_by_aurion"
+battle_plan_name = "Cursed By Aurion"
+aurion_reward = 2
+initiative = 2
+draw_amount = 4
+description = "Sacrifice a Gambit card to your Tribute pile for a +2 temporary surge, and spend every single available Tribute point before ending your deployment."
+card_art = ExtResource("1_atydg")

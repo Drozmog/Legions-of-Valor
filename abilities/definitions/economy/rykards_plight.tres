@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://d228vx1af0utp"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_ji8ps"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_dskpc"]
+
+[resource]
+script = ExtResource("2_dskpc")
+ability_id = &"rykards_plight"
+ability_name = "Rykard's plight"
+category = "economy"
+point_cost = 14.0
+rules_text = "Go through your deck to find 2 equipment cards, equip them on any unit. Shuffle your deck afterwards
+
+Point Cost: 14.0"
+icon = ExtResource("1_ji8ps")
+handler_id = &"rykards_plight"

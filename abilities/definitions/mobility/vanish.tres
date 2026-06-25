@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://f707aiffmp71"]
+
+[ext_resource type="Texture2D" uid="uid://cibnqwmrcdvtt" path="res://ui/ability_icons/mobility.png" id="1_qmiuv"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_p4t7d"]
+
+[resource]
+script = ExtResource("2_p4t7d")
+ability_id = &"vanish"
+ability_name = "Vanish"
+category = "mobility"
+point_cost = 2.0
+rules_text = "When targeted by an enemy unit, this card returns to your hand
+
+Point Cost: 2.0"
+icon = ExtResource("1_qmiuv")
+handler_id = &"vanish"

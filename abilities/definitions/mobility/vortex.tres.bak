@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://abilities/AbilityData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://ui/ability_icons/mobility.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+ability_id = &"vortex"
+ability_name = "Vortex"
+category = "mobility"
+point_cost = 5.0
+trigger = "combat_power"
+rules_text = "Merge two units in one lane. Combined AP for one turn.\n\nPoint Cost: 5.0"
+icon = ExtResource("2")
+handler_id = &"vortex"
+

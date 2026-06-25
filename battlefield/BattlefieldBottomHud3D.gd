@@ -204,7 +204,9 @@ func build_log_foldout() -> void:
 func build_plan_foldout() -> void:
 	plan_open_position = Vector3(-0.3, 0.118, 2.2)
 	plan_closed_position = Vector3(-0.3, 0.118, 3.50)
-	var entry := create_surface("BattlePlans", Vector2i(1240, 560), plan_closed_position, Vector2(6.25, 2.75), false)
+	# Two landscape battleplan cards side by side. Each half of this surface is
+	# approximately the physical 3.5:2.5 card ratio.
+	var entry := create_surface("BattlePlans", Vector2i(1400, 500), plan_closed_position, Vector2(7.0, 2.5), false)
 	plan_surface = entry["surface"]
 	plan_viewport = entry["viewport"]
 	var root: Control = entry["control"]

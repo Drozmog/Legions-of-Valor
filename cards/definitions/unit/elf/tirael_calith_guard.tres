@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://7f3tasgrtobw"]
+
+[ext_resource type="Texture2D" uid="uid://cant7cxkuc84w" path="res://cards/images/unit/elf/tirael_calith_guard.png" id="1_gp2ho"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_1k2ky"]
+
+[resource]
+script = ExtResource("2_1k2ky")
+card_id = "tirael_calith_guard"
+card_name = "Ti’rael Calith Guard"
+race = "elf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 4
+ap = 8
+dp = 3
+lore_text = "“Our line along the Calith held for three hundred years before their Aurion crazed soldiers broke us. Give me some time and I'll deliver the best weapon.\""
+card_art = ExtResource("1_gp2ho")
+metadata/_custom_type_script = "uid://20ngslec6o41"

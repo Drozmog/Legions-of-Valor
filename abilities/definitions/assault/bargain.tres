@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://3nsn3smi32b6"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_yl1gk"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_nejh7"]
+
+[resource]
+script = ExtResource("2_nejh7")
+ability_id = &"bargain"
+ability_name = "Bargain"
+point_cost = 6.0
+trigger = "active"
+rules_text = "Active: Once per turn, discard a card from your hand and get +2 AP this turn for this unit
+
+Point Cost: 6.0"
+icon = ExtResource("1_yl1gk")
+handler_id = &"bargain"

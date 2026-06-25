@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://crx4vfu5o5688"]
+
+[ext_resource type="Texture2D" uid="uid://yi63soibhi0j" path="res://ui/ability_icons/insight.png" id="1_hxlc2"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_dwkx6"]
+
+[resource]
+script = ExtResource("2_dwkx6")
+ability_id = &"stealth"
+ability_name = "Stealth"
+category = "insight"
+point_cost = 4.0
+trigger = "active"
+rules_text = "If this unit is used as a gambit and the opponent does not check: Deploy with 0 cost.
+
+Point Cost: 4.0"
+icon = ExtResource("1_hxlc2")
+handler_id = &"stealth"

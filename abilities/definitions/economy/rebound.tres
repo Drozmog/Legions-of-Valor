@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://caghb2folofmt"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_b2e42"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_rsclw"]
+
+[resource]
+script = ExtResource("2_rsclw")
+ability_id = &"rebound"
+ability_name = "Rebound"
+category = "economy"
+point_cost = 4.0
+trigger = "on_destroyed"
+rules_text = "If this unit is defeated by a gambit draw 2 cards
+
+Point Cost: 4.0"
+icon = ExtResource("1_b2e42")
+handler_id = &"rebound"

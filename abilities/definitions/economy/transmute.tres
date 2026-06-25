@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cdjeshh8c1mst"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_ot37b"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_v2omj"]
+
+[resource]
+script = ExtResource("2_v2omj")
+ability_id = &"transmute"
+ability_name = "Transmute"
+category = "economy"
+point_cost = 6.0
+trigger = "on_draw"
+rules_text = "Discard 2 cards; draw 3 cards.
+
+Point Cost: 6.0"
+icon = ExtResource("1_ot37b")
+handler_id = &"transmute"

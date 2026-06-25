@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://8118neudyk2y"]
 
-[ext_resource type="Texture2D" uid="uid://u2qftdj4k0x7" path="res://cards/images/unit/elf/jena_of_y'el.png" id="1_yfvwf"]
+[ext_resource type="Texture2D" uid="uid://jmhrxsaxfvr0" path="res://cards/images/unit/elf/jena_of_yel.png" id="1_p47ge"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_uxral"]
 
 [resource]
@@ -11,12 +11,12 @@ race = "elf"
 card_type = "unit"
 rarity = "elite"
 tribute_cost = 6
-ap = 8
-dp = 2
-ability_text = "Pierce : If unit destroys an enemy, gain +1 Aurion.
+ap = 9
+dp = 1
+ability_text = "Pierce : If this unit destroys an enemy, gain +1 Aurion.
 
-Shockwave : When deployed remove all equipment from 1 lane."
+Shockwave : On Deploy: remove all equipment(s) from 1 enemy unit."
 lore_text = "“The gold flows through my veins without the delirium. I am the ultimate Conduit”"
-card_art = ExtResource("1_yfvwf")
+card_art = ExtResource("1_p47ge")
 ability_types = Array[String](["assault", "attrition"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

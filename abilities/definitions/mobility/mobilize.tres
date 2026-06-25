@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dlluefq2l2s8j"]
+
+[ext_resource type="Texture2D" uid="uid://cibnqwmrcdvtt" path="res://ui/ability_icons/mobility.png" id="1_gn2dj"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_kflao"]
+
+[resource]
+script = ExtResource("2_kflao")
+ability_id = &"mobilize"
+ability_name = "Mobilize"
+category = "mobility"
+point_cost = 2.5
+trigger = "active"
+rules_text = "Active: This unit can move to an adjacent lane once per turn
+
+Point Cost: 2.5"
+icon = ExtResource("1_gn2dj")
+handler_id = &"mobilize"

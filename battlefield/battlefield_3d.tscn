@@ -90,7 +90,7 @@ mesh = SubResource("PlaneMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_1fhha")
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1256937891]
-transform = Transform3D(1, 0, 0, 0, 0.26218924, 0.9650165, 0, -0.9650165, 0.26218924, 0, 4.8, 2.125)
+transform = Transform3D(1, 0, 0, 0, 0.25375775, 0.9672678, 0, -0.9672678, 0.25375775, 0, 4.865, 2.125)
 current = true
 
 [node name="Sunlight" type="DirectionalLight3D" parent="." unique_id=1091007707]
@@ -387,7 +387,6 @@ visible = false
 offset_right = 40.0
 offset_bottom = 40.0
 script = ExtResource("9_m3t58")
-refresh_interval = null
 
 [node name="CardInspectPanel" type="PanelContainer" parent="UI" unique_id=565466147]
 offset_right = 40.0

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://y5kp6o5ysj7l"]
+
+[ext_resource type="Texture2D" uid="uid://b85wjxqjrt1md" path="res://battleplans/images/vanguard/all_are_not_born_equal.png" id="1_u3bd1"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_y0jki"]
+
+[resource]
+script = ExtResource("2_y0jki")
+battle_plan_id = "all_are_not_born_equal"
+battle_plan_name = "All Are Not Born Equal"
+aurion_reward = 2
+initiative = 7
+hand_size = 6
+draw_amount = 2
+description = "Win a Clash where your attacking unit destroys an enemy frontline unit by a margin of 3 or more Attack Power (AP)."
+card_art = ExtResource("1_u3bd1")

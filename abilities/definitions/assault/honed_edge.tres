@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://craomtrl3onai"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_86phv"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_3d4q8"]
+
+[resource]
+script = ExtResource("2_3d4q8")
+ability_id = &"honed_edge"
+ability_name = "Honed edge"
+point_cost = 3.0
+trigger = "on_attack"
+rules_text = "This unit gains +2 AP while attacking
+
+Point Cost: 3.0"
+icon = ExtResource("1_86phv")
+handler_id = &"honed_edge"

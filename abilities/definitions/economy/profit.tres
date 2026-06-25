@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://csu75abuxmpj7"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_hkqql"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_k8nw2"]
+
+[resource]
+script = ExtResource("2_k8nw2")
+ability_id = &"profit"
+ability_name = "Profit"
+category = "economy"
+point_cost = 4.0
+trigger = "on_draw"
+rules_text = "Draw 2 cards
+
+Point Cost: 4.0"
+icon = ExtResource("1_hkqql")
+handler_id = &"profit"

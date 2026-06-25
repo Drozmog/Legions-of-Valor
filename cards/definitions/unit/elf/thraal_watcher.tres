@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b2eduiwgemyo5"]
+
+[ext_resource type="Texture2D" uid="uid://bcwl7j3lc8a06" path="res://cards/images/unit/elf/thraal_watcher.png" id="1_vsr6f"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_jbpfn"]
+
+[resource]
+script = ExtResource("2_jbpfn")
+card_id = "thraal_watcher"
+card_name = "Thraal-Watcher"
+race = "elf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 1
+ap = 3
+dp = 1
+lore_text = "“Your kings took our trees during the Harmony Era. Now your machines burn them and we thought the orcs were monsters.”"
+card_art = ExtResource("1_vsr6f")
+metadata/_custom_type_script = "uid://20ngslec6o41"

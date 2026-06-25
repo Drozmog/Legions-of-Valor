@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bd8matbmc141l"]
+
+[ext_resource type="Texture2D" uid="uid://b87eomsassnbw" path="res://cards/images/unit/elf/liorvynn_guardian.png" id="1_a4jgd"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_jk422"]
+
+[resource]
+script = ExtResource("2_jk422")
+card_id = "liorvynn_guardian"
+card_name = "Liorvynn Guardian"
+race = "elf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 4
+ability_text = "Energy Cycle : Active (Once per turn); Skip attack to give adjacent unit +2 AP this turn."
+lore_text = "“Only Dwarven steel could cut these ancient roots and we've made peace with them a long time ago. Dwarves aren't known for having a short memmory”"
+card_art = ExtResource("1_a4jgd")
+ability_types = Array[String](["assault"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

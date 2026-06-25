@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bfmju5jfxkm3t"]
+
+[ext_resource type="Texture2D" uid="uid://8wqxim4uvcdd" path="res://cards/images/unit/elf/queen_variel_of_liorvynn.png" id="1_vpyjd"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_nrybb"]
+
+[resource]
+script = ExtResource("2_nrybb")
+card_id = "queen_variel_of_liorvynn"
+card_name = "Queen Variel of Liorvynn"
+race = "elf"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 7
+ap = 10
+dp = 1
+ability_text = "Sovereign : 1+ Aurion for objective completion.
+
+Raging Cry: When this unit wins a clash: Look at 2 cards in your opponent's hand and discard 1."
+lore_text = "“We followed rules because we thought they made us holy.
+They made us prey. Today, the doctrine ends.”"
+card_art = ExtResource("1_vpyjd")
+ability_types = Array[String](["economy", "attrition"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

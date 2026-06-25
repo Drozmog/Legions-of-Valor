@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://abilities/AbilityData.gd" id="1"]
+[ext_resource type="Texture2D" path="res://ui/ability_icons/economy.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+ability_id = &"silent_skill"
+ability_name = "Silent Skill"
+category = "economy"
+point_cost = 2.5
+trigger = "passive"
+rules_text = "If this unit did not attack last turn, gain +1 Temp Mana.\n\nPoint Cost: 2.5"
+icon = ExtResource("2")
+handler_id = &"silent_skill"
+

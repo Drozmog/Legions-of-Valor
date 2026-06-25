@@ -1683,7 +1683,7 @@ func card_matches_filters(card_data: CardData) -> bool:
 			card_data.race + " " +
 			card_data.card_type + " " +
 			card_data.rarity + " " +
-			card_data.ability_text + " " +
+			card_data.get_ability_text() + " " +
 			card_data.lore_text
 		).to_lower()
 		if not haystack.contains(search_text):

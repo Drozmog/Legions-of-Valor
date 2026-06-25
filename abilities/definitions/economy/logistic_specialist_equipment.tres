@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://ybqomkyi2qyc"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_iquxp"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_cr30h"]
+
+[resource]
+script = ExtResource("2_cr30h")
+ability_id = &"logistic_specialist_equipment"
+ability_name = "Logistic Specialist (equipment)"
+category = "economy"
+point_cost = 4.0
+trigger = "deployment_cost"
+rules_text = "While equipped on a unit of a particular faction: All units of that faction cost -1 TP
+
+Point Cost: 4.0"
+icon = ExtResource("1_iquxp")
+handler_id = &"logistic_specialist_equipment"

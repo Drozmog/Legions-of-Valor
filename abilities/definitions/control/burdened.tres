@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dyo6jv1iwpt1o"]
+
+[ext_resource type="Texture2D" uid="uid://dm3t73y1f3ida" path="res://ui/ability_icons/control.png" id="1_gp07j"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_qxhv4"]
+
+[resource]
+script = ExtResource("2_qxhv4")
+ability_id = &"burdened"
+ability_name = "Burdened"
+category = "control"
+point_cost = -1.0
+rules_text = "Cannot equip another piece of equipment with this
+
+Point Cost: -1.0"
+icon = ExtResource("1_gp07j")
+handler_id = &"burdened"

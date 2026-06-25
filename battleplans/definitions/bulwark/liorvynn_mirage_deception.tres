@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://bgoaddt4ww1e4"]
+
+[ext_resource type="Texture2D" uid="uid://kojr3vyrss5m" path="res://battleplans/images/bulwark/liorvynn_mirage_deception.png" id="1_xe0wq"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_tmiep"]
+
+[resource]
+script = ExtResource("2_tmiep")
+battle_plan_id = "liorvynn_mirage_deception"
+battle_plan_name = "Liorvynn Mirage Deception"
+aurion_reward = 2
+initiative = 5
+draw_amount = 3
+description = "Have a face-down card probed by an opponent's check during the Conflict Phase."
+card_art = ExtResource("1_xe0wq")

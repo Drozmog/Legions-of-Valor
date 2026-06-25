@@ -1,6 +1,12 @@
 class_name CardDatabase
 extends RefCounted
 
+const DEFINITIONS_PATH := "res://cards/definitions"
+
+static var _all_cards: Array[CardData] = []
+static var _cards_by_id: Dictionary = {}
+static var _cache_built := false
+
 
 # =========================
 # UNITS - HUMAN
@@ -14,8 +20,31 @@ const IMPERIAL_ARCHIVE_MASTER: CardData = preload("res://cards/definitions/unit/
 # UNITS - ELF
 # =========================
 
+
+const ARADIN_NOX: CardData = preload("res://cards/definitions/unit/elf/aradin_nox.tres")
+const BOUND_BEHEMOTH_BARSAM: CardData = preload("res://cards/definitions/unit/elf/bound_behemoth_barsam.tres")
+const CANOPY_ARCHER: CardData = preload("res://cards/definitions/unit/elf/canopy_archer.tres")
+const FAELOR_ROYAL_MESSENGER: CardData = preload("res://cards/definitions/unit/elf/faelor_royal_messenger.tres")
+const FOREST_OAKLING_ZIRALTAN: CardData = preload("res://cards/definitions/unit/elf/forest_oakling_ziraltan.tres")
+const HERAL_THE_SAVIOR: CardData = preload("res://cards/definitions/unit/elf/heral_the_savior.tres")
+const HIGH_CANOPY_DUELIST_MIDRA: CardData = preload("res://cards/definitions/unit/elf/high_canopy_duelist_midra.tres")
+const INSHI_AZURE_SENTINEL: CardData = preload("res://cards/definitions/unit/elf/inshi_azure_sentinel.tres")
 const JENA_OF_YEL: CardData = preload("res://cards/definitions/unit/elf/jena_of_yel.tres")
+const KASHA_VAELORI_BLADEWEAVER: CardData = preload("res://cards/definitions/unit/elf/kasha_vaelori_bladeweaver.tres")
+const LIORVYNN_GUARDIAN: CardData = preload("res://cards/definitions/unit/elf/liorvynn_guardian.tres")
+const LIORVYNN_SENTRY: CardData = preload("res://cards/definitions/unit/elf/liorvynn_sentry.tres")
+const LUNARETH_SEER_FLORIN: CardData = preload("res://cards/definitions/unit/elf/lunareth_seer_florin.tres")
+const MOON_VEIL_ASSASSIN: CardData = preload("res://cards/definitions/unit/elf/moon_veil_assassin.tres")
+const NERIL_VEILMOTHER_HUNTRESS: CardData = preload("res://cards/definitions/unit/elf/neril_veilmother_huntress.tres")
+const QUEEN_VARIEL_OF_LIORVYNN: CardData = preload("res://cards/definitions/unit/elf/queen_variel_of_liorvynn.tres")
 const SYLVREN_SAPLING: CardData = preload("res://cards/definitions/unit/elf/sylvren_sapling.tres")
+const THRAAL_WATCHER: CardData = preload("res://cards/definitions/unit/elf/thraal_watcher.tres")
+const TIRAEL_CALITH_GUARD: CardData = preload("res://cards/definitions/unit/elf/tirael_calith_guard.tres")
+const ULVITH_THE_MISTBORNE_STALKER: CardData = preload("res://cards/definitions/unit/elf/ulvith_the_mistborne_stalker.tres")
+const VAELORI_MIST_SEER: CardData = preload("res://cards/definitions/unit/elf/vaelori_mist_seer.tres")
+const VAELORI_SCOUT: CardData = preload("res://cards/definitions/unit/elf/vaelori_scout.tres")
+const VARIELS_CHOSEN_RISAK: CardData = preload("res://cards/definitions/unit/elf/variels_chosen_risak.tres")
+const WIND_SINGER_HUNWE: CardData = preload("res://cards/definitions/unit/elf/wind_singer_hunwe.tres")
 
 
 # =========================
@@ -92,99 +121,35 @@ const WITHERING_OF_THE_VEIL: CardData = preload("res://cards/definitions/gambit/
 # =========================
 
 static func get_all_human_cards() -> Array[CardData]:
-	return [
-		ARCH_WIZARD_MAELCOR,
-		IMPERIAL_ARCHIVE_MASTER,
-	]
+	return get_cards_by_race("human")
 
 
 static func get_all_elf_cards() -> Array[CardData]:
-	return [
-		JENA_OF_YEL,
-		SYLVREN_SAPLING,
-	]
+	return get_cards_by_race("elf")
 
 
 static func get_all_dwarf_cards() -> Array[CardData]:
-	return [
-		ARCHITECT_OF_THE_DEEP,
-		UPPER_HALL_PROSPECTOR,
-	]
+	return get_cards_by_race("dwarf")
 
 
 static func get_all_orc_cards() -> Array[CardData]:
-	return [
-		BRUGO_THE_BOLD,
-		CAVE_CRAWL_GRUNT,
-		DREAD_PIT_BRAWLER,
-		ELITE_MARAUDER_MUURGUL,
-		GERSHAW_SHATTER_SHIELD,
-		GORTHAK_THE_BUTCHER,
-		HIGH_CHIEFTAIN_GROG,
-		IRONHOLD_RAIDER,
-		IVAAN_THE_BONE_CRUSHER,
-		KRELL_THE_BLOODLET,
-		ORCISH_MILITIA,
-		ORKHAEL_OUTCAST,
-		ORKHAEL_SCAVENGER,
-		ORKHAEL_WARLORD_RIUYO,
-		RAGING_ORKHAEL_VLARA,
-		SIEGE_BREAKER_ORC,
-		SLAUGHTER_VETERAN_VIGO,
-		SOLKARAN_DEPTH_DWELLER,
-		THRAK_PIT_LORD,
-		URMOG_BRUGOS_CHOSEN,
-		VANGUARD_MAULER,
-		VARK_THE_MANGLER,
-		ZARKHAN_THE_PRIMEVAL,
-	]
+	return get_cards_by_race("orc")
 
 
 static func get_all_unit_cards() -> Array[CardData]:
-	var cards: Array[CardData] = []
-	cards.append_array(get_all_human_cards())
-	cards.append_array(get_all_elf_cards())
-	cards.append_array(get_all_dwarf_cards())
-	cards.append_array(get_all_orc_cards())
-	return cards
+	return get_cards_by_type("unit")
 
 
 static func get_all_equipment_cards() -> Array[CardData]:
-	return [
-		BANNER_OF_EXPEDITION,
-		BRACERS_OF_THE_DEPTH,
-		CLOAK_OF_SECRECY,
-		DALMIRS_TOME,
-		ELYNDELLS_LEATHER_CUIRASS,
-		GRAVE_CROSSERS_PACK,
-		VAELORI_LONGBOW,
-	]
+	return get_cards_by_type("equipment")
 
 
 static func get_all_gambit_cards() -> Array[CardData]:
-	return [
-		BLACKMAIL,
-		CONSORTIUM_AID,
-		ELYNDELL_ARROW_VOLLEY,
-		FOG_OF_WAR,
-		FREE_TAXI_SERVICE,
-		GRIDLOCK,
-		PICKPOCKET,
-		PLENTIFUL_HARVEST,
-		SOUL_SALVAGE,
-		THE_DIE_IS_CAST,
-		TRANSMUTATION,
-		WAR_PAINT,
-		WITHERING_OF_THE_VEIL,
-	]
+	return get_cards_by_type("gambit")
 
 
 static func get_all_test_cards() -> Array[CardData]:
-	var cards: Array[CardData] = []
-	cards.append_array(get_all_unit_cards())
-	cards.append_array(get_all_equipment_cards())
-	cards.append_array(get_all_gambit_cards())
-	return cards
+	return get_all_cards()
 
 
 static func get_player_test_deck() -> Array[CardData]:
@@ -193,3 +158,83 @@ static func get_player_test_deck() -> Array[CardData]:
 
 static func get_ai_test_deck() -> Array[CardData]:
 	return get_all_test_cards()
+
+
+static func get_all_cards() -> Array[CardData]:
+	_ensure_cache()
+	return _all_cards.duplicate()
+
+
+static func get_card_by_id(card_id: String) -> CardData:
+	_ensure_cache()
+	return _cards_by_id.get(card_id.strip_edges().to_lower()) as CardData
+
+
+static func get_cards_by_race(race: String) -> Array[CardData]:
+	var wanted := race.strip_edges().to_lower()
+	var result: Array[CardData] = []
+	for card in get_all_cards():
+		if card.race.strip_edges().to_lower() == wanted:
+			result.append(card)
+	return result
+
+
+static func get_cards_by_type(card_type: String) -> Array[CardData]:
+	var wanted := card_type.strip_edges().to_lower()
+	var result: Array[CardData] = []
+	for card in get_all_cards():
+		if card.card_type.strip_edges().to_lower() == wanted:
+			result.append(card)
+	return result
+
+
+static func reload() -> void:
+	_cache_built = false
+	_all_cards.clear()
+	_cards_by_id.clear()
+	_ensure_cache()
+
+
+static func _ensure_cache() -> void:
+	if _cache_built:
+		return
+	_cache_built = true
+	_collect_cards(DEFINITIONS_PATH)
+	_all_cards.sort_custom(func(a: CardData, b: CardData) -> bool:
+		return a.card_name.naturalnocasecmp_to(b.card_name) < 0
+	)
+
+
+static func _collect_cards(path: String) -> void:
+	var directory := DirAccess.open(path)
+	if directory == null:
+		push_error("CardDatabase could not open " + path)
+		return
+
+	directory.list_dir_begin()
+	var entry_name := directory.get_next()
+	while not entry_name.is_empty():
+		if entry_name != "." and entry_name != "..":
+			var entry_path := path.path_join(entry_name)
+			if directory.current_is_dir():
+				_collect_cards(entry_path)
+			elif entry_name.get_extension().to_lower() == "tres":
+				_register_card(entry_path)
+		entry_name = directory.get_next()
+	directory.list_dir_end()
+
+
+static func _register_card(path: String) -> void:
+	var resource := ResourceLoader.load(path)
+	if not resource is CardData:
+		return
+	var card := resource as CardData
+	if not card.is_valid():
+		push_warning("Ignoring invalid CardData: " + path)
+		return
+	var key := card.card_id.strip_edges().to_lower()
+	if _cards_by_id.has(key):
+		push_error("Duplicate card_id '%s' in %s" % [card.card_id, path])
+		return
+	_cards_by_id[key] = card
+	_all_cards.append(card)

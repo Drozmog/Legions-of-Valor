@@ -2,7 +2,6 @@ class_name BattlefieldManager
 extends Node3D
 
 # Consolidated from BattlefieldManagerPhase.gd, BattlefieldManager.gd, and Phase 1-4 wrapper managers.
-# After this file works, the wrapper manager scripts can be removed.
 
 const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
 const MENU_SCENE_PATH := "res://ui/Menu/prototype_menu.tscn"
@@ -346,7 +345,7 @@ func open_battle_plan_selection() -> void:
 		set_phase(BattlePhase.TRIBUTE)
 		return
 
-	var choices: Array[Dictionary] = get_unused_battle_plan_choices(3)
+	var choices: Array[Dictionary] = get_unused_battle_plan_choices(5)
 
 	if choices.is_empty():
 		log_msg("No unused Battle Plans remain. Battleplan deck is exhausted.")
@@ -356,7 +355,7 @@ func open_battle_plan_selection() -> void:
 
 		return
 
-	if choices.size() < 3:
+	if choices.size() < 5:
 		log_msg("Battleplan deck is running low. Remaining choices: " + str(choices.size()))
 
 	battle_plan_selection_screen.show_selection(choices)
@@ -2011,7 +2010,7 @@ func update_slot_highlights() -> void:
 func handle_card_deployed(card_data: CardData) -> void:
 	if card_data == null:
 		return
-	var ability_text_lower: String = card_data.ability_text.to_lower()
+	var ability_text_lower: String = card_data.get_ability_text().to_lower()
 	if ability_text_lower == "":
 		return
 	if ability_text_lower.contains("on deploy") or ability_text_lower.contains("when deployed"):
@@ -2020,7 +2019,7 @@ func handle_card_deployed(card_data: CardData) -> void:
 				ability_prompt_panel.show_for_card(card_data)
 		else:
 			log_msg("On-deploy ability triggered: " + card_data.card_name)
-			log_msg(card_data.ability_text)
+			log_msg(card_data.get_ability_text())
 		return
 	log_msg("Passive ability active: " + card_data.card_name)
 
@@ -2028,8 +2027,8 @@ func handle_card_deployed(card_data: CardData) -> void:
 func ability_requires_choice(card_data: CardData) -> bool:
 	if card_data == null:
 		return false
-	var ability_text_lower: String = card_data.ability_text.to_lower()
-	return ability_text_lower.contains("volley") or ability_text_lower.contains("may ") or ability_text_lower.contains("choose")
+	var ability_text_lower: String = card_data.get_ability_text().to_lower()
+	return card_data.has_ability(&"volley") or ability_text_lower.contains("may ") or ability_text_lower.contains("choose")
 
 
 func spawn_random_opponent_cards() -> void:
@@ -2574,39 +2573,24 @@ func get_unused_battle_plan_choices(amount: int) -> Array[Dictionary]:
 	if amount <= 0:
 		return final_choices
 
-	var local_seen_keys: Dictionary = {}
-	var attempts: int = 0
-	var max_attempts: int = 60
+	var resource_choices: Array[Dictionary] = []
+	var fallback_choices: Array[Dictionary] = []
+	for plan in battle_plan_manager.get_all_battle_plans():
+		var key := get_battle_plan_key(plan)
+		if key.is_empty() or used_battle_plan_keys.has(key):
+			continue
+		if plan.get("card_art", null) is Texture2D:
+			resource_choices.append(plan)
+		else:
+			fallback_choices.append(plan)
 
-	while final_choices.size() < amount and attempts < max_attempts:
-		attempts += 1
-
-		var raw_choices: Array = battle_plan_manager.get_random_battle_plan_choices(max(amount, 3))
-
-		if raw_choices.is_empty():
+	resource_choices.shuffle()
+	fallback_choices.shuffle()
+	resource_choices.append_array(fallback_choices)
+	for plan in resource_choices:
+		final_choices.append(plan)
+		if final_choices.size() >= amount:
 			break
-
-		for raw_plan in raw_choices:
-			if not raw_plan is Dictionary:
-				continue
-
-			var plan: Dictionary = raw_plan
-			var key: String = get_battle_plan_key(plan)
-
-			if key == "":
-				continue
-
-			if used_battle_plan_keys.has(key):
-				continue
-
-			if local_seen_keys.has(key):
-				continue
-
-			local_seen_keys[key] = true
-			final_choices.append(plan)
-
-			if final_choices.size() >= amount:
-				break
 
 	return final_choices
 

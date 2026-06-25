@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://brgxcej3iy30"]
+
+[ext_resource type="Texture2D" uid="uid://fp0tnhv3c42v" path="res://battleplans/images/bulwark/youthful_knights_resolve.png" id="1_8ptmy"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_pv3wt"]
+
+[resource]
+script = ExtResource("2_pv3wt")
+battle_plan_id = "youthful_knights_resolve"
+battle_plan_name = "Youthful Knight’s Resolve"
+aurion_reward = 2
+initiative = 4
+draw_amount = 3
+description = "Have your Center Lane Unit successfully survive this Combat Phase."
+card_art = ExtResource("1_8ptmy")

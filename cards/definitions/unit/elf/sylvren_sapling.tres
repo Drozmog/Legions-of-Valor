@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ckvlkp4xyld8x"]
 
-[ext_resource type="Texture2D" uid="uid://b6bfye6hx3dsf" path="res://cards/images/unit/elf/sylvren_sapling.png" id="1_lm1vq"]
+[ext_resource type="Texture2D" uid="uid://bh4so6qhyo5fi" path="res://cards/images/unit/elf/sylvren_sapling.png" id="1_lm1vq"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_dxmul"]
 
 [resource]
@@ -13,9 +13,9 @@ rarity = "normal"
 tribute_cost = 2
 ap = 4
 dp = 1
-ability_text = "Curse : Penalty → On death, you discard 1 card from your hand.
+ability_text = "Curse : Penalty: On defeat, you discard 1 card from your hand.
 
-Intel : On Deployment → Look at top 3 cards of your deck, take 1, move the rest to the bottom."
+Intel : On Deploy: Look at the top 3 cards of your deck, take 1, put the other 2 at the bottom."
 lore_text = "“We were grown to outlast your brief, loud kingdoms.”"
 card_art = ExtResource("1_lm1vq")
 ability_types = Array[String](["attrition", "insight"])

@@ -250,15 +250,16 @@ func rebuild_ability_icons() -> void:
 	if assigned_card_data == null:
 		return
 
-	if assigned_card_data.ability_types.is_empty():
+	var ability_categories := assigned_card_data.get_ability_categories()
+	if ability_categories.is_empty():
 		return
 
-	var icon_count: int = assigned_card_data.ability_types.size()
+	var icon_count: int = ability_categories.size()
 	var total_width: float = ability_icon_spacing * float(icon_count - 1)
 	var start_x: float = -total_width / 2.0
 
 	for i in range(icon_count):
-		var ability_type: String = String(assigned_card_data.ability_types[i]).to_lower().strip_edges()
+		var ability_type: String = String(ability_categories[i]).to_lower().strip_edges()
 		var icon := create_ability_icon_3d(ability_type)
 
 		icon.position = Vector3(
@@ -303,7 +304,7 @@ func set_ability_icons_visible(show_icons: bool, instant: bool = false) -> void:
 	if assigned_card_data == null:
 		return
 
-	if assigned_card_data.ability_types.is_empty():
+	if assigned_card_data.get_ability_categories().is_empty():
 		return
 
 	if is_face_down:

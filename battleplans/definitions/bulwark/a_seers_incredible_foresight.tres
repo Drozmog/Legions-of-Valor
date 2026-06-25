@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://c8a8cpt8quwtt"]
+
+[ext_resource type="Texture2D" uid="uid://6rufjjt7et7a" path="res://battleplans/images/bulwark/gravemarch_recon.png" id="1_rfipy"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_4spwc"]
+
+[resource]
+script = ExtResource("2_4spwc")
+battle_plan_id = "a_seers_incredible_foresight"
+battle_plan_name = "A Seer’s Incredible Foresight"
+aurion_reward = 1
+initiative = 9
+hand_size = 5
+draw_amount = 1
+description = "Successfully declare a Check that reveals and disarms a Face-down enemy Gambit."
+card_art = ExtResource("1_rfipy")

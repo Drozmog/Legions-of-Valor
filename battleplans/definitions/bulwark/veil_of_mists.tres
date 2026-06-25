@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://blq4ip7o2fv0n"]
+
+[ext_resource type="Texture2D" uid="uid://cplt5bjhacnwo" path="res://battleplans/images/bulwark/veil_of_mists.png" id="1_w46rw"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_7r517"]
+
+[resource]
+script = ExtResource("2_7r517")
+battle_plan_id = "veil_of_mists"
+battle_plan_name = "Veil of Mists"
+aurion_reward = 3
+initiative = 1
+hand_size = 9
+draw_amount = 4
+description = "End the entire turn cycle with your Back Row cards completely untouched and still Face-down in at least two separate lanes."
+card_art = ExtResource("1_w46rw")

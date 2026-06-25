@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://bf7giarean081"]
+
+[ext_resource type="Texture2D" uid="uid://pa5ty0yjmo1m" path="res://battleplans/images/ascension/vornvek_masterwork.png" id="1_6ig2e"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_aajtj"]
+
+[resource]
+script = ExtResource("2_aajtj")
+battle_plan_id = "vornvek_masterwork"
+battle_plan_name = "Vorn-Vek Masterwork"
+aurion_reward = 2
+initiative = 3
+hand_size = 8
+draw_amount = 3
+description = "Have a single active Front Row unit card with both a Weapon and an Armor equipment card simultaneously attached to it at the end of the turn."
+card_art = ExtResource("1_6ig2e")

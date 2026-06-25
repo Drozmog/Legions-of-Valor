@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://bl68sfoppy17v"]
+
+[ext_resource type="Texture2D" uid="uid://2u143wl1xn84" path="res://battleplans/images/bulwark/tenacity_of_the_orcs.png" id="1_q5hm6"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_xup28"]
+
+[resource]
+script = ExtResource("2_xup28")
+battle_plan_id = "tenacity_of_the_orcs"
+battle_plan_name = "Tenacity of the Orcs"
+aurion_reward = 2
+initiative = 3
+hand_size = 8
+draw_amount = 4
+description = "Successfully save a Side Lane unit from destruction by initiating a Parry Chain."
+card_art = ExtResource("1_q5hm6")

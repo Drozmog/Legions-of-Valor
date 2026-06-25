@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://sxu27i0560ea"]
+
+[ext_resource type="Texture2D" uid="uid://2rbwoh2pe55k" path="res://battleplans/images/vanguard/rites_of_ascension.png" id="1_xekwg"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_hwqs5"]
+
+[resource]
+script = ExtResource("2_hwqs5")
+battle_plan_id = "rites_of_ascension"
+battle_plan_name = "Rites of  Ascension"
+aurion_reward = 2
+initiative = 7
+hand_size = 6
+draw_amount = 2
+description = "Execute a vertical Promotion, and have that newly promoted unit successfully destroy an enemy unit in a Clash during the same turn."
+card_art = ExtResource("1_xekwg")

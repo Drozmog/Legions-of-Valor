@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ig8ehvia2k6j"]
+
+[ext_resource type="Texture2D" uid="uid://b4802n21vaqlf" path="res://cards/images/unit/elf/ulvith_the_mistborne_stalker.png" id="1_vwjxb"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_v462u"]
+
+[resource]
+script = ExtResource("2_v462u")
+card_id = "ulvith_the_mistborne_stalker"
+card_name = "Ulvith, The Mistborne Stalker"
+race = "elf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 3
+dp = 1
+ability_text = "Vanish : When targeted by an enemy unit, this card returns to your hand."
+lore_text = "“If you can see me, you're already too late\""
+card_art = ExtResource("1_vwjxb")
+ability_types = Array[String](["mobility"])
+metadata/_custom_type_script = "uid://20ngslec6o41"

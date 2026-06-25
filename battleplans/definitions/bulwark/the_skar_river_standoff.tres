@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://bcp6lgexmm1b3"]
+
+[ext_resource type="Texture2D" uid="uid://8b8oyr8fguab" path="res://battleplans/images/bulwark/the_skar_river_standoff.png" id="1_vc07i"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_d3wak"]
+
+[resource]
+script = ExtResource("2_d3wak")
+battle_plan_id = "the_skar_river_standoff"
+battle_plan_name = "The Skar River Standoff"
+aurion_reward = 3
+initiative = 1
+hand_size = 8
+draw_amount = 4
+description = "Intentionally hold your lines and choose the 'Pass' command in all lanes, declaring zero attacks against any enemy units during the entire Conflict Phase."
+card_art = ExtResource("1_vc07i")

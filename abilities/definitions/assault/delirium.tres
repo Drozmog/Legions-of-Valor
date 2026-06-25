@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cew5pjbkp6qlm"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_to4lq"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_0uxwk"]
+
+[resource]
+script = ExtResource("2_0uxwk")
+ability_id = &"delirium"
+ability_name = "Delirium"
+point_cost = 2.0
+trigger = "active"
+rules_text = "Active: Gain +3 AP for this clash; if you do, discard this unit after the clash
+
+Point Cost: 2.0"
+icon = ExtResource("1_to4lq")
+handler_id = &"delirium"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://xy5vdmyhn5d2"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_ibrkp"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_fq6re"]
+
+[resource]
+script = ExtResource("2_fq6re")
+ability_id = &"excavate"
+ability_name = "Excavate"
+category = "economy"
+point_cost = 3.0
+trigger = "on_deploy"
+rules_text = "On deploy: Return the top card of the discard pile to your hand
+
+Point Cost: 3.0"
+icon = ExtResource("1_ibrkp")
+handler_id = &"excavate"

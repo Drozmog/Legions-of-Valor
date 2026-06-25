@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://b6vwyn2v0lnwb"]
+
+[ext_resource type="Texture2D" uid="uid://ncqqb30n8gon" path="res://battleplans/images/bulwark/the_last_stand_of_vornvek.png" id="1_rtu4n"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_7to8i"]
+
+[resource]
+script = ExtResource("2_7to8i")
+battle_plan_id = "the_last_stand_of_vornvek"
+battle_plan_name = "The Last Stand of Vorn-Vek"
+aurion_reward = 3
+initiative = 1
+draw_amount = 4
+description = "Discard 3 or more cards straight from your hand during a single Parry Chain to successfully save a unit from destruction."
+card_art = ExtResource("1_rtu4n")

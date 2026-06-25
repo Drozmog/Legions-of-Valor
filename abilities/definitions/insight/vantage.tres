@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dsbsil50trfpl"]
+
+[ext_resource type="Texture2D" uid="uid://yi63soibhi0j" path="res://ui/ability_icons/insight.png" id="1_tixcw"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities_backup/AbilityData.gd" id="2_0214v"]
+
+[resource]
+script = ExtResource("2_0214v")
+ability_id = &"vantage"
+ability_name = "Vantage"
+category = "insight"
+point_cost = 5.0
+trigger = "active"
+rules_text = "Active: Instead of attacking, look at the top 3 cards of your opponent's deck, Discard 1.
+
+Point Cost: 5.0"
+icon = ExtResource("1_tixcw")
+handler_id = &"vantage"

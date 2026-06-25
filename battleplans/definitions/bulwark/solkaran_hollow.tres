@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://if21vgkm0roj"]
+
+[ext_resource type="Texture2D" uid="uid://bei2kw88fjfcq" path="res://battleplans/images/bulwark/solkaran_hollow.png" id="1_ahd2c"]
+[ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_nxa6m"]
+
+[resource]
+script = ExtResource("2_nxa6m")
+battle_plan_id = "solkaran_hollow"
+battle_plan_name = "Solkaran Hollow"
+aurion_reward = 2
+initiative = 4
+draw_amount = 3
+description = "Lose at least 2 Units to the opponent this turn."
+card_art = ExtResource("1_ahd2c")
