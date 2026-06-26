@@ -6,6 +6,7 @@ signal battle_plan_selected(plan: Dictionary)
 @export var battleplan_back_texture: Texture2D = preload("res://cards/card_back.png")
 @export var select_button_texture: Texture2D
 @export var inspect_button_texture: Texture2D
+@export var back_button_texture: Texture2D
 
 const CARD_PICK_LAYER := 16
 const BUTTON_PICK_LAYER := 32
@@ -22,6 +23,7 @@ const SHUFFLE_STEP_TIME := 0.115
 const CARD_MOVE_TIME := 0.26
 const BUTTON_SIZE := Vector3(0.78, 0.045, 0.362)
 const BUTTON_SURFACE_SIZE := Vector2(BUTTON_SIZE.x, BUTTON_SIZE.z)
+const INSPECTOR_BUTTON_SIZE := Vector2(183.0, 85.0) # 280x130 ratio
 
 var dim_layer: ColorRect
 var selection_root: Node3D
@@ -665,48 +667,91 @@ func _get_battleplan_source_rect(entry: Dictionary) -> Rect2:
 
 func _build_inspector_actions(card_index: int) -> void:
 	_cleanup_inspector_actions()
+
 	inspector_actions = HBoxContainer.new()
 	inspector_actions.name = "BattlePlanInspectorActions"
 	inspector_actions.set_anchors_preset(Control.PRESET_CENTER)
-	inspector_actions.offset_left = -170.0
-	inspector_actions.offset_right = 170.0
-	inspector_actions.offset_top = 330.0
-	inspector_actions.offset_bottom = 386.0
+	inspector_actions.offset_left = -215.0
+	inspector_actions.offset_right = 215.0
+	inspector_actions.offset_top = 326.0
+	inspector_actions.offset_bottom = 421.0
 	inspector_actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	inspector_actions.add_theme_constant_override("separation", 18)
 	inspector_actions.mouse_filter = Control.MOUSE_FILTER_PASS
 	inspector_actions.z_index = 300
 	add_child(inspector_actions)
 
-	var select_button := _make_inspector_button("SELECT")
+	var select_button := _make_inspector_button("SELECT", select_button_texture)
 	select_button.pressed.connect(_select_plan.bind(card_index))
 	inspector_actions.add_child(select_button)
-	var back_button := _make_inspector_button("BACK")
+
+	var back_texture := back_button_texture if back_button_texture != null else inspect_button_texture
+	var back_button := _make_inspector_button("BACK", back_texture)
 	back_button.pressed.connect(_close_battleplan_inspector)
 	inspector_actions.add_child(back_button)
 
 
-func _make_inspector_button(caption: String) -> Button:
+func _make_inspector_button(caption: String, texture: Texture2D = null) -> Button:
 	var button := Button.new()
-	button.text = caption
-	button.custom_minimum_size = Vector2(150.0, 52.0)
+	button.name = caption.capitalize() + "InspectorButton"
+	button.custom_minimum_size = INSPECTOR_BUTTON_SIZE
+	button.size = INSPECTOR_BUTTON_SIZE
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	button.clip_contents = false
+
+	if texture != null:
+		button.text = ""
+
+		var empty_style := StyleBoxEmpty.new()
+		button.add_theme_stylebox_override("normal", empty_style)
+		button.add_theme_stylebox_override("hover", empty_style)
+		button.add_theme_stylebox_override("pressed", empty_style)
+		button.add_theme_stylebox_override("focus", empty_style)
+
+		var image := TextureRect.new()
+		image.name = "ButtonTexture"
+		image.texture = texture
+		image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		image.set_anchors_preset(Control.PRESET_FULL_RECT)
+		image.offset_left = 0.0
+		image.offset_top = 0.0
+		image.offset_right = 0.0
+		image.offset_bottom = 0.0
+		image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		image.stretch_mode = TextureRect.STRETCH_SCALE
+		button.add_child(image)
+
+		button.pivot_offset = INSPECTOR_BUTTON_SIZE * 0.5
+		button.mouse_entered.connect(func() -> void:
+			button.scale = Vector2(1.045, 1.045)
+		)
+		button.mouse_exited.connect(func() -> void:
+			button.scale = Vector2.ONE
+		)
+
+		return button
+
+	button.text = caption
+
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.12, 0.045, 0.012, 0.98)
 	normal.border_color = Color(0.58, 0.34, 0.06, 1.0)
 	normal.set_border_width_all(2)
 	normal.set_corner_radius_all(7)
+
 	var hover := normal.duplicate() as StyleBoxFlat
 	hover.bg_color = Color(0.26, 0.12, 0.025, 1.0)
 	hover.border_color = Color(1.0, 0.72, 0.22, 1.0)
+
 	button.add_theme_stylebox_override("normal", normal)
 	button.add_theme_stylebox_override("hover", hover)
 	button.add_theme_stylebox_override("pressed", hover)
 	button.add_theme_color_override("font_color", Color(1.0, 0.84, 0.48, 1.0))
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_font_size_override("font_size", 18)
+
 	return button
 
 
