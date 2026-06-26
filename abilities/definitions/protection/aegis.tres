@@ -10,8 +10,6 @@ ability_name = "Aegis"
 category = "protection"
 point_cost = 2.0
 trigger = "protection_check"
-rules_text = "Cannot be targeted/destroyed by Events.
-
-Point Cost: 2.0"
+rules_text = "Cannot be targeted/destroyed by Events."
 icon = ExtResource("1_34afq")
 handler_id = &"aegis"

@@ -10,8 +10,6 @@ ability_name = "Wrath"
 category = "attrition"
 point_cost = 5.0
 trigger = "on_deploy"
-rules_text = "On deploy: Destroy all equipment cards in play
-
-Point Cost: 5.0"
+rules_text = "On deploy: Destroy all equipment cards in play"
 icon = ExtResource("1_71ky0")
 handler_id = &"wrath"

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dajr2qnfd1327"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_ej1kl"]
+[ext_resource type="Resource" uid="uid://dp5vwur5jitlp" path="res://abilities/definitions/protection/solidarity.tres" id="2_ej1kl"]
+[ext_resource type="Texture2D" uid="uid://d4k71lerca0pg" path="res://cards/images/unit/dwarf/deep_tier_miner.png" id="3_y2yaf"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_tbh4a"]
+
+[resource]
+script = ExtResource("4_tbh4a")
+card_id = "deep_tier_miner"
+card_name = "Deep-Tier Miner"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 1
+dp = 1
+abilities = Array[ExtResource("1_ej1kl")]([ExtResource("2_ej1kl")])
+lore_text = "\"The Concord pays surprisingly well for mining around these parts. I'll let my friends know\""
+card_art = ExtResource("3_y2yaf")
+metadata/_custom_type_script = "uid://20ngslec6o41"

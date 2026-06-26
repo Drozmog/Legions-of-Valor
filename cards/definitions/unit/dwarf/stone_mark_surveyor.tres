@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://belv2yc8kwkpp"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_agk6o"]
+[ext_resource type="Resource" uid="uid://dle3o0wsypip0" path="res://abilities/definitions/assault/unity.tres" id="2_8d32l"]
+[ext_resource type="Texture2D" uid="uid://csunxm4e7f0r6" path="res://cards/images/unit/dwarf/stone_mark_surveyor.png" id="3_agk6o"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_fea5k"]
+
+[resource]
+script = ExtResource("5_fea5k")
+card_id = "stone_mark_surveyor"
+card_name = "Stone-Mark Surveyor"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 1
+ap = 2
+abilities = Array[ExtResource("1_agk6o")]([ExtResource("2_8d32l")])
+lore_text = "\"I just magically have to know where the mountain feels wrong? This is not a one man job. Why won't they give me a team?\""
+card_art = ExtResource("3_agk6o")
+metadata/_custom_type_script = "uid://20ngslec6o41"

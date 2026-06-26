@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://bixgqia07mvch"]
+
+[ext_resource type="Texture2D" uid="uid://dm3t73y1f3ida" path="res://ui/ability_icons/control.png" id="1_ow3ex"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_417ua"]
+
+[resource]
+script = ExtResource("2_417ua")
+ability_id = &"lockdown"
+ability_name = "Lockdown"
+category = "control"
+point_cost = 5.0
+trigger = "active"
+rules_text = "While on the Frontline, enemy units in this lane cannot trigger their \"On-Deploy\" or \"Active\" abilities.
+
+Point Cost: 5.0"
+icon = ExtResource("1_ow3ex")
+handler_id = &"lockdown"

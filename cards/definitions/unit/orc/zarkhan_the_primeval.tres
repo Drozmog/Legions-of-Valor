@@ -1,7 +1,10 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cb50qo7eb0wtd"]
 
 [ext_resource type="Texture2D" uid="uid://bjx51ix74p6fx" path="res://cards/images/unit/orc/zarkhan_the_primeval.png" id="1_0d1j6"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_i05dp"]
+[ext_resource type="Resource" uid="uid://s86pn3whqv5a" path="res://abilities/definitions/economy/hard_bargain.tres" id="2_d1nrx"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_y6h5a"]
+[ext_resource type="Resource" uid="uid://c46ivsm3h6o7x" path="res://abilities/definitions/protection/equalizer.tres" id="3_tqblj"]
 
 [resource]
 script = ExtResource("2_y6h5a")
@@ -13,10 +16,7 @@ rarity = "elite"
 tribute_cost = 6
 ap = 11
 dp = 3
-ability_text = "Hard Bargain : If a clash is won; gain +1 Aurion. If this unit is destroyed; lose 2 Aurion.
-
-Equalizer : Both units discarded if Attacker AP is exactly +1 higher."
+abilities = Array[ExtResource("1_i05dp")]([ExtResource("2_d1nrx"), ExtResource("3_tqblj")])
 lore_text = "\"I was the best of the elves and they cast me away. I am the best of the orcs but I dare not say. The Sylvian courts will answer for their injustice and so will the guild\""
 card_art = ExtResource("1_0d1j6")
-ability_types = Array[String](["economy", "protection"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

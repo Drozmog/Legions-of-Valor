@@ -10,8 +10,6 @@ ability_name = "Order"
 category = "control"
 point_cost = 10.0
 trigger = "active"
-rules_text = "One opponent lane cannot attack this turn
-
-Point Cost: 10.0"
+rules_text = "One opponent lane cannot attack this turn"
 icon = ExtResource("1_546q4")
 handler_id = &"order"

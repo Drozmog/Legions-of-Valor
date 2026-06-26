@@ -10,8 +10,6 @@ ability_name = "Profit"
 category = "economy"
 point_cost = 4.0
 trigger = "on_draw"
-rules_text = "Draw 2 cards
-
-Point Cost: 4.0"
+rules_text = "Draw 2 cards"
 icon = ExtResource("1_hkqql")
 handler_id = &"profit"

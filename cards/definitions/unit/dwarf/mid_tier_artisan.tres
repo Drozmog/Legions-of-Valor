@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c7lktrc8y776y"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_56omi"]
+[ext_resource type="Resource" uid="uid://wpgrnexw4bcf" path="res://abilities/definitions/mobility/volley.tres" id="2_emj8s"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="3_emj8s"]
+[ext_resource type="Resource" uid="uid://dtai56wn1xj4p" path="res://abilities/definitions/insight/secrecy.tres" id="3_fvof4"]
+[ext_resource type="Texture2D" uid="uid://c8n2w7qnqm2k7" path="res://cards/images/unit/dwarf/mid_tier_artisan.png" id="4_bkf3w"]
+
+[resource]
+script = ExtResource("3_emj8s")
+card_id = "mid_tier_artisan"
+card_name = "Mid-Tier Artisan"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 4
+abilities = Array[ExtResource("1_56omi")]([ExtResource("2_emj8s"), ExtResource("3_fvof4")])
+lore_text = "\"We are part of the middle tier where life thrives away from the madness of the surface resource wars.\""
+card_art = ExtResource("4_bkf3w")
+metadata/_custom_type_script = "uid://20ngslec6o41"

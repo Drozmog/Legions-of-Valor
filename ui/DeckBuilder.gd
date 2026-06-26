@@ -55,6 +55,16 @@ const CARD_PICK_LAYER_DECK := 2
 const DECK_SLOT_PICK_LAYER := 4
 const CARD_ACTION_INSPECT := 1
 const CARD_ACTION_CANCEL := 99
+const ABILITY_FILTERS := ["Assault", "Control", "Attrition", "Economy", "Protection", "Insight", "Mobility"]
+const ABILITY_ICON_PATHS := {
+	"assault": "res://ui/ability_icons/assault.png",
+	"control": "res://ui/ability_icons/control.png",
+	"attrition": "res://ui/ability_icons/attrition.png",
+	"economy": "res://ui/ability_icons/economy.png",
+	"protection": "res://ui/ability_icons/protection.png",
+	"insight": "res://ui/ability_icons/insight.png",
+	"mobility": "res://ui/ability_icons/mobility.png",
+}
 
 enum LibrarySortMode {
 	NAME,
@@ -113,6 +123,7 @@ var library_scroll_max := 0.0
 
 var active_race_filters: Dictionary = {}
 var active_type_filters: Dictionary = {}
+var active_ability_filters: Dictionary = {}
 var search_text := ""
 var library_sort_mode: LibrarySortMode = LibrarySortMode.NAME
 var library_sort_ascending := true
@@ -149,6 +160,9 @@ var card_action_target: Node3D
 var card_inspect_panel: CardInspectPanel
 var race_buttons: Dictionary = {}
 var type_buttons: Dictionary = {}
+var ability_buttons: Dictionary = {}
+var ability_filter_button: Button
+var ability_filter_panel: PanelContainer
 
 func _ready() -> void:
 	all_cards = CardDatabase.get_all_test_cards()
@@ -558,6 +572,11 @@ func build_overlay_ui() -> void:
 	add_filter_caption(filter_row, "CARD")
 	add_filter_buttons(filter_row, ["All", "Unit", "Gambit", "Equipment"], type_buttons, _on_type_filter_pressed)
 
+	ability_filter_button = make_button("ABILITIES", Vector2(88, 26))
+	ability_filter_button.toggle_mode = true
+	ability_filter_button.pressed.connect(_on_ability_filter_toggle_pressed)
+	filter_row.add_child(ability_filter_button)
+
 	var filter_spacer := Control.new()
 	filter_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	filter_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -565,6 +584,7 @@ func build_overlay_ui() -> void:
 
 	library_sort_button = make_library_sort_button()
 	filter_row.add_child(library_sort_button)
+	create_ability_filter_panel(library_ui_root)
 
 	# A separate deck ledger over the lower-right table leaves open space between.
 	var deck_plaque := PanelContainer.new()
@@ -1101,6 +1121,56 @@ func add_filter_buttons(parent: HBoxContainer, labels: Array[String], store: Dic
 		parent.add_child(button)
 
 
+func create_ability_filter_panel(parent: Control) -> void:
+	ability_filter_panel = PanelContainer.new()
+	ability_filter_panel.name = "AbilityFilterPanel"
+	ability_filter_panel.visible = false
+	ability_filter_panel.position = Vector2(840.0, 52.0)
+	ability_filter_panel.custom_minimum_size = Vector2(252.0, 36.0)
+	ability_filter_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	ability_filter_panel.z_index = 20
+	ability_filter_panel.add_theme_stylebox_override(
+		"panel",
+		make_panel_style(Color(0.055, 0.026, 0.010, 0.94), Color(0.82, 0.58, 0.16, 0.96), 2)
+	)
+	parent.add_child(ability_filter_panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 6)
+	margin.add_theme_constant_override("margin_right", 6)
+	margin.add_theme_constant_override("margin_top", 4)
+	margin.add_theme_constant_override("margin_bottom", 4)
+	ability_filter_panel.add_child(margin)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	margin.add_child(row)
+
+	for label_text in ABILITY_FILTERS:
+		var filter_key := label_text.to_lower()
+		var button := make_ability_filter_button(filter_key, label_text)
+		button.pressed.connect(_on_ability_filter_pressed.bind(filter_key))
+		ability_buttons[filter_key] = button
+		row.add_child(button)
+
+
+func make_ability_filter_button(filter_key: String, label_text: String) -> Button:
+	var button := make_button("", Vector2(28, 28))
+	button.name = label_text + "AbilityFilter"
+	button.toggle_mode = true
+	button.tooltip_text = label_text
+	button.add_theme_stylebox_override("pressed", _make_btn_style(Color(0.60, 0.42, 0.08, 1.0), Color(1.0, 0.82, 0.28, 1.0)))
+
+	var icon_path: String = ABILITY_ICON_PATHS.get(filter_key, "")
+	if icon_path != "" and ResourceLoader.exists(icon_path):
+		button.icon = load(icon_path) as Texture2D
+		button.expand_icon = true
+	else:
+		button.text = label_text.substr(0, 1).to_upper()
+
+	return button
+
+
 func refresh_filter_buttons() -> void:
 	for key in race_buttons.keys():
 		var b: Button = race_buttons[key]
@@ -1109,6 +1179,16 @@ func refresh_filter_buttons() -> void:
 	for key in type_buttons.keys():
 		var b: Button = type_buttons[key]
 		b.button_pressed = (key == "all" and active_type_filters.is_empty()) or active_type_filters.has(key)
+
+	refresh_ability_filter_buttons()
+
+
+func refresh_ability_filter_buttons() -> void:
+	for key in ability_buttons.keys():
+		var b: Button = ability_buttons[key]
+		var is_active := active_ability_filters.has(key)
+		b.button_pressed = is_active
+		b.modulate = Color(1.0, 0.92, 0.42, 1.0) if is_active else Color(1.0, 1.0, 1.0, 0.72)
 
 
 func refresh_library() -> void:
@@ -1676,6 +1756,15 @@ func card_matches_filters(card_data: CardData) -> bool:
 		return false
 	if not active_type_filters.is_empty() and not active_type_filters.has(card_type):
 		return false
+	if not active_ability_filters.is_empty():
+		var has_selected_ability := false
+		for category in card_data.get_ability_categories():
+			var clean_category := String(category).to_lower().strip_edges()
+			if active_ability_filters.has(clean_category):
+				has_selected_ability = true
+				break
+		if not has_selected_ability:
+			return false
 
 	if search_text != "":
 		var haystack := (
@@ -2047,6 +2136,24 @@ func _on_type_filter_pressed(filter_value: String) -> void:
 	else:
 		active_type_filters[filter_value] = true
 	refresh_filter_buttons()
+	refresh_library()
+
+
+func _on_ability_filter_toggle_pressed() -> void:
+	if ability_filter_panel != null:
+		ability_filter_panel.visible = ability_filter_button != null and ability_filter_button.button_pressed
+
+
+func _on_ability_filter_pressed(filter_value: String) -> void:
+	if active_ability_filters.has(filter_value):
+		active_ability_filters.erase(filter_value)
+	elif active_ability_filters.size() < 2:
+		active_ability_filters[filter_value] = true
+	else:
+		refresh_ability_filter_buttons()
+		return
+
+	refresh_ability_filter_buttons()
 	refresh_library()
 
 

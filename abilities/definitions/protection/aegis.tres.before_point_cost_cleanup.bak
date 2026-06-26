@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://pxklqjx73v24"]
+
+[ext_resource type="Texture2D" uid="uid://rnm6k1ixvbv" path="res://ui/ability_icons/protection.png" id="1_34afq"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_vqyon"]
+
+[resource]
+script = ExtResource("2_vqyon")
+ability_id = &"aegis"
+ability_name = "Aegis"
+category = "protection"
+point_cost = 2.0
+trigger = "protection_check"
+rules_text = "Cannot be targeted/destroyed by Events.
+
+Point Cost: 2.0"
+icon = ExtResource("1_34afq")
+handler_id = &"aegis"

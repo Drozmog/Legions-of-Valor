@@ -1,7 +1,10 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cmw0jsbifu52d"]
 
 [ext_resource type="Texture2D" uid="uid://imwqsvg8c5vj" path="res://cards/images/unit/orc/thrak_pit_lord.png" id="1_l4fky"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_ugqw5"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_ohjvn"]
+[ext_resource type="Resource" uid="uid://b2uuelp63gjqo" path="res://abilities/definitions/attrition/curse.tres" id="2_rn6vp"]
+[ext_resource type="Resource" uid="uid://bhjw81k0kmdto" path="res://abilities/definitions/assault/pierce.tres" id="3_ph1hg"]
 
 [resource]
 script = ExtResource("2_ohjvn")
@@ -13,10 +16,7 @@ rarity = "normal"
 tribute_cost = 4
 ap = 7
 dp = 1
-ability_text = "Curse : Penalty; On death, you discard 1 card from your hand.
-
-Pierce : If unit defeats an enemy, gain +1 Aurion."
+abilities = Array[ExtResource("1_ugqw5")]([ExtResource("2_rn6vp"), ExtResource("3_ph1hg")])
 lore_text = "\"The battle isn't a means for you to entertain yourself, Thrak. We are fighting for the freedom of our way of life. Betting on your own soldiers is poor for morale. You will do well to stay in line.\" - Brugo The Bold"
 card_art = ExtResource("1_l4fky")
-ability_types = Array[String](["attrition", "assault"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -9,8 +9,6 @@ ability_id = &"overrun"
 ability_name = "Overrun"
 point_cost = 6.0
 trigger = "combat_power"
-rules_text = "All your units gain +2 AP this turn.
-
-Point Cost: 6.0"
+rules_text = "All your units gain +2 AP this turn."
 icon = ExtResource("1_sr70p")
 handler_id = &"overrun"

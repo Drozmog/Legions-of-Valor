@@ -10,8 +10,6 @@ ability_name = "Chain-Link"
 category = "economy"
 point_cost = 4.0
 trigger = "parry_check"
-rules_text = "If this card is 2nd in your Parry Chain: Add to Permanent Tribute
-
-Point Cost: 4.0"
+rules_text = "If this card is 2nd in your Parry Chain: Add to Permanent Tribute"
 icon = ExtResource("1_5i8oa")
 handler_id = &"chain_link"

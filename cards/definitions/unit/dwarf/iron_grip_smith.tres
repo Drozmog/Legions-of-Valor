@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cky6t04ac56if"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_p0v5p"]
+[ext_resource type="Resource" uid="uid://xy5vdmyhn5d2" path="res://abilities/definitions/economy/excavate.tres" id="2_p0v5p"]
+[ext_resource type="Texture2D" uid="uid://d3kxq8hm8koar" path="res://cards/images/unit/dwarf/iron_grip_smith.png" id="3_ip08v"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_ax7ty"]
+
+[resource]
+script = ExtResource("4_ax7ty")
+card_id = "iron_grip_smith"
+card_name = "Iron-Grip Smith"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 2
+dp = 1
+abilities = Array[ExtResource("1_p0v5p")]([ExtResource("2_p0v5p")])
+lore_text = "\"Dwarven steal means something. You can't get better steel or light a hotter flame outside Vorn-Vek.\""
+card_art = ExtResource("3_ip08v")
+metadata/_custom_type_script = "uid://20ngslec6o41"

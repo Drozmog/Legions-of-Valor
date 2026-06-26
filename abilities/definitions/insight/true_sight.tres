@@ -10,8 +10,6 @@ ability_name = "True-Sight"
 category = "insight"
 point_cost = 2.0
 trigger = "active"
-rules_text = "Instead of Attacking this turn, you may look at all of the opponent's face-down gambits
-
-Point Cost: 2.0"
+rules_text = "Instead of Attacking this turn, you may look at all of the opponent's face-down gambits"
 icon = ExtResource("1_53h6r")
 handler_id = &"true_sight"

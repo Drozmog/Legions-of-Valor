@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dgjfuvc7jsgk1"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_ydiba"]
+[ext_resource type="Resource" uid="uid://bfpnt7vq0rskw" path="res://abilities/definitions/economy/logistic_specialist.tres" id="2_ydiba"]
+[ext_resource type="Resource" uid="uid://bmu7iwc1wr2yl" path="res://abilities/definitions/protection/shielded.tres" id="3_55jwg"]
+[ext_resource type="Texture2D" uid="uid://bdo02rjjipe82" path="res://cards/images/unit/human/grandmaster_lewin.png" id="4_q6bai"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_0ln8r"]
+
+[resource]
+script = ExtResource("5_0ln8r")
+card_id = "grandmaster_lewin"
+card_name = "Grandmaster Lewin"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 5
+ap = 7
+dp = 3
+abilities = Array[ExtResource("1_ydiba")]([ExtResource("2_ydiba"), ExtResource("3_55jwg")])
+lore_text = "“Rykard calls me a sadist for dragging the war but I know he loves war as much as I do. Only one of us is getting richer though\""
+card_art = ExtResource("4_q6bai")
+metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://8acyt17q82lw"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_rwyld"]
+[ext_resource type="Resource" uid="uid://wpgrnexw4bcf" path="res://abilities/definitions/mobility/volley.tres" id="2_rwyld"]
+[ext_resource type="Texture2D" uid="uid://dvv4jol6npain" path="res://cards/images/unit/human/iron_field_sapper.png" id="3_d5om2"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_o1ai2"]
+
+[resource]
+script = ExtResource("4_o1ai2")
+card_id = "iron_field_sapper"
+card_name = "Iron-Field Sapper"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 4
+dp = 2
+abilities = Array[ExtResource("1_rwyld")]([ExtResource("2_rwyld")])
+lore_text = "“Give me an hour and three barrels of Torvin’s mix, and I’ll turn this grove into a parade ground.”"
+card_art = ExtResource("3_d5om2")
+metadata/_custom_type_script = "uid://20ngslec6o41"

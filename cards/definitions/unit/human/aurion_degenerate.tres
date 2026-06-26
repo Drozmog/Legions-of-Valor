@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c8g70perfc156"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_7bic7"]
+[ext_resource type="Resource" uid="uid://bhjw81k0kmdto" path="res://abilities/definitions/assault/pierce.tres" id="2_ny2gy"]
+[ext_resource type="Resource" uid="uid://d2bch1656kkvt" path="res://abilities/definitions/control/dominance.tres" id="3_2csca"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="3_ny2gy"]
+[ext_resource type="Texture2D" uid="uid://iuhxny0q6k71" path="res://cards/images/unit/human/aurion_degenerate.png" id="4_wo7di"]
+
+[resource]
+script = ExtResource("3_ny2gy")
+card_id = "aurion_degenerate"
+card_name = "Aurion Degenerate"
+race = "human"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 4
+ap = 7
+abilities = Array[ExtResource("1_7bic7")]([ExtResource("2_ny2gy"), ExtResource("3_2csca")])
+lore_text = "\"A mindless engine. I wonder what would be worse for a human?
+This or the Plague?\" - Captain Rodry"
+card_art = ExtResource("4_wo7di")
+metadata/_custom_type_script = "uid://20ngslec6o41"

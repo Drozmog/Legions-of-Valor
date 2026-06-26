@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://byukd7k4qwdqq"]
 
 [ext_resource type="Texture2D" uid="uid://5od1f1stgxxf" path="res://cards/images/unit/orc/solkaran_depth_dweller.png" id="1_gr0oi"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_wplej"]
+[ext_resource type="Resource" uid="uid://cew5pjbkp6qlm" path="res://abilities/definitions/assault/delirium.tres" id="2_kr5cw"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_uiovi"]
 
 [resource]
@@ -12,8 +14,7 @@ card_type = "unit"
 rarity = "normal"
 tribute_cost = 1
 ap = 2
-ability_text = "Delirium : Active: Gain +3 AP for this clash; if you do, destroy this unit after the clash."
+abilities = Array[ExtResource("1_wplej")]([ExtResource("2_kr5cw")])
 lore_text = "\"The depths of the Solkaran Hollow contain more than just gold. Something is waking. I don't want to be here when it comes\""
 card_art = ExtResource("1_gr0oi")
-ability_types = Array[String](["assault"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

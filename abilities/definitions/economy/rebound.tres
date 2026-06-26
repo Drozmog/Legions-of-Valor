@@ -10,8 +10,6 @@ ability_name = "Rebound"
 category = "economy"
 point_cost = 4.0
 trigger = "on_destroyed"
-rules_text = "If this unit is defeated by a gambit draw 2 cards
-
-Point Cost: 4.0"
+rules_text = "If this unit is defeated by a gambit draw 2 cards"
 icon = ExtResource("1_b2e42")
 handler_id = &"rebound"

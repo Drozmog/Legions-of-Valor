@@ -2,7 +2,9 @@
 
 [ext_resource type="Texture2D" uid="uid://b6c11sb8y6iip" path="res://cards/images/unit/elf/variels_chosen_risak.png" id="1_5qdwi"]
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_pxhql"]
+[ext_resource type="Resource" uid="uid://d2bch1656kkvt" path="res://abilities/definitions/control/dominance.tres" id="2_fn1uw"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_pxhql"]
+[ext_resource type="Resource" uid="uid://brf6ijbciykmt" path="res://abilities/definitions/assault/challenger.tres" id="3_omvhc"]
 
 [resource]
 script = ExtResource("2_pxhql")
@@ -14,10 +16,7 @@ rarity = "normal"
 tribute_cost = 5
 ap = 6
 dp = 1
-ability_text = "Dominance : If your AP is 2 or higher than the defender's AP, defender cannot Parry.
-
-Challenger : This unit gains + 2AP when attacking."
-ability_types = Array[String](["control", "assault"])
+abilities = Array[ExtResource("1_pxhql")]([ExtResource("2_fn1uw"), ExtResource("3_omvhc")])
 lore_text = "“My father would be ashamed of what I have become. I am villified for breaking the doctrine but I did it to free our children. Someday the stories will speak of my sacrifice”"
 card_art = ExtResource("1_5qdwi")
 metadata/_custom_type_script = "uid://20ngslec6o41"

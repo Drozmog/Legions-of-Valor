@@ -9,8 +9,6 @@ ability_id = &"battle_positions"
 ability_name = "Battle Positions"
 point_cost = 4.0
 trigger = "combat_power"
-rules_text = "All your units gain +1 AP this turn.
-
-Point Cost: 4.0"
+rules_text = "All your units gain +1 AP this turn."
 icon = ExtResource("1_uc5e8")
 handler_id = &"battle_positions"

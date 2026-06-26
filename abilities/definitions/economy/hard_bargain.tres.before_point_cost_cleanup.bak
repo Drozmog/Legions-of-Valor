@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://s86pn3whqv5a"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_56651"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_cjsl5"]
+
+[resource]
+script = ExtResource("2_cjsl5")
+ability_id = &"hard_bargain"
+ability_name = "Hard Bargain"
+category = "economy"
+point_cost = 2.0
+trigger = "on_destroyed"
+rules_text = "When this unit wins a clash: gain +1 Aurion, if this unit is defeated, lose 2 Aurion
+
+Point Cost: 2.0"
+icon = ExtResource("1_56651")
+handler_id = &"hard_bargain"

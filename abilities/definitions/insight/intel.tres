@@ -10,8 +10,6 @@ ability_name = "Intel"
 category = "insight"
 point_cost = 3.0
 trigger = "on_deploy"
-rules_text = "On Deploy: Look at the top 3 cards of your deck, take 1, put the other 2 at the bottom.
-
-Point Cost: 3.0"
+rules_text = "On Deploy: Look at the top 3 cards of your deck, take 1, put the other 2 at the bottom."
 icon = ExtResource("1_g5tkq")
 handler_id = &"intel"

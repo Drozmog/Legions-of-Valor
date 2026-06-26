@@ -10,8 +10,6 @@ ability_name = "Despair"
 category = "attrition"
 point_cost = -3.0
 trigger = "on_destroyed"
-rules_text = "Penalty: On defeat, you lose 1 Aurion.
-
-Point Cost: -3.0"
+rules_text = "Penalty: On defeat, you lose 1 Aurion."
 icon = ExtResource("1_xhggf")
 handler_id = &"despair"

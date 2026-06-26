@@ -9,8 +9,6 @@ ability_id = &"siren"
 ability_name = "Siren"
 category = "control"
 point_cost = 7.0
-rules_text = "Force: Target unit must attack.
-
-Point Cost: 7.0"
+rules_text = "Force: Target unit must attack."
 icon = ExtResource("1_03lsj")
 handler_id = &"siren"

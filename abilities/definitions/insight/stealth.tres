@@ -10,8 +10,6 @@ ability_name = "Stealth"
 category = "insight"
 point_cost = 4.0
 trigger = "active"
-rules_text = "If this unit is used as a gambit and the opponent does not check: Deploy with 0 cost.
-
-Point Cost: 4.0"
+rules_text = "If this unit is used as a gambit and the opponent does not check: Deploy with 0 cost."
 icon = ExtResource("1_hxlc2")
 handler_id = &"stealth"

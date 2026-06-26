@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dg0xaborj3uuq"]
+
+[ext_resource type="Texture2D" uid="uid://rnm6k1ixvbv" path="res://ui/ability_icons/protection.png" id="1_fjxyu"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_2yx4d"]
+
+[resource]
+script = ExtResource("2_2yx4d")
+ability_id = &"deflect"
+ability_name = "Deflect"
+category = "protection"
+point_cost = 4.0
+rules_text = "The first card used in a Parry for this unit counts as +2 DP.
+
+Point Cost: 4.0"
+icon = ExtResource("1_fjxyu")
+handler_id = &"deflect"

@@ -1,7 +1,10 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://d3m1kqbxlk7nj"]
 
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_cb3nl"]
 [ext_resource type="Texture2D" uid="uid://cp6jyxklvvtha" path="res://cards/images/unit/orc/urmog_brugos_chosen.png" id="1_mlc4w"]
+[ext_resource type="Resource" uid="uid://bmu7iwc1wr2yl" path="res://abilities/definitions/protection/shielded.tres" id="2_3ngur"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_mqf4l"]
+[ext_resource type="Resource" uid="uid://hrlsohnncbht" path="res://abilities/definitions/protection/spell_shield.tres" id="3_vj2fr"]
 
 [resource]
 script = ExtResource("2_mqf4l")
@@ -13,10 +16,7 @@ rarity = "normal"
 tribute_cost = 5
 ap = 6
 dp = 1
-ability_text = "Shielded : Gain +2AP if Defending (Not while attacking).
-
-Spell-Shield : This unit is not affected by enemy gambits."
+abilities = Array[ExtResource("1_cb3nl")]([ExtResource("2_3ngur"), ExtResource("3_vj2fr")])
 lore_text = "\"Tell the humans they have pushed far enough into our northern foothills. Tell your Fabled Marshal we're ready\""
 card_art = ExtResource("1_mlc4w")
-ability_types = Array[String](["protection", "protection"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

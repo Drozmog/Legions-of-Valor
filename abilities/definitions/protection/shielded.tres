@@ -10,8 +10,6 @@ ability_name = "Shielded"
 category = "protection"
 point_cost = 4.0
 trigger = "on_defense"
-rules_text = "This unit gains +2 AP while Defending
-
-Point Cost: 4.0"
+rules_text = "This unit gains +2 AP while Defending"
 icon = ExtResource("1_ilnkf")
 handler_id = &"shielded"

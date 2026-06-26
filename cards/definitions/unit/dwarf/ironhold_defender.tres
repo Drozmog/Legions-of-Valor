@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://by41jw7cp0hpn"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_iykts"]
+[ext_resource type="Resource" uid="uid://dle3o0wsypip0" path="res://abilities/definitions/assault/unity.tres" id="2_bypbc"]
+[ext_resource type="Texture2D" uid="uid://cvutb578ykt0j" path="res://cards/images/unit/dwarf/ironhold_defender.png" id="3_iykts"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_x2sar"]
+
+[resource]
+script = ExtResource("5_x2sar")
+card_id = "ironhold_defender"
+card_name = "Ironhold Defender"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 4
+ap = 6
+dp = 3
+abilities = Array[ExtResource("1_iykts")]([ExtResource("2_bypbc")])
+lore_text = "\"Tell the Artisans I don't care about the practicality of their armor, The Iron-hold defenders are what the dwarves stand for. They are the first line of defense on the surface. Make them scary\" - Excavation Knight"
+card_art = ExtResource("3_iykts")
+metadata/_custom_type_script = "uid://20ngslec6o41"

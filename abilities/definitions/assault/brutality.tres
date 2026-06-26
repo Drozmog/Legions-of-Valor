@@ -9,8 +9,6 @@ ability_id = &"brutality"
 ability_name = "Brutality"
 point_cost = 6.0
 trigger = "combat_power"
-rules_text = "Grants +1 AP for every 2 cards in your hand.
-
-Point Cost: 6.0"
+rules_text = "Grants +1 AP for every 2 cards in your hand."
 icon = ExtResource("1_o4sn8")
 handler_id = &"brutality"

@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://434m1i0itys5"]
 
 [ext_resource type="Texture2D" uid="uid://b736mp03lf8r3" path="res://cards/images/unit/orc/cave_crawl_grunt.png" id="1_6uk6j"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_qrlre"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_qrlre"]
 
 [resource]

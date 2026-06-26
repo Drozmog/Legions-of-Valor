@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ycxhk5defvoq"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_78e1s"]
+[ext_resource type="Resource" uid="uid://cfcyadq7wofbi" path="res://abilities/definitions/insight/intel.tres" id="2_aomqq"]
+[ext_resource type="Resource" uid="uid://baawgqjywfr6i" path="res://abilities/definitions/insight/seer.tres" id="3_un3bk"]
+[ext_resource type="Texture2D" uid="uid://d3bso5csm5eeh" path="res://cards/images/unit/human/gordo_hysterical_seer.png" id="4_6hwho"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_l02ij"]
+
+[resource]
+script = ExtResource("4_l02ij")
+card_id = "gordo_hysterical_seer"
+card_name = "Gordo, Hysterical Seer"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 2
+abilities = Array[ExtResource("1_78e1s")]([ExtResource("2_aomqq"), ExtResource("3_un3bk")])
+lore_text = "“The captain's heart... I see the beast biting into it before the horse even moves.”"
+card_art = ExtResource("4_6hwho")
+metadata/_custom_type_script = "uid://20ngslec6o41"

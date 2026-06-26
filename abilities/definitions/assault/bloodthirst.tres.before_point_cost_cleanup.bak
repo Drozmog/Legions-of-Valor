@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dp8kcatyql8r3"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_in558"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_12w5f"]
+
+[resource]
+script = ExtResource("2_12w5f")
+ability_id = &"bloodthirst"
+ability_name = "Bloodthirst"
+point_cost = 8.0
+trigger = "on_clash_won"
+rules_text = "If this unit defeats an enemy unit, it can attack a second time this turn.
+
+Point Cost: 8.0"
+icon = ExtResource("1_in558")
+handler_id = &"bloodthirst"

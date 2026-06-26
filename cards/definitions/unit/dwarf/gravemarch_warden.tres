@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://0fs2pk7tayet"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_o0gjs"]
+[ext_resource type="Resource" uid="uid://wpgrnexw4bcf" path="res://abilities/definitions/mobility/volley.tres" id="2_8ug8q"]
+[ext_resource type="Resource" uid="uid://xy5vdmyhn5d2" path="res://abilities/definitions/economy/excavate.tres" id="3_7nex8"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_gk1lr"]
+[ext_resource type="Texture2D" uid="uid://drtsro6eqkqnd" path="res://cards/images/unit/dwarf/gravemarch_warden.png" id="4_txsyb"]
+
+[resource]
+script = ExtResource("4_gk1lr")
+card_id = "gravemarch_warden"
+card_name = "Gravemarch Warden"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 5
+ap = 7
+dp = 2
+abilities = Array[ExtResource("1_o0gjs")]([ExtResource("2_8ug8q"), ExtResource("3_7nex8")])
+lore_text = "\"I stand guard at the jagged peaks of the Gravemarch Range, watching the ice for signs of the rot. I can't imagine the wars making everyone forget about the rot. It's out there and it is unrelenting\""
+card_art = ExtResource("4_txsyb")
+metadata/_custom_type_script = "uid://20ngslec6o41"

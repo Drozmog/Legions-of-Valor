@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cx8ii6ceekpdw"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_qhjow"]
+[ext_resource type="Resource" uid="uid://bixgqia07mvch" path="res://abilities/definitions/control/lockdown.tres" id="2_qhjow"]
+[ext_resource type="Texture2D" uid="uid://dlrs3xmnbfka3" path="res://cards/images/unit/dwarf/stone_wall_engineer.png" id="3_omllw"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_0fqfv"]
+
+[resource]
+script = ExtResource("4_0fqfv")
+card_id = "stone_wall_engineer"
+card_name = "Stone Wall Engineer"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 4
+abilities = Array[ExtResource("1_qhjow")]([ExtResource("2_qhjow")])
+lore_text = "\"Anything built on the surface lasts a century at best with all those wars. We build strictly downwards. We build a legacy\""
+card_art = ExtResource("3_omllw")
+metadata/_custom_type_script = "uid://20ngslec6o41"

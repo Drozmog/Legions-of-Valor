@@ -10,8 +10,6 @@ ability_name = "Fog of War"
 category = "control"
 point_cost = 6.0
 trigger = "attack_targeting"
-rules_text = "Opponent cannot Parry this turn.
-
-Point Cost: 6.0"
+rules_text = "Opponent cannot Parry this turn."
 icon = ExtResource("1_evntl")
 handler_id = &"fog_of_war"

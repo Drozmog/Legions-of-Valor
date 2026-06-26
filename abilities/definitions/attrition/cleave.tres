@@ -10,8 +10,6 @@ ability_name = "Cleave"
 category = "attrition"
 point_cost = 4.0
 trigger = "on_clash_won"
-rules_text = "When this unit wins a clash, opponent must discard a card from his hand
-
-Point Cost: 4.0"
+rules_text = "When this unit wins a clash, opponent must discard a card from his hand"
 icon = ExtResource("1_gpwch")
 handler_id = &"cleave"

@@ -1,7 +1,10 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bm5rgnjppp5xc"]
 
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_7jvpv"]
 [ext_resource type="Texture2D" uid="uid://npjp2qbvuml" path="res://cards/images/unit/orc/vark_the_mangler.png" id="1_oh4w8"]
+[ext_resource type="Resource" uid="uid://tldvclxyv6x1" path="res://abilities/definitions/attrition/despair.tres" id="2_2nn7k"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_2um4b"]
+[ext_resource type="Resource" uid="uid://4xojd70wm52c" path="res://abilities/definitions/economy/siphon.tres" id="3_a6817"]
 
 [resource]
 script = ExtResource("2_2um4b")
@@ -12,10 +15,7 @@ card_type = "unit"
 rarity = "normal"
 tribute_cost = 2
 ap = 3
-ability_text = "Despair : Penalty; On death, you lose 1 Aurion.
-
-Siphon : Monarch Strike; Steal 1 Aurion from the opponent."
+abilities = Array[ExtResource("1_7jvpv")]([ExtResource("2_2nn7k"), ExtResource("3_a6817")])
 lore_text = "\"I operate on the edges of their civilization and take what the Consortium leaves behind.\""
 card_art = ExtResource("1_oh4w8")
-ability_types = Array[String](["attrition", "economy"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

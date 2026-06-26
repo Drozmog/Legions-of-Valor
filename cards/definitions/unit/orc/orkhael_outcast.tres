@@ -1,7 +1,10 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://3flekdq5k0s3"]
 
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_08e4n"]
 [ext_resource type="Texture2D" uid="uid://c5e5kvfgkyll7" path="res://cards/images/unit/orc/orkhael_outcast.png" id="1_djxtq"]
+[ext_resource type="Resource" uid="uid://tldvclxyv6x1" path="res://abilities/definitions/attrition/despair.tres" id="2_0md4t"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_260mi"]
+[ext_resource type="Resource" uid="uid://d2bch1656kkvt" path="res://abilities/definitions/control/dominance.tres" id="3_qel8x"]
 
 [resource]
 script = ExtResource("2_260mi")
@@ -13,10 +16,7 @@ rarity = "normal"
 tribute_cost = 2
 ap = 5
 dp = 1
-ability_text = "Despair : Penalty; On death, you lose 1 Aurion.
-
-Dominance : If your AP is 2 or higher than the defender's AP, defender cannot Parry."
+abilities = Array[ExtResource("1_08e4n")]([ExtResource("2_0md4t"), ExtResource("3_qel8x")])
 lore_text = "\"Rejected by the palace, hunted by the clans. I only owe allegiance to the blade.\""
 card_art = ExtResource("1_djxtq")
-ability_types = Array[String](["attrition", "control"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

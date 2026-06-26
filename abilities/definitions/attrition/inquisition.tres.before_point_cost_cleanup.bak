@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://105bct4omfgg"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_yvewg"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_1goj6"]
+
+[resource]
+script = ExtResource("2_1goj6")
+ability_id = &"inquisition"
+ability_name = "Inquisition"
+category = "attrition"
+point_cost = 5.0
+trigger = "on_deploy"
+rules_text = "On Deploy: Look at any 3 cards from your opponent's hand. Discard 1
+
+Point Cost: 5.0"
+icon = ExtResource("1_yvewg")
+handler_id = &"inquisition"

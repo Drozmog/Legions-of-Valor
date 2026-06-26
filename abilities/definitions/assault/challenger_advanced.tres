@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cxe5vsb63n48q"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_a0j2g"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_ypy5e"]
+
+[resource]
+script = ExtResource("2_ypy5e")
+ability_id = &"challenger_advanced"
+ability_name = "Challenger Advanced"
+point_cost = 4.5
+trigger = "on_attack"
+rules_text = "This unit Gains +3 AP when attacking."
+icon = ExtResource("1_a0j2g")
+handler_id = &"challenger_advanced"

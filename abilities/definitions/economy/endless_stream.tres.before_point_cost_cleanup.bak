@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dsb0lf5f3wxd6"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_2e8lo"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_ucchf"]
+
+[resource]
+script = ExtResource("2_ucchf")
+ability_id = &"endless_stream"
+ability_name = "Endless stream"
+category = "economy"
+point_cost = 6.0
+trigger = "on_draw"
+rules_text = "Draw a card for each unit that you defeat
+
+Point Cost: 6.0"
+icon = ExtResource("1_2e8lo")
+handler_id = &"endless_stream"

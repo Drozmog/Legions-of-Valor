@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cc6faaieguhb4"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_2fata"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_xrv0p"]
+
+[resource]
+script = ExtResource("2_xrv0p")
+ability_id = &"imperial_decree"
+ability_name = "Imperial Decree"
+category = "attrition"
+point_cost = 8.0
+rules_text = "Discard an enemy unit with 6 AP or less from the Frontline.
+
+Point Cost: 8.0"
+icon = ExtResource("1_2fata")
+handler_id = &"imperial_decree"

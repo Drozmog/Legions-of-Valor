@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://brie35hdbgyfw"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_g1bvf"]
+[ext_resource type="Resource" uid="uid://dle3o0wsypip0" path="res://abilities/definitions/assault/unity.tres" id="2_oxrno"]
+[ext_resource type="Resource" uid="uid://bmnaf6e024loe" path="res://abilities/definitions/economy/loyalty.tres" id="3_ng3ow"]
+[ext_resource type="Texture2D" uid="uid://dkhsre7b28il2" path="res://cards/images/unit/dwarf/concord_thane_ukhric.png" id="4_udspk"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_x6oqr"]
+
+[resource]
+script = ExtResource("4_x6oqr")
+card_id = "concord_thane_ukhric"
+card_name = "Concord Thane, Ukhric"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 4
+ap = 5
+dp = 1
+abilities = Array[ExtResource("1_g1bvf")]([ExtResource("2_oxrno"), ExtResource("3_ng3ow")])
+lore_text = "\"Trust is an emotion for the short-lived. We deal in longevity. We will be here when they fall.\""
+card_art = ExtResource("4_udspk")
+metadata/_custom_type_script = "uid://20ngslec6o41"

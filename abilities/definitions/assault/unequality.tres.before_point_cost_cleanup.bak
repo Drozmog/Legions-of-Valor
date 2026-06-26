@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://c5182814ucjjo"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_mgbjw"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_0wywi"]
+
+[resource]
+script = ExtResource("2_0wywi")
+ability_id = &"unequality"
+ability_name = "Unequality"
+point_cost = 3.0
+trigger = "combat_power"
+rules_text = "Gain +1 AP for every unit on your battlefield that is not an orc
+
+Point Cost: 3.0"
+icon = ExtResource("1_mgbjw")
+handler_id = &"unequality"

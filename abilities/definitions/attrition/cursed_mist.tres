@@ -10,8 +10,6 @@ ability_name = "Cursed mist"
 category = "attrition"
 point_cost = 6.0
 trigger = "active"
-rules_text = "Opponent discards 1 card from his hand and loses 1 aurion
-
-Point Cost: 6.0"
+rules_text = "Opponent discards 1 card from his hand and loses 1 aurion"
 icon = ExtResource("1_p0ors")
 handler_id = &"cursed_mist"

@@ -9,8 +9,6 @@ ability_id = &"haste"
 ability_name = "Haste"
 point_cost = 3.5
 trigger = "combat_power"
-rules_text = "If there were any promotions this turn, this unit gains +2 AP
-
-Point Cost: 3.5"
+rules_text = "If there were any promotions this turn, this unit gains +2 AP"
 icon = ExtResource("1_se5bk")
 handler_id = &"haste"

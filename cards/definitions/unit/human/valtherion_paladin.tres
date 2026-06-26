@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dlnsfjeaq00dt"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_i60dq"]
+[ext_resource type="Resource" uid="uid://brf6ijbciykmt" path="res://abilities/definitions/assault/challenger.tres" id="2_7s72p"]
+[ext_resource type="Resource" uid="uid://m5572bpoy6e5" path="res://abilities/definitions/economy/martyrdom.tres" id="3_ie0ir"]
+[ext_resource type="Texture2D" uid="uid://25egurwc5k4a" path="res://cards/images/unit/human/valtherion_paladin.png" id="4_f0m23"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_r20yq"]
+
+[resource]
+script = ExtResource("4_r20yq")
+card_id = "valtherion_paladin"
+card_name = "Valtherion Paladin"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 5
+ap = 6
+dp = 1
+abilities = Array[ExtResource("1_i60dq")]([ExtResource("2_7s72p"), ExtResource("3_ie0ir")])
+lore_text = "“Our god is not one to leave us in the snow. Dominion. That is what he desires. Pure dominion. Draw your blade and face me”"
+card_art = ExtResource("4_f0m23")
+metadata/_custom_type_script = "uid://20ngslec6o41"

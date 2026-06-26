@@ -9,8 +9,6 @@ ability_id = &"chain_down"
 ability_name = "Chain Down"
 category = "control"
 point_cost = 6.0
-rules_text = "Unit cannot attack/move next turn.
-
-Point Cost: 6.0"
+rules_text = "Unit cannot attack/move next turn."
 icon = ExtResource("1_4bu5j")
 handler_id = &"chain_down"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://3p2xumef54y6"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_tflp3"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_54u5o"]
+
+[resource]
+script = ExtResource("2_54u5o")
+ability_id = &"logistics_shield"
+ability_name = "Logistics Shield"
+category = "economy"
+point_cost = 4.0
+trigger = "parry_check"
+rules_text = "If this is your only card in a successful parry chain: Add to Tribute pile for +1 Temporary TP next turn
+
+Point Cost: 4.0"
+icon = ExtResource("1_tflp3")
+handler_id = &"logistics_shield"

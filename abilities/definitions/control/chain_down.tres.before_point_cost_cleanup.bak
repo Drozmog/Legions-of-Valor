@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cwecqrltnqj18"]
+
+[ext_resource type="Texture2D" uid="uid://dm3t73y1f3ida" path="res://ui/ability_icons/control.png" id="1_4bu5j"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_m57at"]
+
+[resource]
+script = ExtResource("2_m57at")
+ability_id = &"chain_down"
+ability_name = "Chain Down"
+category = "control"
+point_cost = 6.0
+rules_text = "Unit cannot attack/move next turn.
+
+Point Cost: 6.0"
+icon = ExtResource("1_4bu5j")
+handler_id = &"chain_down"

@@ -10,8 +10,6 @@ ability_name = "Brugo's accord"
 category = "attrition"
 point_cost = 14.0
 trigger = "active"
-rules_text = "The opponent discards his entire hand but keeps 1 card of their choosing
-
-Point Cost: 14.0"
+rules_text = "The opponent discards his entire hand but keeps 1 card of their choosing"
 icon = ExtResource("1_1qper")
 handler_id = &"brugos_accord"

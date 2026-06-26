@@ -10,8 +10,6 @@ ability_name = "Transmute"
 category = "economy"
 point_cost = 6.0
 trigger = "on_draw"
-rules_text = "Discard 2 cards; draw 3 cards.
-
-Point Cost: 6.0"
+rules_text = "Discard 2 cards; draw 3 cards."
 icon = ExtResource("1_ot37b")
 handler_id = &"transmute"

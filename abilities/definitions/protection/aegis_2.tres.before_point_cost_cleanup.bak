@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://pg76am6whg1m"]
+
+[ext_resource type="Texture2D" uid="uid://rnm6k1ixvbv" path="res://ui/ability_icons/protection.png" id="1_jxel8"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_0ct0t"]
+
+[resource]
+script = ExtResource("2_0ct0t")
+ability_id = &"aegis_2"
+ability_name = "Aegis"
+category = "protection"
+point_cost = 4.0
+trigger = "protection_check"
+rules_text = "This unit cannot be targeted or destroyed by opponent's Event cards.
+
+Point Cost: 4.0"
+icon = ExtResource("1_jxel8")
+handler_id = &"aegis_2"

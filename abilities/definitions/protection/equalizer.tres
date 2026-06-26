@@ -9,8 +9,6 @@ ability_id = &"equalizer"
 ability_name = "Equalizer"
 category = "protection"
 point_cost = 2.0
-rules_text = "Both units defeated if Attacker AP is exactly +1 higher.
-
-Point Cost: 2.0"
+rules_text = "Both units defeated if Attacker AP is exactly +1 higher."
 icon = ExtResource("1_t8p6s")
 handler_id = &"equalizer"

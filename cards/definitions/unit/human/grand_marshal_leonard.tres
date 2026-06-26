@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://hmc4rdywos6g"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_lnwjw"]
+[ext_resource type="Resource" uid="uid://e6id3lwur7gg" path="res://abilities/definitions/economy/wrath_of_aurion.tres" id="2_lnwjw"]
+[ext_resource type="Resource" uid="uid://caghb2folofmt" path="res://abilities/definitions/economy/rebound.tres" id="3_l0m68"]
+[ext_resource type="Texture2D" uid="uid://vp3lli2x6xkl" path="res://cards/images/unit/human/grand_marshal_leonard.png" id="4_46m8k"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_03nel"]
+
+[resource]
+script = ExtResource("5_03nel")
+card_id = "grand_marshal_leonard"
+card_name = "Grand Marshal Leonard"
+race = "human"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 7
+ap = 11
+dp = 3
+abilities = Array[ExtResource("1_lnwjw")]([ExtResource("2_lnwjw"), ExtResource("3_l0m68")])
+lore_text = "“Learn to live outside the fury of the charge, Rykard. I can't have my best man break lines every now and then because he considers himself the entire Vanguard. Be measured”"
+card_art = ExtResource("4_46m8k")
+metadata/_custom_type_script = "uid://20ngslec6o41"

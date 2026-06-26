@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://oy57464v1evf"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_h8ioq"]
+[ext_resource type="Resource" uid="uid://cnrp7k2o231lc" path="res://abilities/definitions/assault/momentum.tres" id="2_s5uu3"]
+[ext_resource type="Texture2D" uid="uid://hxrauuun7jg3" path="res://cards/images/unit/human/hector_calith_marine.png" id="3_h8ioq"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_dck7r"]
+
+[resource]
+script = ExtResource("5_dck7r")
+card_id = "hector_calith_marine"
+card_name = "Hector, Calith Marine"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 2
+abilities = Array[ExtResource("1_h8ioq")]([ExtResource("2_s5uu3")])
+lore_text = "“They thought the river would protect their flank until our sappers set the water on fire.”"
+card_art = ExtResource("3_h8ioq")
+metadata/_custom_type_script = "uid://20ngslec6o41"

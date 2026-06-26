@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c2nfi3lbdoxoe"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_h72dn"]
+[ext_resource type="Resource" uid="uid://bmnaf6e024loe" path="res://abilities/definitions/economy/loyalty.tres" id="2_h72dn"]
+[ext_resource type="Resource" uid="uid://btib1l61b715i" path="res://abilities/definitions/protection/infiltrator.tres" id="3_oi21p"]
+[ext_resource type="Texture2D" uid="uid://civeljxl3meec" path="res://cards/images/unit/human/captain_rodry.png" id="4_llhpy"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_xspof"]
+
+[resource]
+script = ExtResource("5_xspof")
+card_id = "captain_rodry"
+card_name = "Captain Rodry"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 6
+ap = 8
+dp = 3
+abilities = Array[ExtResource("1_h72dn")]([ExtResource("2_h72dn"), ExtResource("3_oi21p")])
+lore_text = "“Early marks of a commander eh, Rykard? Maybe you can retire sooner than you thought” - Grand Marshal Leonard"
+card_art = ExtResource("4_llhpy")
+metadata/_custom_type_script = "uid://20ngslec6o41"

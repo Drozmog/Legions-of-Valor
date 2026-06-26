@@ -10,8 +10,6 @@ ability_name = "Plated"
 category = "protection"
 point_cost = 6.0
 trigger = "protection_check"
-rules_text = "Discard this equipment to prevent the unit’s destruction.
-
-Point Cost: 6.0"
+rules_text = "Discard this equipment to prevent the unit’s destruction."
 icon = ExtResource("1_kyosv")
 handler_id = &"plated"

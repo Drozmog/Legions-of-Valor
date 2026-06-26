@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://gsgdmy6b2qhv"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_g7iu4"]
+[ext_resource type="Resource" uid="uid://cew5pjbkp6qlm" path="res://abilities/definitions/assault/delirium.tres" id="2_vtcna"]
+[ext_resource type="Texture2D" uid="uid://cjtkbdc03s1yq" path="res://cards/images/unit/human/cultist_of_the_spark.png" id="3_6ly3y"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="3_phtcn"]
+
+[resource]
+script = ExtResource("3_phtcn")
+card_id = "cultist_of_the_spark"
+card_name = "Cultist of the Spark"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 3
+dp = 1
+abilities = Array[ExtResource("1_g7iu4")]([ExtResource("2_vtcna")])
+lore_text = "\"Surely Zis'al was the smartest of the Elven lot before he joined us? How does that make you question his sanity and not endorse our mission?\""
+card_art = ExtResource("3_6ly3y")
+metadata/_custom_type_script = "uid://20ngslec6o41"

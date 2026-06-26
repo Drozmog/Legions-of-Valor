@@ -10,8 +10,6 @@ ability_name = "Intelligence"
 category = "insight"
 point_cost = 5.0
 trigger = "active"
-rules_text = "Active: Once per turn, look at 1 card from your opponent's hand
-
-Point Cost: 5.0"
+rules_text = "Active: Once per turn, look at 1 card from your opponent's hand"
 icon = ExtResource("1_c5326")
 handler_id = &"intelligence"

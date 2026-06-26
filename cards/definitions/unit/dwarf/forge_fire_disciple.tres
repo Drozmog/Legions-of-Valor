@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://v8hfmdc11mf6"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_8y2sx"]
+[ext_resource type="Resource" uid="uid://3p2xumef54y6" path="res://abilities/definitions/economy/logistics_shield.tres" id="2_8y2sx"]
+[ext_resource type="Texture2D" uid="uid://dlhulwlhmnj04" path="res://cards/images/unit/dwarf/forge_fire_disciple.png" id="3_j7blk"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_42w0n"]
+
+[resource]
+script = ExtResource("4_42w0n")
+card_id = "forge_fire_disciple"
+card_name = "Forge Fire Disciple"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 4
+ap = 5
+dp = 1
+abilities = Array[ExtResource("1_8y2sx")]([ExtResource("2_8y2sx")])
+lore_text = "\"Lord Dalmir this. Lord Dalmir that. Why don't you grow a brain yourself?\" - High Priest Dalmir"
+card_art = ExtResource("3_j7blk")
+metadata/_custom_type_script = "uid://20ngslec6o41"

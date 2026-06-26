@@ -9,8 +9,6 @@ ability_id = &"ravage"
 ability_name = "Ravage"
 point_cost = 4.0
 trigger = "on_clash_won"
-rules_text = "If unit wins a Clash, Monarch takes +1 Aurion overflow.
-
-Point Cost: 4.0"
+rules_text = "If unit wins a Clash, Monarch takes +1 Aurion overflow."
 icon = ExtResource("1_mp0j5")
 handler_id = &"ravage"

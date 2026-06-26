@@ -9,8 +9,6 @@ ability_id = &"unity"
 ability_name = "Unity"
 point_cost = 2.0
 trigger = "combat_power"
-rules_text = "This unit gets AP +1 for each unit of the same race on your Frontline.
-
-Point Cost: 2.0"
+rules_text = "This unit gets AP +1 for each unit of the same race on your Frontline."
 icon = ExtResource("1_n1c3k")
 handler_id = &"unity"

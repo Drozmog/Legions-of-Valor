@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b38nbkeno0dyy"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_28upy"]
+[ext_resource type="Resource" uid="uid://dm5tfr775mq4b" path="res://abilities/definitions/attrition/wrath.tres" id="2_g4yjl"]
+[ext_resource type="Resource" uid="uid://dp8kcatyql8r3" path="res://abilities/definitions/assault/bloodthirst.tres" id="3_euu4c"]
+[ext_resource type="Texture2D" uid="uid://cox88lycwycva" path="res://cards/images/unit/neutral/quirky_hello_kitty.png" id="4_1lvyb"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_u4lkp"]
+
+[resource]
+script = ExtResource("4_u4lkp")
+card_id = "quirky_hello_kitty"
+card_name = "Quirky Hello Kitty"
+race = "neutral"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 4
+dp = 2
+abilities = Array[ExtResource("1_28upy")]([ExtResource("2_g4yjl"), ExtResource("3_euu4c")])
+lore_text = "“Meow meow bau bau” - Kuromi"
+card_art = ExtResource("4_1lvyb")
+metadata/_custom_type_script = "uid://20ngslec6o41"

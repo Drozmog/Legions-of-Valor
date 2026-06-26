@@ -10,8 +10,6 @@ ability_name = "Handicap"
 category = "control"
 point_cost = 6.0
 trigger = "combat_power"
-rules_text = "All enemy units have -1 AP this turn
-
-Point Cost: 6.0"
+rules_text = "All enemy units have -1 AP this turn"
 icon = ExtResource("1_iw6yi")
 handler_id = &"handicap"

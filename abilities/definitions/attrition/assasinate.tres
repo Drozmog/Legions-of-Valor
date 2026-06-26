@@ -9,8 +9,6 @@ ability_id = &"assasinate"
 ability_name = "Assasinate"
 category = "attrition"
 point_cost = 14.0
-rules_text = "Destroy an enemy unit instantly.
-
-Point Cost: 14.0"
+rules_text = "Destroy an enemy unit instantly."
 icon = ExtResource("1_807r3")
 handler_id = &"assasinate"

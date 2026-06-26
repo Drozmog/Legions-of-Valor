@@ -10,8 +10,6 @@ ability_name = "Feint"
 category = "control"
 point_cost = 3.0
 trigger = "attack_targeting"
-rules_text = "No -2 AP penalty on Cautious Strike.
-
-Point Cost: 3.0"
+rules_text = "No -2 AP penalty on Cautious Strike."
 icon = ExtResource("1_q0epj")
 handler_id = &"feint"

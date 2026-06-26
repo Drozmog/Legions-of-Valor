@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://04lhxoxsxego"]
+
+[ext_resource type="Texture2D" uid="uid://dm3t73y1f3ida" path="res://ui/ability_icons/control.png" id="1_0f0ek"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_ux25e"]
+
+[resource]
+script = ExtResource("2_ux25e")
+ability_id = &"dampen"
+ability_name = "Dampen"
+category = "control"
+point_cost = 4.0
+rules_text = "Enemy units in this lane lose all bonuses from Equipment.
+
+Point Cost: 4.0"
+icon = ExtResource("1_0f0ek")
+handler_id = &"dampen"

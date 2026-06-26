@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dj3fn70ih5rie"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_limu8"]
+[ext_resource type="Resource" uid="uid://cycqlnt2aklay" path="res://abilities/definitions/control/swift.tres" id="2_limu8"]
+[ext_resource type="Resource" uid="uid://ydogstqqelor" path="res://abilities/definitions/protection/spiked.tres" id="3_nvrq0"]
+[ext_resource type="Texture2D" uid="uid://b00bre6giprjx" path="res://cards/images/unit/human/commander_rykard.png" id="4_4dyi8"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_ayd7n"]
+
+[resource]
+script = ExtResource("5_ayd7n")
+card_id = "commander_rykard"
+card_name = "Commander Rykard"
+race = "human"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 7
+ap = 9
+dp = 2
+abilities = Array[ExtResource("1_limu8")]([ExtResource("2_limu8"), ExtResource("3_nvrq0")])
+lore_text = "“Why Rodry? Why take the young captain and leave a broken thing like me in the mud of Valenreach?”"
+card_art = ExtResource("4_4dyi8")
+metadata/_custom_type_script = "uid://20ngslec6o41"

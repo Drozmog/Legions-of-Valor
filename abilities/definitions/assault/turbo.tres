@@ -9,8 +9,6 @@ ability_id = &"turbo"
 ability_name = "Turbo"
 point_cost = 3.5
 trigger = "combat_power"
-rules_text = "Gain +2 AP if another unit has already attacked this turn.
-
-Point Cost: 3.5"
+rules_text = "Gain +2 AP if another unit has already attacked this turn."
 icon = ExtResource("1_0chej")
 handler_id = &"turbo"

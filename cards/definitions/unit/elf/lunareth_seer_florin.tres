@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_nn01h"]
 [ext_resource type="Texture2D" uid="uid://c32vn6a80k3yf" path="res://cards/images/unit/elf/lunareth_seer_florin.png" id="1_qdsu8"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_nn01h"]
+[ext_resource type="Resource" uid="uid://cycqlnt2aklay" path="res://abilities/definitions/control/swift.tres" id="2_qo2iq"]
 
 [resource]
 script = ExtResource("2_nn01h")
@@ -13,8 +14,7 @@ card_type = "unit"
 rarity = "normal"
 tribute_cost = 3
 ap = 4
-ability_text = "Swift : This unit cannot be parried."
-ability_types = Array[String](["control"])
+abilities = Array[ExtResource("1_nn01h")]([ExtResource("2_qo2iq")])
 lore_text = "“The gold beneath the earth is an infectious fever. The moon is the only thing that remains pure. Come back, The lunar goddess demands it”"
 card_art = ExtResource("1_qdsu8")
 metadata/_custom_type_script = "uid://20ngslec6o41"

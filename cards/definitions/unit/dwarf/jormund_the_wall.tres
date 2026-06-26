@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://d1qgvx4o2436a"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_dcj4f"]
+[ext_resource type="Texture2D" uid="uid://hn33qu2wlymd" path="res://cards/images/unit/dwarf/jormund_the_wall.png" id="2_1u04j"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_m276w"]
+[ext_resource type="Resource" uid="uid://dsb0lf5f3wxd6" path="res://abilities/definitions/economy/endless_stream.tres" id="2_r4mx1"]
+
+[resource]
+script = ExtResource("2_m276w")
+card_id = "jormund_the_wall"
+card_name = "Jormund, The Wall"
+race = "dwarf"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 7
+ap = 11
+dp = 4
+abilities = Array[ExtResource("1_dcj4f")]([ExtResource("2_r4mx1")])
+lore_text = "No entity has yet to pass through a gate guarded by Jormund. \"You built a beautiful dream out of leaves, Ferelin. But stone doesn't need beauty to survive an axe.\""
+card_art = ExtResource("2_1u04j")
+metadata/_custom_type_script = "uid://20ngslec6o41"

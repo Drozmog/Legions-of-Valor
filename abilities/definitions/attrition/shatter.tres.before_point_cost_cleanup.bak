@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://d4k3duulc1uyl"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_6w5c4"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_i1ebt"]
+
+[resource]
+script = ExtResource("2_i1ebt")
+ability_id = &"shatter"
+ability_name = "Shatter"
+category = "attrition"
+point_cost = 4.0
+trigger = "on_monarch_strike"
+rules_text = "On Monarch Strike: Opponent discards 1 card from their hand.
+
+Point Cost: 4.0"
+icon = ExtResource("1_6w5c4")
+handler_id = &"shatter"

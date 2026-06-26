@@ -9,8 +9,6 @@ ability_id = &"bloodthirst"
 ability_name = "Bloodthirst"
 point_cost = 8.0
 trigger = "on_clash_won"
-rules_text = "If this unit defeats an enemy unit, it can attack a second time this turn.
-
-Point Cost: 8.0"
+rules_text = "If this unit defeats an enemy unit, it can attack a second time this turn."
 icon = ExtResource("1_in558")
 handler_id = &"bloodthirst"

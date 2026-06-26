@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c5hpnhlcs8233"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_d2wln"]
+[ext_resource type="Texture2D" uid="uid://ctgdfkhndqx53" path="res://cards/images/unit/dwarf/vorn_vek_legionnaire.png" id="2_d2wln"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="3_4djlp"]
+
+[resource]
+script = ExtResource("3_4djlp")
+card_id = "vorn_vek_legionnaire"
+card_name = "Vorn Vek Legionnaire"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 3
+ap = 6
+dp = 2
+lore_text = "\"Hold formation! The mountain doesn't move, and neither do we.\""
+card_art = ExtResource("2_d2wln")
+metadata/_custom_type_script = "uid://20ngslec6o41"

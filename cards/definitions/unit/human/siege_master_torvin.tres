@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ck2enblbttfor"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_tlhb0"]
+[ext_resource type="Resource" uid="uid://cxe5vsb63n48q" path="res://abilities/definitions/assault/challenger_advanced.tres" id="2_kvfnm"]
+[ext_resource type="Resource" uid="uid://btib1l61b715i" path="res://abilities/definitions/protection/infiltrator.tres" id="3_n02dd"]
+[ext_resource type="Texture2D" uid="uid://rnvk6a3fc7t5" path="res://cards/images/unit/human/siege_master_torvin.png" id="4_2ls2r"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_jqrcw"]
+
+[resource]
+script = ExtResource("4_jqrcw")
+card_id = "siege_master_torvin"
+card_name = "Siege-Master Torvin"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 6
+ap = 7
+dp = 3
+abilities = Array[ExtResource("1_tlhb0")]([ExtResource("2_kvfnm"), ExtResource("3_n02dd")])
+lore_text = "“The Elves spent six thousand years singing to these trees. It took my engines six days to make a glass road.”"
+card_art = ExtResource("4_2ls2r")
+metadata/_custom_type_script = "uid://20ngslec6o41"

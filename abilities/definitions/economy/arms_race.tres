@@ -9,8 +9,6 @@ ability_id = &"arms_race"
 ability_name = "Arms Race"
 category = "economy"
 point_cost = 12.0
-rules_text = "Go through your deck to find 2 equipment cards, equip them on any unit. Shuffle your deck afterwards
-
-Point Cost: 12.0"
+rules_text = "Go through your deck to find 2 equipment cards, equip them on any unit. Shuffle your deck afterwards"
 icon = ExtResource("1_bln2d")
 handler_id = &"arms_race"

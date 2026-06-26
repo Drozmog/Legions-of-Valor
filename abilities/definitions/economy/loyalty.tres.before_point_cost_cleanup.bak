@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://bmnaf6e024loe"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_vnqn0"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_embhg"]
+
+[resource]
+script = ExtResource("2_embhg")
+ability_id = &"loyalty"
+ability_name = "Loyalty"
+category = "economy"
+point_cost = 4.0
+trigger = "deployment_cost"
+rules_text = "This unit costs 1 less TP if it is deployed as a promotion.
+
+Point Cost: 4.0"
+icon = ExtResource("1_vnqn0")
+handler_id = &"loyalty"

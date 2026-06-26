@@ -8,8 +8,6 @@ script = ExtResource("2_7v70n")
 ability_id = &"duelist"
 ability_name = "Duelist"
 point_cost = 2.0
-rules_text = "This unit gains +2 AP if it is your only unit on the frontline
-
-Point Cost: 2.0"
+rules_text = "This unit gains +2 AP if it is your only unit on the frontline"
 icon = ExtResource("1_5u68n")
 handler_id = &"duelist"

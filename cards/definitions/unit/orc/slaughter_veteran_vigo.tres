@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dssr5nts3qduj"]
 
 [ext_resource type="Texture2D" uid="uid://2axd31w43ug2" path="res://cards/images/unit/orc/slaughter_veteran_vigo.png" id="1_hacb1"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_hjcff"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_hjcff"]
 
 [resource]

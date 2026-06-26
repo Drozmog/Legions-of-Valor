@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cu4veimy0q33o"]
 
-[ext_resource type="Texture2D" uid="uid://e2e6hm7qcchs" path="res://cards/images/unit/dwarf/architect_of_the_deep.png" id="1_0bh7r"]
+[ext_resource type="Texture2D" uid="uid://dlyepoi2ijlds" path="res://cards/images/unit/dwarf/architect_of_the_deep.png" id="1_0bh7r"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_y11h7"]
+[ext_resource type="Resource" uid="uid://bmnaf6e024loe" path="res://abilities/definitions/economy/loyalty.tres" id="2_38aa5"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_n4cxd"]
 
 [resource]
@@ -10,11 +12,10 @@ card_name = "Architect of the Deep"
 race = "dwarf"
 card_type = "unit"
 rarity = "normal"
-tribute_cost = 6
-ap = 8
+tribute_cost = 5
+ap = 7
 dp = 3
-ability_text = "Loyalty : Costs 1 less Mana if placed on same race."
-lore_text = "\"If a force can reshape the surface but leave us untouched, it is nothing to fear.\""
+abilities = Array[ExtResource("1_y11h7")]([ExtResource("2_38aa5")])
+lore_text = "\"Velgrum doesn't find jokes about his height funny. They go over his head\""
 card_art = ExtResource("1_0bh7r")
-ability_types = Array[String](["economy"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

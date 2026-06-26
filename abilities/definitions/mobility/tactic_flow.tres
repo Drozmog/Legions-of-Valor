@@ -10,8 +10,6 @@ ability_name = "Tactic: Flow"
 category = "mobility"
 point_cost = 8.0
 trigger = "attack_targeting"
-rules_text = "Reposition: Move 1 unit to side lane.
-
-Point Cost: 8.0"
+rules_text = "Reposition: Move 1 unit to side lane."
 icon = ExtResource("1_uyey8")
 handler_id = &"tactic_flow"

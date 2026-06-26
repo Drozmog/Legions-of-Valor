@@ -9,8 +9,6 @@ ability_id = &"break"
 ability_name = "Break"
 category = "attrition"
 point_cost = 8.0
-rules_text = "Destroy all enemy equipment.
-
-Point Cost: 8.0"
+rules_text = "Destroy all enemy equipment."
 icon = ExtResource("1_cakr8")
 handler_id = &"break"

@@ -9,8 +9,6 @@ ability_id = &"silent_skill"
 ability_name = "Silent Skill"
 category = "economy"
 point_cost = 2.5
-rules_text = "If this unit did not attack last turn, gain +1 Temp Mana.
-
-Point Cost: 2.5"
+rules_text = "If this unit did not attack last turn, gain +1 Temp Mana."
 icon = ExtResource("1_55gsf")
 handler_id = &"silent_skill"

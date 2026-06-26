@@ -10,8 +10,6 @@ ability_name = "Harvest"
 category = "economy"
 point_cost = 10.0
 trigger = "on_draw"
-rules_text = "Add the top card of your draw deck to your Tribute Pile as +1 permanent TP
-
-Point Cost: 10.0"
+rules_text = "Add the top card of your draw deck to your Tribute Pile as +1 permanent TP"
 icon = ExtResource("1_5u0ne")
 handler_id = &"harvest"

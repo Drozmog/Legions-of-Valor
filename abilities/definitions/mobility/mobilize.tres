@@ -10,8 +10,6 @@ ability_name = "Mobilize"
 category = "mobility"
 point_cost = 2.5
 trigger = "active"
-rules_text = "Active: This unit can move to an adjacent lane once per turn
-
-Point Cost: 2.5"
+rules_text = "Active: This unit can move to an adjacent lane once per turn"
 icon = ExtResource("1_gn2dj")
 handler_id = &"mobilize"

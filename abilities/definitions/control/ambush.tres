@@ -10,8 +10,6 @@ ability_name = "Ambush"
 category = "control"
 point_cost = 4.5
 trigger = "on_deploy"
-rules_text = "If this unit is 2nd in a successful parry-chain: Deploy for free.
-
-Point Cost: 4.5"
+rules_text = "If this unit is 2nd in a successful parry-chain: Deploy for free."
 icon = ExtResource("1_sjbpr")
 handler_id = &"ambush"

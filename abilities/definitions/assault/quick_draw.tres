@@ -9,8 +9,6 @@ ability_id = &"quick_draw"
 ability_name = "Quick-Draw"
 point_cost = 3.5
 trigger = "combat_power"
-rules_text = "If enemy triggered any of your gambits last turn: all your units gain +1 AP
-
-Point Cost: 3.5"
+rules_text = "If enemy triggered any of your gambits last turn: all your units gain +1 AP"
 icon = ExtResource("1_x1ht6")
 handler_id = &"quick_draw"

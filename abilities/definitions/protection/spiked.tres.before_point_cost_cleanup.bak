@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://ydogstqqelor"]
+
+[ext_resource type="Texture2D" uid="uid://rnm6k1ixvbv" path="res://ui/ability_icons/protection.png" id="1_a6l23"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_t4u6j"]
+
+[resource]
+script = ExtResource("2_t4u6j")
+ability_id = &"spiked"
+ability_name = "Spiked"
+category = "protection"
+point_cost = 7.0
+trigger = "on_destroyed"
+rules_text = "If this unit is destroyed in a Clash, the attacker is also destroyed.
+
+Point Cost: 7.0"
+icon = ExtResource("1_a6l23")
+handler_id = &"spiked"

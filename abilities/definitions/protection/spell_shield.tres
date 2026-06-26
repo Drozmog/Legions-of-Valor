@@ -10,8 +10,6 @@ ability_name = "Spell-Shield"
 category = "protection"
 point_cost = 4.0
 trigger = "protection_check"
-rules_text = "This unit is not affected by enemy gambits
-
-Point Cost: 4.0"
+rules_text = "This unit is not affected by enemy gambits"
 icon = ExtResource("1_xcm0n")
 handler_id = &"spell_shield"

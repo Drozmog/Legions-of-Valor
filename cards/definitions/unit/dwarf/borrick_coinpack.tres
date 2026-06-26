@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dipymds76an15"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_ux31k"]
+[ext_resource type="Resource" uid="uid://csu75abuxmpj7" path="res://abilities/definitions/economy/profit.tres" id="2_tkqva"]
+[ext_resource type="Resource" uid="uid://deqnqi7iwq4u8" path="res://abilities/definitions/mobility/lane_shift.tres" id="3_5njhq"]
+[ext_resource type="Texture2D" uid="uid://bl3nabfb5a714" path="res://cards/images/unit/dwarf/borrick_coinpack.png" id="4_6nunj"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_hsp55"]
+
+[resource]
+script = ExtResource("4_hsp55")
+card_id = "borrick_coinpack"
+card_name = "Borrick Coinpack"
+race = "dwarf"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 5
+ap = 7
+dp = 2
+abilities = Array[ExtResource("1_ux31k")]([ExtResource("2_tkqva"), ExtResource("3_5njhq")])
+lore_text = "“A starving hold does not need heroes.
+It needs a road, a yak, and a dwarf too stubborn to turn back.”"
+card_art = ExtResource("4_6nunj")
+metadata/_custom_type_script = "uid://20ngslec6o41"

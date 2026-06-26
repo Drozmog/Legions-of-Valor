@@ -9,8 +9,6 @@ ability_id = &"unequality"
 ability_name = "Unequality"
 point_cost = 3.0
 trigger = "combat_power"
-rules_text = "Gain +1 AP for every unit on your battlefield that is not an orc
-
-Point Cost: 3.0"
+rules_text = "Gain +1 AP for every unit on your battlefield that is not an orc"
 icon = ExtResource("1_mgbjw")
 handler_id = &"unequality"

@@ -10,8 +10,6 @@ ability_name = "Recycle"
 category = "economy"
 point_cost = 3.5
 trigger = "on_discard"
-rules_text = "If this card is discarded from your hand hand: Draw 2 cards.
-
-Point Cost: 3.5"
+rules_text = "If this card is discarded from your hand hand: Draw 2 cards."
 icon = ExtResource("1_ns4ir")
 handler_id = &"recycle"

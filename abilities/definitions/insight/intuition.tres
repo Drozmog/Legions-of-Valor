@@ -10,8 +10,6 @@ ability_name = "Intuition"
 category = "insight"
 point_cost = 3.0
 trigger = "active"
-rules_text = "Active: Once per turn you can look at 1 of your opponents' gambits
-
-Point Cost: 3.0"
+rules_text = "Active: Once per turn you can look at 1 of your opponents' gambits"
 icon = ExtResource("1_omk1h")
 handler_id = &"intuition"

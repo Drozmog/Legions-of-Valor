@@ -10,8 +10,6 @@ ability_name = "Siege"
 category = "mobility"
 point_cost = 3.5
 trigger = "on_attack"
-rules_text = "When attacking from a side Lane, Units in the Centre Lane cannot intercept your attack.
-
-Point Cost: 3.5"
+rules_text = "When attacking from a side Lane, Units in the Centre Lane cannot intercept your attack."
 icon = ExtResource("1_wsir5")
 handler_id = &"siege"

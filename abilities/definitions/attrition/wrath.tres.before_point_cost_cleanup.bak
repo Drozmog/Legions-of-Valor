@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dm5tfr775mq4b"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_71ky0"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_mmhon"]
+
+[resource]
+script = ExtResource("2_mmhon")
+ability_id = &"wrath"
+ability_name = "Wrath"
+category = "attrition"
+point_cost = 5.0
+trigger = "on_deploy"
+rules_text = "On deploy: Destroy all equipment cards in play
+
+Point Cost: 5.0"
+icon = ExtResource("1_71ky0")
+handler_id = &"wrath"

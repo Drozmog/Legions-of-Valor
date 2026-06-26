@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cyrgig4djvx8k"]
 
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_13pod"]
 [ext_resource type="Texture2D" uid="uid://br4u6lbodwahg" path="res://cards/images/unit/orc/orcish_militia.png" id="1_rsu45"]
+[ext_resource type="Resource" uid="uid://wpgrnexw4bcf" path="res://abilities/definitions/mobility/volley.tres" id="2_ji8dn"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_wkb7r"]
 
 [resource]
@@ -12,8 +14,7 @@ card_type = "unit"
 rarity = "normal"
 tribute_cost = 1
 ap = 2
-ability_text = "Volley : This unit can attack diagonal lanes."
+abilities = Array[ExtResource("1_13pod")]([ExtResource("2_ji8dn")])
 lore_text = "\"We lack their Grand Marshal’s discipline, but we got Brugo to show em we also lack a spine\""
 card_art = ExtResource("1_rsu45")
-ability_types = Array[String](["mobility"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

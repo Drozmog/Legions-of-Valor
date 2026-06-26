@@ -2,6 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://bk3si44vfyfqi" path="res://cards/images/unit/elf/bound_behemoth_barsam.png" id="1_vcmdb"]
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_x6kat"]
+[ext_resource type="Resource" uid="uid://t7efghvbudd0" path="res://abilities/definitions/assault/glean_strike.tres" id="2_bqlqm"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_x6kat"]
 
 [resource]
@@ -14,8 +15,7 @@ rarity = "normal"
 tribute_cost = 5
 ap = 8
 dp = 2
-ability_text = "Glean-Strike : This unit gains +3 AP if you have used any insight abilities this turn."
-ability_types = Array[String](["assault"])
+abilities = Array[ExtResource("1_x6kat")]([ExtResource("2_bqlqm")])
 lore_text = "\"Our ancient magic wouldn't be where it is today if it weren't for Barsam. He motivated us to be more powerful slavers\" - Thraal Watcher"
 card_art = ExtResource("1_vcmdb")
 metadata/_custom_type_script = "uid://20ngslec6o41"

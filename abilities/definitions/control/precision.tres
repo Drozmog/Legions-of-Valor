@@ -10,8 +10,6 @@ ability_name = "Precision"
 category = "control"
 point_cost = 4.0
 trigger = "protection_check"
-rules_text = "This unit’s attack ignores any protection abilities
-
-Point Cost: 4.0"
+rules_text = "This unit’s attack ignores any protection abilities"
 icon = ExtResource("1_q5pxa")
 handler_id = &"precision"

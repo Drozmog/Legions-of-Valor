@@ -9,8 +9,6 @@ ability_id = &"banishment"
 ability_name = "Banishment"
 category = "mobility"
 point_cost = 10.0
-rules_text = "All units with TP cost of less than 5 are returned to the player's hands along with any equipment
-
-Point Cost: 10.0"
+rules_text = "All units with TP cost of less than 5 are returned to the player's hands along with any equipment"
 icon = ExtResource("1_f1a21")
 handler_id = &"banishment"

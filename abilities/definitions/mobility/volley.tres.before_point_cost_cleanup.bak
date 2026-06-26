@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://wpgrnexw4bcf"]
+
+[ext_resource type="Texture2D" uid="uid://cibnqwmrcdvtt" path="res://ui/ability_icons/mobility.png" id="1_nye1g"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_g4e12"]
+
+[resource]
+script = ExtResource("2_g4e12")
+ability_id = &"volley"
+ability_name = "Volley"
+category = "mobility"
+point_cost = 2.0
+trigger = "attack_targeting"
+rules_text = "This unit can attack diagonal lanes
+
+Point Cost: 2.0"
+icon = ExtResource("1_nye1g")
+handler_id = &"volley"

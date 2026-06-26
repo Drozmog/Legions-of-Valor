@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://75e5clyjo22n"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_64ogi"]
+[ext_resource type="Resource" uid="uid://cew5pjbkp6qlm" path="res://abilities/definitions/assault/delirium.tres" id="2_1ht7o"]
+[ext_resource type="Texture2D" uid="uid://djbadcv4171e0" path="res://cards/images/unit/human/plague_stricken_exile.png" id="3_64ogi"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_18hnp"]
+
+[resource]
+script = ExtResource("5_18hnp")
+card_id = "plague_stricken_exile"
+card_name = "Plague-Stricken Exile"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 1
+ap = 2
+abilities = Array[ExtResource("1_64ogi")]([ExtResource("2_1ht7o")])
+lore_text = "\"He's been laughing hysterically for the past 4 hours. He cared for me when I broke my leg but this is too much. He is a danger now\" - Giant-Carrior Scout, Taya"
+card_art = ExtResource("3_64ogi")
+metadata/_custom_type_script = "uid://20ngslec6o41"

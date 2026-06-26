@@ -9,8 +9,6 @@ ability_id = &"deflect"
 ability_name = "Deflect"
 category = "protection"
 point_cost = 4.0
-rules_text = "The first card used in a Parry for this unit counts as +2 DP.
-
-Point Cost: 4.0"
+rules_text = "The first card used in a Parry for this unit counts as +2 DP."
 icon = ExtResource("1_fjxyu")
 handler_id = &"deflect"

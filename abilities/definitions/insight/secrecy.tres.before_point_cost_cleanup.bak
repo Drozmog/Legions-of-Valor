@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dtai56wn1xj4p"]
+
+[ext_resource type="Texture2D" uid="uid://yi63soibhi0j" path="res://ui/ability_icons/insight.png" id="1_cfi58"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_qta2f"]
+
+[resource]
+script = ExtResource("2_qta2f")
+ability_id = &"secrecy"
+ability_name = "Secrecy"
+category = "insight"
+point_cost = 2.0
+trigger = "on_deploy"
+rules_text = "On Deploy: Look at 2 cards from your opponent's hand at random
+
+Point Cost: 2.0"
+icon = ExtResource("1_cfi58")
+handler_id = &"secrecy"

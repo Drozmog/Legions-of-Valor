@@ -10,8 +10,6 @@ ability_name = "Vision"
 category = "insight"
 point_cost = 5.0
 trigger = "active"
-rules_text = "Look at the top 3 cards of your deck.
-
-Point Cost: 5.0"
+rules_text = "Look at the top 3 cards of your deck."
 icon = ExtResource("1_5vo0v")
 handler_id = &"vision"

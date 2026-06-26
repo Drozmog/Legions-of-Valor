@@ -10,8 +10,6 @@ ability_name = "Loyalty"
 category = "economy"
 point_cost = 4.0
 trigger = "deployment_cost"
-rules_text = "This unit costs 1 less TP if it is deployed as a promotion.
-
-Point Cost: 4.0"
+rules_text = "This unit costs 1 less TP if it is deployed as a promotion."
 icon = ExtResource("1_vnqn0")
 handler_id = &"loyalty"

@@ -10,8 +10,6 @@ ability_name = "Martyrdom"
 category = "economy"
 point_cost = 4.0
 trigger = "on_destroyed"
-rules_text = "If this unit is attacked and loses the clash, gain +1 Aurion.
-
-Point Cost: 4.0"
+rules_text = "If this unit is attacked and loses the clash, gain +1 Aurion."
 icon = ExtResource("1_dxor6")
 handler_id = &"martyrdom"

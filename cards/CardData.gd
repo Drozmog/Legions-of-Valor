@@ -20,6 +20,7 @@ class_name CardData
 @export var ability_types: Array[String] = []
 
 @export_group("Presentation")
+@export var role: String = ""
 @export_multiline var lore_text: String = ""
 
 @export var card_art: Texture2D

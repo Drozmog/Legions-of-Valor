@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://gvsq8tf3wtg0"]
+
+[ext_resource type="Texture2D" uid="uid://yi63soibhi0j" path="res://ui/ability_icons/insight.png" id="1_5vo0v"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_wq62w"]
+
+[resource]
+script = ExtResource("2_wq62w")
+ability_id = &"vision"
+ability_name = "Vision"
+category = "insight"
+point_cost = 5.0
+trigger = "active"
+rules_text = "Look at the top 3 cards of your deck.
+
+Point Cost: 5.0"
+icon = ExtResource("1_5vo0v")
+handler_id = &"vision"

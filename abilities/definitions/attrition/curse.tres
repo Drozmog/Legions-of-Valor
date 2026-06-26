@@ -10,8 +10,6 @@ ability_name = "Curse"
 category = "attrition"
 point_cost = -2.0
 trigger = "on_destroyed"
-rules_text = "Penalty: On defeat, you discard 1 card from your hand
-
-Point Cost: -2.0"
+rules_text = "Penalty: On defeat, you discard 1 card from your hand"
 icon = ExtResource("1_xulps")
 handler_id = &"curse"

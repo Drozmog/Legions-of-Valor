@@ -10,8 +10,6 @@ ability_name = "One Man Army"
 category = "attrition"
 point_cost = 12.0
 trigger = "active"
-rules_text = "The opponent discards his entire hand but keeps 1 card of their choosing
-
-Point Cost: 12.0"
+rules_text = "The opponent discards his entire hand but keeps 1 card of their choosing"
 icon = ExtResource("1_piv10")
 handler_id = &"one_man_army"

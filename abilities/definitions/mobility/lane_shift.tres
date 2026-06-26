@@ -10,8 +10,6 @@ ability_name = "Lane Shift"
 category = "mobility"
 point_cost = 3.5
 trigger = "active"
-rules_text = "Active: Once per turn this unit can swap lanes with another friendly unit.
-
-Point Cost: 3.5"
+rules_text = "Active: Once per turn this unit can swap lanes with another friendly unit."
 icon = ExtResource("1_u8ntg")
 handler_id = &"lane_shift"

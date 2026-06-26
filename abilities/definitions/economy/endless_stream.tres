@@ -10,8 +10,6 @@ ability_name = "Endless stream"
 category = "economy"
 point_cost = 6.0
 trigger = "on_draw"
-rules_text = "Draw a card for each unit that you defeat
-
-Point Cost: 6.0"
+rules_text = "Draw a card for each unit that you defeat"
 icon = ExtResource("1_2e8lo")
 handler_id = &"endless_stream"

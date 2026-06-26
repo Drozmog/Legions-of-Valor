@@ -10,8 +10,6 @@ ability_name = "Volley"
 category = "mobility"
 point_cost = 2.0
 trigger = "attack_targeting"
-rules_text = "This unit can attack diagonal lanes
-
-Point Cost: 2.0"
+rules_text = "This unit can attack diagonal lanes"
 icon = ExtResource("1_nye1g")
 handler_id = &"volley"

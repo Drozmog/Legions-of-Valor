@@ -10,8 +10,6 @@ ability_name = "Solidify"
 category = "protection"
 point_cost = 3.0
 trigger = "active"
-rules_text = "This unit cannot be moved to another lane by the opponent's effects.
-
-Point Cost: 3.0"
+rules_text = "This unit cannot be moved to another lane by the opponent's effects."
 icon = ExtResource("1_ceon6")
 handler_id = &"solidify"

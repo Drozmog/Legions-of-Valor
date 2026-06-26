@@ -9,8 +9,6 @@ ability_id = &"sovereign"
 ability_name = "Sovereign"
 category = "economy"
 point_cost = 5.0
-rules_text = "Aurion +1 for objective completion
-
-Point Cost: 5.0"
+rules_text = "Aurion +1 for objective completion"
 icon = ExtResource("1_57tn8")
 handler_id = &"sovereign"

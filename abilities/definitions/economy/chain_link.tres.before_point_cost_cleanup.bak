@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://diwhwqga37yol"]
+
+[ext_resource type="Texture2D" uid="uid://fl5w6fiujtbt" path="res://ui/ability_icons/economy.png" id="1_5i8oa"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_ur5eq"]
+
+[resource]
+script = ExtResource("2_ur5eq")
+ability_id = &"chain_link"
+ability_name = "Chain-Link"
+category = "economy"
+point_cost = 4.0
+trigger = "parry_check"
+rules_text = "If this card is 2nd in your Parry Chain: Add to Permanent Tribute
+
+Point Cost: 4.0"
+icon = ExtResource("1_5i8oa")
+handler_id = &"chain_link"

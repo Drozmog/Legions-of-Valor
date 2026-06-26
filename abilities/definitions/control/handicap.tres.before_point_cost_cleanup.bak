@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cg5veb0ypvpf7"]
+
+[ext_resource type="Texture2D" uid="uid://dm3t73y1f3ida" path="res://ui/ability_icons/control.png" id="1_iw6yi"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_45qvm"]
+
+[resource]
+script = ExtResource("2_45qvm")
+ability_id = &"handicap"
+ability_name = "Handicap"
+category = "control"
+point_cost = 6.0
+trigger = "combat_power"
+rules_text = "All enemy units have -1 AP this turn
+
+Point Cost: 6.0"
+icon = ExtResource("1_iw6yi")
+handler_id = &"handicap"

@@ -10,8 +10,6 @@ ability_name = "Sweeping Strike"
 category = "attrition"
 point_cost = 4.0
 trigger = "on_clash_won"
-rules_text = "If this unit wins a Clash, you also discard one opponent's face-down gambit
-
-Point Cost: 4.0"
+rules_text = "If this unit wins a Clash, you also discard one opponent's face-down gambit"
 icon = ExtResource("1_b6t34")
 handler_id = &"sweeping_strike"

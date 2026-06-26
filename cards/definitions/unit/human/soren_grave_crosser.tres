@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c1q87akowpcqn"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_eyt0t"]
+[ext_resource type="Resource" uid="uid://wpgrnexw4bcf" path="res://abilities/definitions/mobility/volley.tres" id="2_f8470"]
+[ext_resource type="Texture2D" uid="uid://dimts87jjrfn8" path="res://cards/images/unit/human/soren_grave_crosser.png" id="3_eyt0t"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_unqvo"]
+
+[resource]
+script = ExtResource("5_unqvo")
+card_id = "soren_grave_crosser"
+card_name = "Soren, Grave Crosser"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 1
+ap = 2
+abilities = Array[ExtResource("1_eyt0t")]([ExtResource("2_f8470")])
+lore_text = "“I didn't survive the frozen hell of the Gravemarch Range to let an Elf tell me where I can camp.”"
+card_art = ExtResource("3_eyt0t")
+metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -10,8 +10,6 @@ ability_name = "Vantage"
 category = "insight"
 point_cost = 5.0
 trigger = "active"
-rules_text = "Active: Instead of attacking, look at the top 3 cards of your opponent's deck, Discard 1.
-
-Point Cost: 5.0"
+rules_text = "Active: Instead of attacking, look at the top 3 cards of your opponent's deck, Discard 1."
 icon = ExtResource("1_tixcw")
 handler_id = &"vantage"

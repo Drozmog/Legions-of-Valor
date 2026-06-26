@@ -10,8 +10,6 @@ ability_name = "Raging cry"
 category = "attrition"
 point_cost = 6.0
 trigger = "on_clash_won"
-rules_text = "When this unit wins a clash: Look at 2 cards in your opponent's hand and discard 1
-
-Point Cost: 6.0"
+rules_text = "When this unit wins a clash: Look at 2 cards in your opponent's hand and discard 1"
 icon = ExtResource("1_dsdnh")
 handler_id = &"raging_cry"

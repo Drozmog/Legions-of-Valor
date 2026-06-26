@@ -10,8 +10,6 @@ ability_name = "Halt"
 category = "control"
 point_cost = 3.0
 trigger = "attack_targeting"
-rules_text = "Enemy units cannot trigger Volley while this unit is deployed.
-
-Point Cost: 3.0"
+rules_text = "Enemy units cannot trigger Volley while this unit is deployed."
 icon = ExtResource("1_8gvme")
 handler_id = &"halt"

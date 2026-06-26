@@ -10,8 +10,6 @@ ability_name = "Resilience"
 category = "economy"
 point_cost = 2.0
 trigger = "on_draw"
-rules_text = "Draw 1 card for every card you discard from your hand while this unit is deployed
-
-Point Cost: 2.0"
+rules_text = "Draw 1 card for every card you discard from your hand while this unit is deployed"
 icon = ExtResource("1_wvgyl")
 handler_id = &"resilience"

@@ -10,8 +10,6 @@ ability_name = "Logistic Specialist (equipment)"
 category = "economy"
 point_cost = 4.0
 trigger = "deployment_cost"
-rules_text = "While equipped on a unit of a particular faction: All units of that faction cost -1 TP
-
-Point Cost: 4.0"
+rules_text = "While equipped on a unit of a particular faction: All units of that faction cost -1 TP"
 icon = ExtResource("1_iquxp")
 handler_id = &"logistic_specialist_equipment"

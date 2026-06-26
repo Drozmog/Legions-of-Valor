@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://diywjriyo41wl"]
 
 [ext_resource type="Texture2D" uid="uid://cavubgtccd1mt" path="res://cards/images/unit/orc/ironhold_raider.png" id="1_fu4ge"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_o5n7o"]
+[ext_resource type="Resource" uid="uid://cycqlnt2aklay" path="res://abilities/definitions/control/swift.tres" id="2_oad7f"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_ve3d4"]
 
 [resource]
@@ -12,8 +14,7 @@ card_type = "unit"
 rarity = "normal"
 tribute_cost = 2
 ap = 3
-ability_text = "Swift : This unit cannot be parried."
+abilities = Array[ExtResource("1_o5n7o")]([ExtResource("2_oad7f")])
 lore_text = "\"We learned early that direct siege against the mountain holds was futile. Shatter their trade wagons! Take the steel!\""
 card_art = ExtResource("1_fu4ge")
-ability_types = Array[String](["control"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

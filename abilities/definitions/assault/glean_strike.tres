@@ -9,8 +9,6 @@ ability_id = &"glean_strike"
 ability_name = "Glean-Strike"
 point_cost = 3.0
 trigger = "combat_power"
-rules_text = "This unit gains +3 AP if you have used any insight abilities this turn
-
-Point Cost: 3.0"
+rules_text = "This unit gains +3 AP if you have used any insight abilities this turn"
 icon = ExtResource("1_ww5dn")
 handler_id = &"glean_strike"

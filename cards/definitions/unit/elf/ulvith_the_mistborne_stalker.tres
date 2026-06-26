@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_v462u"]
 [ext_resource type="Texture2D" uid="uid://b4802n21vaqlf" path="res://cards/images/unit/elf/ulvith_the_mistborne_stalker.png" id="1_vwjxb"]
+[ext_resource type="Resource" uid="uid://f707aiffmp71" path="res://abilities/definitions/mobility/vanish.tres" id="2_jc2sf"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_v462u"]
 
 [resource]
@@ -14,8 +15,7 @@ rarity = "normal"
 tribute_cost = 2
 ap = 3
 dp = 1
-ability_text = "Vanish : When targeted by an enemy unit, this card returns to your hand."
-ability_types = Array[String](["mobility"])
+abilities = Array[ExtResource("1_v462u")]([ExtResource("2_jc2sf")])
 lore_text = "“If you can see me, you're already too late\""
 card_art = ExtResource("1_vwjxb")
 metadata/_custom_type_script = "uid://20ngslec6o41"

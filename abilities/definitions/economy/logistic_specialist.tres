@@ -10,8 +10,6 @@ ability_name = "Logistic Specialist"
 category = "economy"
 point_cost = 4.0
 trigger = "deployment_cost"
-rules_text = "All units of this faction cost -1 TP
-
-Point Cost: 4.0"
+rules_text = "All units of this faction cost -1 TP"
 icon = ExtResource("1_dtmvs")
 handler_id = &"logistic_specialist"

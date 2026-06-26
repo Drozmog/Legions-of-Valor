@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://brsabya23glrj"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_v21hd"]
+[ext_resource type="Resource" uid="uid://bhjw81k0kmdto" path="res://abilities/definitions/assault/pierce.tres" id="2_j8w2o"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_r38hn"]
+[ext_resource type="Resource" uid="uid://dmfipbo2chohk" path="res://abilities/definitions/economy/double_excavate.tres" id="3_7rfan"]
+[ext_resource type="Texture2D" uid="uid://camka345kwe2j" path="res://cards/images/unit/dwarf/hold_knight_siegmere.png" id="4_qab14"]
+
+[resource]
+script = ExtResource("2_r38hn")
+card_id = "hold_knight_siegmere"
+card_name = "Hold-Knight Siegmere"
+race = "dwarf"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 7
+ap = 10
+dp = 2
+abilities = Array[ExtResource("1_v21hd")]([ExtResource("2_j8w2o"), ExtResource("3_7rfan")])
+lore_text = "\"Siegmere carries the heavy tool used to bury kings or clear the dark tunnels after Velgrum does his job. Is it wise giving him so much power?\" - High Priest Dalmir to Concord Thane, Ornbas"
+card_art = ExtResource("4_qab14")
+metadata/_custom_type_script = "uid://20ngslec6o41"

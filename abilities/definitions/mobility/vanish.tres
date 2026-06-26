@@ -9,8 +9,6 @@ ability_id = &"vanish"
 ability_name = "Vanish"
 category = "mobility"
 point_cost = 2.0
-rules_text = "When targeted by an enemy unit, this card returns to your hand
-
-Point Cost: 2.0"
+rules_text = "When targeted by an enemy unit, this card returns to your hand"
 icon = ExtResource("1_qmiuv")
 handler_id = &"vanish"

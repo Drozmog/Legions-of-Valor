@@ -10,8 +10,6 @@ ability_name = "Soul-Tribute"
 category = "economy"
 point_cost = 4.0
 trigger = "on_destroyed"
-rules_text = "On defeat: move this card to your Tribute pile for +1 Temporary TP next turn
-
-Point Cost: 4.0"
+rules_text = "On defeat: move this card to your Tribute pile for +1 Temporary TP next turn"
 icon = ExtResource("1_eh4s2")
 handler_id = &"soul_tribute"

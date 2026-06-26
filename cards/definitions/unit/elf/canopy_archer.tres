@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_fyo78"]
 [ext_resource type="Texture2D" uid="uid://cwowtqrq61vm5" path="res://cards/images/unit/elf/canopy_archer.png" id="1_ngwwt"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_fyo78"]
+[ext_resource type="Resource" uid="uid://wpgrnexw4bcf" path="res://abilities/definitions/mobility/volley.tres" id="2_k41a1"]
 
 [resource]
 script = ExtResource("2_fyo78")
@@ -13,8 +14,7 @@ card_type = "unit"
 rarity = "normal"
 tribute_cost = 2
 ap = 4
-ability_text = "Volley : This unit can attack diagonal lanes."
-ability_types = Array[String](["mobility"])
+abilities = Array[ExtResource("1_fyo78")]([ExtResource("2_k41a1")])
 lore_text = "“They check the trails, never the canopy. They only hear us when the arrow is already set.”"
 card_art = ExtResource("1_ngwwt")
 metadata/_custom_type_script = "uid://20ngslec6o41"

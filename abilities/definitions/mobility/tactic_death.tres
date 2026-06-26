@@ -9,8 +9,6 @@ ability_id = &"tactic_death"
 ability_name = "Tactic: Death"
 category = "mobility"
 point_cost = 11.0
-rules_text = "Banish: Return a unit (4 AP or less) to hand.
-
-Point Cost: 11.0"
+rules_text = "Banish: Return a unit (4 AP or less) to hand."
 icon = ExtResource("1_dytvp")
 handler_id = &"tactic_death"

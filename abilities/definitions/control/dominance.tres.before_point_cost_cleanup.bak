@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://d2bch1656kkvt"]
+
+[ext_resource type="Texture2D" uid="uid://dm3t73y1f3ida" path="res://ui/ability_icons/control.png" id="1_g1w44"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_drayw"]
+
+[resource]
+script = ExtResource("2_drayw")
+ability_id = &"dominance"
+ability_name = "Dominance"
+category = "control"
+point_cost = 3.0
+trigger = "on_defense"
+rules_text = "If your AP is 2 or higher than the defender's AP, defender cannot Parry.
+
+Point Cost: 3.0"
+icon = ExtResource("1_g1w44")
+handler_id = &"dominance"

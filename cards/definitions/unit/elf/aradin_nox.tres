@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_b55s0"]
 [ext_resource type="Texture2D" uid="uid://du2tivhj5syd5" path="res://cards/images/unit/elf/aradin_nox.png" id="1_mthfj"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_b55s0"]
+[ext_resource type="Resource" uid="uid://105bct4omfgg" path="res://abilities/definitions/attrition/inquisition.tres" id="2_o8top"]
+[ext_resource type="Resource" uid="uid://bbq3hhjcq6ihh" path="res://abilities/definitions/control/precision.tres" id="3_813qq"]
 
 [resource]
 script = ExtResource("2_b55s0")
@@ -14,10 +16,7 @@ rarity = "elite"
 tribute_cost = 7
 ap = 11
 dp = 2
-ability_text = "Inquisition : On Deploy: Look at any 3 cards from your opponent's hand and discard 1.
-
-Precision : This unit’s attack ignores any protection abilities."
-ability_types = Array[String](["attrition", "control"])
+abilities = Array[ExtResource("1_b55s0")]([ExtResource("2_o8top"), ExtResource("3_813qq")])
 lore_text = "“Nobody respects you until they fear you. The world is a butcher, Variel. I have chosen the knife.”"
 card_art = ExtResource("1_mthfj")
 metadata/_custom_type_script = "uid://20ngslec6o41"

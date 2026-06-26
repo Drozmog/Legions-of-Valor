@@ -9,8 +9,6 @@ ability_id = &"burdened"
 ability_name = "Burdened"
 category = "control"
 point_cost = -1.0
-rules_text = "Cannot equip another piece of equipment with this
-
-Point Cost: -1.0"
+rules_text = "Cannot equip another piece of equipment with this"
 icon = ExtResource("1_gp07j")
 handler_id = &"burdened"

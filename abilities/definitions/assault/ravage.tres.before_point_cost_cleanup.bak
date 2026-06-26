@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://bbqo7gjwg3laq"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_mp0j5"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_y8pio"]
+
+[resource]
+script = ExtResource("2_y8pio")
+ability_id = &"ravage"
+ability_name = "Ravage"
+point_cost = 4.0
+trigger = "on_clash_won"
+rules_text = "If unit wins a Clash, Monarch takes +1 Aurion overflow.
+
+Point Cost: 4.0"
+icon = ExtResource("1_mp0j5")
+handler_id = &"ravage"

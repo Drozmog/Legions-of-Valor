@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://ks50qyu68gn6"]
+
+[ext_resource type="Texture2D" uid="uid://dm3t73y1f3ida" path="res://ui/ability_icons/control.png" id="1_q0epj"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_d426a"]
+
+[resource]
+script = ExtResource("2_d426a")
+ability_id = &"feint"
+ability_name = "Feint"
+category = "control"
+point_cost = 3.0
+trigger = "attack_targeting"
+rules_text = "No -2 AP penalty on Cautious Strike.
+
+Point Cost: 3.0"
+icon = ExtResource("1_q0epj")
+handler_id = &"feint"

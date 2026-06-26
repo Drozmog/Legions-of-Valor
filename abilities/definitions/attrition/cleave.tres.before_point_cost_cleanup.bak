@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://bwh5ffpie6s7o"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_gpwch"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_x4y8x"]
+
+[resource]
+script = ExtResource("2_x4y8x")
+ability_id = &"cleave"
+ability_name = "Cleave"
+category = "attrition"
+point_cost = 4.0
+trigger = "on_clash_won"
+rules_text = "When this unit wins a clash, opponent must discard a card from his hand
+
+Point Cost: 4.0"
+icon = ExtResource("1_gpwch")
+handler_id = &"cleave"

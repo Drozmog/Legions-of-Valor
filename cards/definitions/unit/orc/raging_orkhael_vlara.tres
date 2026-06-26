@@ -1,7 +1,9 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bh5cm0p27ml4j"]
 
 [ext_resource type="Texture2D" uid="uid://xv1alvo88hwf" path="res://cards/images/unit/orc/raging_orkhael_vlara.png" id="1_3joiq"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_yunpg"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_36kci"]
+[ext_resource type="Resource" uid="uid://craivkmpbdirg" path="res://abilities/definitions/attrition/raging_cry.tres" id="2_bwcg4"]
 
 [resource]
 script = ExtResource("2_36kci")
@@ -13,9 +15,8 @@ rarity = "normal"
 tribute_cost = 4
 ap = 5
 dp = 1
-ability_text = "Raging Cry : When this unit wins a clash; Look at 2 cards in your opponent's hand and discard 1."
+abilities = Array[ExtResource("1_yunpg")]([ExtResource("2_bwcg4")])
 lore_text = "\"She possesses a heightened tolerance for raw exposure,
 but lacks the mind to control the mania.\" -High Chieftain Grog"
 card_art = ExtResource("1_3joiq")
-ability_types = Array[String](["attrition"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

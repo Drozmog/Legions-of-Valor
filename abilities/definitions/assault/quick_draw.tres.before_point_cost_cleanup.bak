@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://xiykuiag8yl0"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_x1ht6"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_5jusd"]
+
+[resource]
+script = ExtResource("2_5jusd")
+ability_id = &"quick_draw"
+ability_name = "Quick-Draw"
+point_cost = 3.5
+trigger = "combat_power"
+rules_text = "If enemy triggered any of your gambits last turn: all your units gain +1 AP
+
+Point Cost: 3.5"
+icon = ExtResource("1_x1ht6")
+handler_id = &"quick_draw"

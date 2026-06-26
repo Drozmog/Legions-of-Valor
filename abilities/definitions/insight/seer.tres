@@ -10,8 +10,6 @@ ability_name = "Seer"
 category = "insight"
 point_cost = 3.0
 trigger = "on_deploy"
-rules_text = "On Deploy: Look at the top 3 cards of your opponent's draw-deck and discard 1.
-
-Point Cost: 3.0"
+rules_text = "On Deploy: Look at the top 3 cards of your opponent's draw-deck and discard 1."
 icon = ExtResource("1_tgrtm")
 handler_id = &"seer"

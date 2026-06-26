@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b0dsr3gfgv4vb"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_vph5h"]
+[ext_resource type="Resource" uid="uid://mjckdlhps3ue" path="res://abilities/definitions/attrition/scorch.tres" id="2_vph5h"]
+[ext_resource type="Texture2D" uid="uid://bykw365eftp22" path="res://cards/images/unit/human/kaelen_the_scorcher.png" id="3_4qt2x"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_6dunm"]
+
+[resource]
+script = ExtResource("4_6dunm")
+card_id = "kaelen_the_scorcher"
+card_name = "Kaelen the Scorcher"
+race = "human"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 3
+dp = 1
+abilities = Array[ExtResource("1_vph5h")]([ExtResource("2_vph5h")])
+lore_text = "“We turn their three-thousand-year-old sanctuaries into clean, flat highways of glass.”"
+card_art = ExtResource("3_4qt2x")
+metadata/_custom_type_script = "uid://20ngslec6o41"

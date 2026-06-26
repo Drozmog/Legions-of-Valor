@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cbllagj4t4hwq"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_sr70p"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_7or4f"]
+
+[resource]
+script = ExtResource("2_7or4f")
+ability_id = &"overrun"
+ability_name = "Overrun"
+point_cost = 6.0
+trigger = "combat_power"
+rules_text = "All your units gain +2 AP this turn.
+
+Point Cost: 6.0"
+icon = ExtResource("1_sr70p")
+handler_id = &"overrun"

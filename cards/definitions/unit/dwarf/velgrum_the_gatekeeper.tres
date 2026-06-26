@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://botutgv6lu1xd"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_k3crv"]
+[ext_resource type="Resource" uid="uid://dsb0lf5f3wxd6" path="res://abilities/definitions/economy/endless_stream.tres" id="2_k3crv"]
+[ext_resource type="Texture2D" uid="uid://cxsbmqm8huux7" path="res://cards/images/unit/dwarf/velgrum_the_gatekeeper.png" id="3_m73qh"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_5lbaa"]
+
+[resource]
+script = ExtResource("4_5lbaa")
+card_id = "velgrum_the_gatekeeper"
+card_name = "Velgrum the Gatekeeper"
+race = "dwarf"
+card_type = "unit"
+rarity = "elite"
+tribute_cost = 6
+ap = 9
+dp = 3
+abilities = Array[ExtResource("1_k3crv")]([ExtResource("2_k3crv")])
+lore_text = "\"When all else fails: seal unrecoverable expeditions and dark tunnels with direct force. Keep the unknown buried. Those are our orders.\""
+card_art = ExtResource("3_m73qh")
+metadata/_custom_type_script = "uid://20ngslec6o41"

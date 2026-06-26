@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dvm8i7f1ksqma"]
 
-[ext_resource type="Texture2D" uid="uid://cs1kyo4hsh0gd" path="res://cards/images/unit/human/imperial_archive_master.png" id="1_v4h3m"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_ibvd5"]
+[ext_resource type="Texture2D" uid="uid://b82fajl0cmqui" path="res://cards/images/unit/human/imperial_archive_master.png" id="1_v4h3m"]
+[ext_resource type="Resource" uid="uid://brkvyye6hr0o" path="res://abilities/definitions/economy/resilience.tres" id="2_dolal"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_ibvd5"]
 
 [resource]
@@ -11,9 +13,8 @@ race = "human"
 card_type = "unit"
 rarity = "normal"
 tribute_cost = 2
-ap = 3
-ability_text = "Resilience : Draw 1 card for every card you discard from your hand while this unit is deployed."
+ap = 4
+abilities = Array[ExtResource("1_ibvd5")]([ExtResource("2_dolal")])
 lore_text = "“Isolate their strongholds. Cut the ancient supply routes, and their magic simply withers.”"
 card_art = ExtResource("1_v4h3m")
-ability_types = Array[String](["economy"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

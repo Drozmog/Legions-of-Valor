@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://bnp15otxd5gjx"]
+
+[ext_resource type="Texture2D" uid="uid://rnm6k1ixvbv" path="res://ui/ability_icons/protection.png" id="1_kyosv"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_mc6kw"]
+
+[resource]
+script = ExtResource("2_mc6kw")
+ability_id = &"plated"
+ability_name = "Plated"
+category = "protection"
+point_cost = 6.0
+trigger = "protection_check"
+rules_text = "Discard this equipment to prevent the unit’s destruction.
+
+Point Cost: 6.0"
+icon = ExtResource("1_kyosv")
+handler_id = &"plated"

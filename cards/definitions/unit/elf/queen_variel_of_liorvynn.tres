@@ -2,7 +2,9 @@
 
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_nrybb"]
 [ext_resource type="Texture2D" uid="uid://8wqxim4uvcdd" path="res://cards/images/unit/elf/queen_variel_of_liorvynn.png" id="1_vpyjd"]
+[ext_resource type="Resource" uid="uid://djq4hdpyigoiq" path="res://abilities/definitions/economy/sovereign.tres" id="2_k814l"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_nrybb"]
+[ext_resource type="Resource" uid="uid://craivkmpbdirg" path="res://abilities/definitions/attrition/raging_cry.tres" id="3_i2d2w"]
 
 [resource]
 script = ExtResource("2_nrybb")
@@ -14,10 +16,7 @@ rarity = "elite"
 tribute_cost = 7
 ap = 10
 dp = 1
-ability_text = "Sovereign : 1+ Aurion for objective completion.
-
-Raging Cry: When this unit wins a clash: Look at 2 cards in your opponent's hand and discard 1."
-ability_types = Array[String](["economy", "attrition"])
+abilities = Array[ExtResource("1_nrybb")]([ExtResource("2_k814l"), ExtResource("3_i2d2w")])
 lore_text = "“We followed rules because we thought they made us holy.
 They made us prey. Today, the doctrine ends.”"
 card_art = ExtResource("1_vpyjd")

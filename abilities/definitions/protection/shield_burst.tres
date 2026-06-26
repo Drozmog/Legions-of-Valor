@@ -10,8 +10,6 @@ ability_name = "Shield Burst"
 category = "protection"
 point_cost = 6.0
 trigger = "parry_check"
-rules_text = "If this is your only card in a successful parry chain: Draw 2 cards
-
-Point Cost: 6.0"
+rules_text = "If this is your only card in a successful parry chain: Draw 2 cards"
 icon = ExtResource("1_l0t27")
 handler_id = &"shield_burst"

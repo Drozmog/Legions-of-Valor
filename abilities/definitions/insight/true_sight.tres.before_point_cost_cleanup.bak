@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://ogduvr24dv0s"]
+
+[ext_resource type="Texture2D" uid="uid://yi63soibhi0j" path="res://ui/ability_icons/insight.png" id="1_53h6r"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_7nvew"]
+
+[resource]
+script = ExtResource("2_7nvew")
+ability_id = &"true_sight"
+ability_name = "True-Sight"
+category = "insight"
+point_cost = 2.0
+trigger = "active"
+rules_text = "Instead of Attacking this turn, you may look at all of the opponent's face-down gambits
+
+Point Cost: 2.0"
+icon = ExtResource("1_53h6r")
+handler_id = &"true_sight"

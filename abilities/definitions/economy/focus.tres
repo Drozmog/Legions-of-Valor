@@ -10,8 +10,6 @@ ability_name = "Focus"
 category = "economy"
 point_cost = 4.0
 trigger = "active"
-rules_text = "Active: Skip attack. Your next face-up Gambit card costs -2 TP
-
-Point Cost: 4.0"
+rules_text = "Active: Skip attack. Your next face-up Gambit card costs -2 TP"
 icon = ExtResource("1_io603")
 handler_id = &"focus"

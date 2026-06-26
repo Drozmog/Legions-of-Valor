@@ -10,8 +10,6 @@ ability_name = "Infiltrator"
 category = "protection"
 point_cost = 2.0
 trigger = "on_attack"
-rules_text = "This unit does not trigger Gambits when attacking.
-
-Point Cost: 2.0"
+rules_text = "This unit does not trigger Gambits when attacking."
 icon = ExtResource("1_rqo1q")
 handler_id = &"infiltrator"

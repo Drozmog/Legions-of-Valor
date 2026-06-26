@@ -10,8 +10,6 @@ ability_name = "Spiked"
 category = "protection"
 point_cost = 7.0
 trigger = "on_destroyed"
-rules_text = "If this unit is destroyed in a Clash, the attacker is also destroyed.
-
-Point Cost: 7.0"
+rules_text = "If this unit is destroyed in a Clash, the attacker is also destroyed."
 icon = ExtResource("1_a6l23")
 handler_id = &"spiked"

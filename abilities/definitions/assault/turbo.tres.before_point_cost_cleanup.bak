@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://dxomypyisfky1"]
+
+[ext_resource type="Texture2D" uid="uid://c5a2l3x80d0ax" path="res://ui/ability_icons/assault.png" id="1_0chej"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_fkmhf"]
+
+[resource]
+script = ExtResource("2_fkmhf")
+ability_id = &"turbo"
+ability_name = "Turbo"
+point_cost = 3.5
+trigger = "combat_power"
+rules_text = "Gain +2 AP if another unit has already attacked this turn.
+
+Point Cost: 3.5"
+icon = ExtResource("1_0chej")
+handler_id = &"turbo"

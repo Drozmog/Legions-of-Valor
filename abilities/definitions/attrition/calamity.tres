@@ -9,8 +9,6 @@ ability_id = &"calamity"
 ability_name = "Calamity"
 category = "attrition"
 point_cost = 12.0
-rules_text = "Discard all units in one lane.
-
-Point Cost: 12.0"
+rules_text = "Discard all units in one lane."
 icon = ExtResource("1_rsss0")
 handler_id = &"calamity"

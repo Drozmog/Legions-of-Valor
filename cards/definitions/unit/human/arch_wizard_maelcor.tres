@@ -1,7 +1,12 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://v38jpetv5aha"]
 
-[ext_resource type="Texture2D" uid="uid://ciuru71wbvway" path="res://cards/images/unit/human/arch_wizard_maelcor.png" id="1_2b2ca"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_uwe2j"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_uq2nh"]
+[ext_resource type="Resource" uid="uid://btvcxoeyipfhh" path="res://abilities/definitions/attrition/terrorize.tres" id="2_uxgso"]
+[ext_resource type="Resource" uid="uid://gvsq8tf3wtg0" path="res://abilities/definitions/insight/vision.tres" id="3_e6p4n"]
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_phc1s"]
+load_path = "res://.godot/imported/arch_wizard_maelcor.png-4d9d9d2e793bf4cc179adb7e92e18096.ctex"
 
 [resource]
 script = ExtResource("2_uq2nh")
@@ -11,12 +16,9 @@ race = "human"
 card_type = "unit"
 rarity = "elite"
 tribute_cost = 7
-ap = 9
+ap = 10
 dp = 2
-ability_text = "Terrorize : On deploy: Opponent must discard 1 card from his hand.
-
-Vision : Look at top 3 cards of your deck."
+abilities = Array[ExtResource("1_uwe2j")]([ExtResource("2_uxgso"), ExtResource("3_e6p4n")])
 lore_text = "Do not ask whether the spell is forbidden. Ask whether your children will live to condemn me for casting it."
-card_art = ExtResource("1_2b2ca")
-ability_types = Array[String](["attrition", "insight"])
+card_art = SubResource("CompressedTexture2D_phc1s")
 metadata/_custom_type_script = "uid://20ngslec6o41"

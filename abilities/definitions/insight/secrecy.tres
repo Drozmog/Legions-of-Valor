@@ -10,8 +10,6 @@ ability_name = "Secrecy"
 category = "insight"
 point_cost = 2.0
 trigger = "on_deploy"
-rules_text = "On Deploy: Look at 2 cards from your opponent's hand at random
-
-Point Cost: 2.0"
+rules_text = "On Deploy: Look at 2 cards from your opponent's hand at random"
 icon = ExtResource("1_cfi58")
 handler_id = &"secrecy"

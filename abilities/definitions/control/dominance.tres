@@ -10,8 +10,6 @@ ability_name = "Dominance"
 category = "control"
 point_cost = 3.0
 trigger = "on_defense"
-rules_text = "If your AP is 2 or higher than the defender's AP, defender cannot Parry.
-
-Point Cost: 3.0"
+rules_text = "If your AP is 2 or higher than the defender's AP, defender cannot Parry."
 icon = ExtResource("1_g1w44")
 handler_id = &"dominance"

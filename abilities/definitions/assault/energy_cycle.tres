@@ -9,8 +9,6 @@ ability_id = &"energy_cycle"
 ability_name = "Energy Cycle"
 point_cost = 4.0
 trigger = "active"
-rules_text = "Active (Once per turn): Skip attack to give adjacent unit +2 AP this turn.
-
-Point Cost: 4.0"
+rules_text = "Active (Once per turn): Skip attack to give adjacent unit +2 AP this turn."
 icon = ExtResource("1_u041o")
 handler_id = &"energy_cycle"

@@ -10,8 +10,6 @@ ability_name = "Shatter"
 category = "attrition"
 point_cost = 4.0
 trigger = "on_monarch_strike"
-rules_text = "On Monarch Strike: Opponent discards 1 card from their hand.
-
-Point Cost: 4.0"
+rules_text = "On Monarch Strike: Opponent discards 1 card from their hand."
 icon = ExtResource("1_6w5c4")
 handler_id = &"shatter"

@@ -11,6 +11,7 @@ signal action_pressed(action_id: int, slot: Node)
 # 280x130 texture ratio = 2.1538
 # X / Z should match that ratio.
 const BUTTON_SIZE := Vector3(0.42, 0.035, 0.195)
+const BUTTON_SURFACE_SIZE := Vector2(BUTTON_SIZE.x, BUTTON_SIZE.z)
 
 const HIDDEN_X := 0.46
 const SHOWN_X := 0.76
@@ -103,8 +104,8 @@ func _build_button(action_id: int, caption: String, node_name: String) -> void:
 	var surface := MeshInstance3D.new()
 	surface.name = "ButtonSurface"
 
-	var mesh := BoxMesh.new()
-	mesh.size = BUTTON_SIZE
+	var mesh := PlaneMesh.new()
+	mesh.size = BUTTON_SURFACE_SIZE
 
 	surface.mesh = mesh
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -117,6 +118,8 @@ func _build_button(action_id: int, caption: String, node_name: String) -> void:
 	material.emission_energy_multiplier = 0.65
 	material.no_depth_test = true
 	material.render_priority = 110
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.texture_repeat = BaseMaterial3D.TEXTURE_REPEAT_DISABLED
 
 	var action_texture := get_action_texture(action_id)
 	if action_texture != null:

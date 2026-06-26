@@ -10,8 +10,6 @@ ability_name = "Siphon"
 category = "economy"
 point_cost = 6.0
 trigger = "on_monarch_strike"
-rules_text = "On monarch Strike: Opponent loses 1 Aurion.
-
-Point Cost: 6.0"
+rules_text = "On monarch Strike: Opponent loses 1 Aurion."
 icon = ExtResource("1_kgonh")
 handler_id = &"siphon"

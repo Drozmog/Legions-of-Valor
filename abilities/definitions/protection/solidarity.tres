@@ -9,8 +9,6 @@ ability_id = &"solidarity"
 ability_name = "Solidarity"
 category = "protection"
 point_cost = 4.0
-rules_text = "Solidarity: This card gains +1 DP for every unit you have on the frontline.
-
-Point Cost: 4.0"
+rules_text = "Solidarity: This card gains +1 DP for every unit you have on the frontline."
 icon = ExtResource("1_b7nul")
 handler_id = &"solidarity"

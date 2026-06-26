@@ -10,8 +10,6 @@ ability_name = "Vortex"
 category = "mobility"
 point_cost = 5.0
 trigger = "combat_power"
-rules_text = "Merge two units in one lane. Combined AP for one turn.
-
-Point Cost: 5.0"
+rules_text = "Merge two units in one lane. Combined AP for one turn."
 icon = ExtResource("1_kw131")
 handler_id = &"vortex"

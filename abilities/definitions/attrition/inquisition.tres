@@ -10,8 +10,6 @@ ability_name = "Inquisition"
 category = "attrition"
 point_cost = 5.0
 trigger = "on_deploy"
-rules_text = "On Deploy: Look at any 3 cards from your opponent's hand. Discard 1
-
-Point Cost: 5.0"
+rules_text = "On Deploy: Look at any 3 cards from your opponent's hand. Discard 1"
 icon = ExtResource("1_yvewg")
 handler_id = &"inquisition"

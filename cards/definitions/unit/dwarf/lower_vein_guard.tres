@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bifah3torsxna"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_yjfxw"]
+[ext_resource type="Resource" uid="uid://nsh5yorcvj6e" path="res://abilities/definitions/economy/refuel.tres" id="2_m587t"]
+[ext_resource type="Texture2D" uid="uid://c34fikrrgk7aj" path="res://cards/images/unit/dwarf/lower_vein_guard.png" id="2_yjfxw"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="3_q3kwc"]
+
+[resource]
+script = ExtResource("3_q3kwc")
+card_id = "lower_vein_guard"
+card_name = "Lower-Vein Guard"
+race = "dwarf"
+card_type = "unit"
+rarity = "normal"
+tribute_cost = 2
+ap = 2
+dp = 1
+abilities = Array[ExtResource("1_yjfxw")]([ExtResource("2_m587t")])
+lore_text = "\"Station them at the thin corridor in the lower vein to report any stone that moves. Not that anyone has ever come back to report anything.\" - Thane Ornbas"
+card_art = ExtResource("2_yjfxw")
+metadata/_custom_type_script = "uid://20ngslec6o41"

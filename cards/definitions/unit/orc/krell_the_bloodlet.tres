@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://d02slkk5uttv3"]
 
 [ext_resource type="Texture2D" uid="uid://20mndsgqkid0" path="res://cards/images/unit/orc/krell_the_bloodlet.png" id="1_5d5w1"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_uacjr"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_uacjr"]
 
 [resource]
