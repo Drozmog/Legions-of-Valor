@@ -19,8 +19,16 @@ const BOTTOM_CARD_Z := 2.20
 const TOP_CARD_Z := -1.12
 const CARD_SURFACE_Y := 0.58
 const TOP_SLOT_X := [-3.35, 0.0, 3.35]
-const SHUFFLE_STEP_TIME := 0.115
+const SHUFFLE_STEP_TIME := 0.075
 const CARD_MOVE_TIME := 0.26
+const INTRO_DEAL_IN_TIME := 0.34
+const INTRO_PREVIEW_TIME := 0.38
+const INTRO_FLIP_TIME := 0.24
+const INTRO_FLIP_STAGGER := 0.035
+const INTRO_SHUFFLE_STEPS := 16
+const INTRO_STACK_TIME := 0.32
+const INTRO_DEAL_OUT_TIME := 0.42
+const INTRO_DEAL_STAGGER := 0.065
 const BUTTON_SIZE := Vector3(0.78, 0.045, 0.362)
 const BUTTON_SURFACE_SIZE := Vector2(BUTTON_SIZE.x, BUTTON_SIZE.z)
 const INSPECTOR_BUTTON_SIZE := Vector2(183.0, 85.0) # 280x130 ratio
@@ -142,7 +150,7 @@ func _create_card_entry(plan: Dictionary, card_index: int, card_count: int) -> D
 	var card_root := Node3D.new()
 	card_root.name = "BattlePlanCard%d" % (card_index + 1)
 	card_root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
-	card_root.position = _bottom_card_position(card_index, card_count) + Vector3(0.0, -0.18, 3.0)
+	card_root.position = _intro_spawn_position(card_index, card_count)
 	card_root.scale = Vector3(0.82, 0.82, 0.82)
 	selection_root.add_child(card_root)
 
@@ -169,9 +177,9 @@ func _create_card_entry(plan: Dictionary, card_index: int, card_count: int) -> D
 
 	var area := Area3D.new()
 	area.name = "CardPickArea"
-	area.collision_layer = CARD_PICK_LAYER
+	area.collision_layer = 0
 	area.collision_mask = 0
-	area.input_ray_pickable = true
+	area.input_ray_pickable = false
 	card_root.add_child(area)
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -191,7 +199,7 @@ func _create_card_entry(plan: Dictionary, card_index: int, card_count: int) -> D
 		"collision": collision,
 		"plan": plan,
 		"state": "intro",
-		"bottom_position": _bottom_card_position(card_index, card_count),
+		"bottom_position": _available_card_position(card_index, card_count),
 		"slot_index": -1,
 	}
 
@@ -199,6 +207,32 @@ func _create_card_entry(plan: Dictionary, card_index: int, card_count: int) -> D
 func _bottom_card_position(card_index: int, card_count: int) -> Vector3:
 	var centered_index := float(card_index) - float(card_count - 1) * 0.5
 	return Vector3(centered_index * 2.05, CARD_SURFACE_Y, BOTTOM_CARD_Z)
+
+
+func _available_card_position(card_index: int, card_count: int) -> Vector3:
+	if card_count >= 5:
+		if card_index < 3:
+			return Vector3((float(card_index) - 1.0) * 2.15, CARD_SURFACE_Y, 0.74)
+		var lower_index := card_index - 3
+		return Vector3((float(lower_index) - 0.5) * 2.15, CARD_SURFACE_Y, BOTTOM_CARD_Z)
+	return _bottom_card_position(card_index, card_count)
+
+
+func _intro_spawn_position(card_index: int, card_count: int) -> Vector3:
+	return _available_card_position(card_index, card_count) + Vector3(0.0, -0.18, 3.15)
+
+
+func _shuffle_center() -> Vector3:
+	return Vector3(0.0, CARD_SURFACE_Y + 0.10, 1.22)
+
+
+func _stack_position() -> Vector3:
+	return Vector3(-2.75, CARD_SURFACE_Y + 0.10, 1.36)
+
+
+func _stack_card_position(card_index: int) -> Vector3:
+	var offset := float(card_index) - float(card_entries.size() - 1) * 0.5
+	return _stack_position() + Vector3(offset * 0.018, offset * 0.012, offset * -0.018)
 
 
 func _show_remaining_plans_directly() -> void:
@@ -383,48 +417,133 @@ func _get_supplied_plan_texture(plan: Dictionary) -> Texture2D:
 
 func _run_intro_sequence(generation: int) -> void:
 	await get_tree().process_frame
-	if generation != animation_generation or not visible:
+	if not _intro_is_current(generation):
 		return
 
-	for card_index in range(card_entries.size()):
+	var card_count := card_entries.size()
+	for card_index in range(card_count):
 		var entry: Dictionary = card_entries[card_index]
 		var root := entry["root"] as Node3D
-		var rise := create_tween()
-		rise.tween_interval(float(card_index) * 0.075)
-		rise.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		rise.tween_property(root, "position", entry["bottom_position"], 0.48)
-		rise.parallel().tween_property(root, "scale", Vector3.ONE, 0.48)
-	await get_tree().create_timer(0.90).timeout
-	if generation != animation_generation or not visible:
+		var visual := entry["visual"] as Node3D
+		entry["state"] = "intro"
+		_set_card_pickable(entry, false)
+		_show_card_front(card_index)
+		if visual != null:
+			visual.rotation_degrees = Vector3.ZERO
+		root.position = _intro_spawn_position(card_index, card_count)
+		root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+		root.scale = Vector3(0.76, 0.76, 0.76)
+		_set_card_glow(entry, false)
+
+	for card_index in range(card_count):
+		var entry: Dictionary = card_entries[card_index]
+		var root := entry["root"] as Node3D
+		var deal_in := create_tween()
+		deal_in.tween_interval(float(card_index) * 0.045)
+		deal_in.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		deal_in.tween_property(root, "position", _available_card_position(card_index, card_count), INTRO_DEAL_IN_TIME)
+		deal_in.parallel().tween_property(root, "scale", Vector3.ONE, INTRO_DEAL_IN_TIME)
+	await get_tree().create_timer(INTRO_DEAL_IN_TIME + float(card_count) * 0.045 + INTRO_PREVIEW_TIME).timeout
+	if not _intro_is_current(generation):
 		return
 
-	for whirl_step in range(12):
-		for card_index in range(card_entries.size()):
+	for card_index in range(card_count):
+		_flip_card_to_back(card_index, generation, float(card_index) * INTRO_FLIP_STAGGER)
+	await get_tree().create_timer(INTRO_FLIP_TIME + float(card_count) * INTRO_FLIP_STAGGER + 0.08).timeout
+	if not _intro_is_current(generation):
+		return
+
+	for whirl_step in range(INTRO_SHUFFLE_STEPS):
+		var step_weight := float(whirl_step) / maxf(1.0, float(INTRO_SHUFFLE_STEPS - 1))
+		for card_index in range(card_count):
 			var entry: Dictionary = card_entries[card_index]
 			var root := entry["root"] as Node3D
-			var angle := (TAU * float(whirl_step) / 6.0) + (TAU * float(card_index) / maxf(1.0, float(card_entries.size())))
-			var target := Vector3(cos(angle) * 2.55, CARD_SURFACE_Y + 0.12, 1.05 + sin(angle) * 0.82)
+			var angle := TAU * (float(card_index) / maxf(1.0, float(card_count)) + float(whirl_step) * 0.185)
+			var radius_x := lerpf(2.25, 3.05, sin(step_weight * PI))
+			var radius_z := lerpf(0.72, 1.10, sin(step_weight * PI))
+			var center := _shuffle_center()
+			var target := Vector3(center.x + cos(angle) * radius_x, CARD_SURFACE_Y + 0.10 + float(card_index) * 0.012, center.z + sin(angle) * radius_z)
+			var spin := float(whirl_step + 1) * 82.0 + float(card_index) * 18.0
 			var whirl := create_tween()
 			whirl.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 			whirl.tween_property(root, "position", target, SHUFFLE_STEP_TIME)
-			whirl.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, float(whirl_step + 1) * 75.0), SHUFFLE_STEP_TIME)
+			whirl.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, spin), SHUFFLE_STEP_TIME)
+			whirl.parallel().tween_property(root, "scale", Vector3(0.92, 0.92, 0.92), SHUFFLE_STEP_TIME)
 		await get_tree().create_timer(SHUFFLE_STEP_TIME).timeout
-		if generation != animation_generation or not visible:
+		if not _intro_is_current(generation):
 			return
 
-	for card_index in range(card_entries.size()):
+	for card_index in range(card_count):
 		var entry: Dictionary = card_entries[card_index]
 		var root := entry["root"] as Node3D
-		var settle := create_tween()
-		settle.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		settle.tween_property(root, "position", entry["bottom_position"], 0.42)
-		settle.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 0.0), 0.42)
-	await get_tree().create_timer(0.46).timeout
+		var stack := create_tween()
+		stack.tween_interval(float(card_index) * 0.018)
+		stack.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		stack.tween_property(root, "position", _stack_card_position(card_index), INTRO_STACK_TIME)
+		stack.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, -7.0 + float(card_index) * 3.5), INTRO_STACK_TIME)
+		stack.parallel().tween_property(root, "scale", Vector3(0.90, 0.90, 0.90), INTRO_STACK_TIME)
+	await get_tree().create_timer(INTRO_STACK_TIME + float(card_count) * 0.018 + 0.10).timeout
+	if not _intro_is_current(generation):
+		return
+
+	for card_index in range(card_count):
+		var entry: Dictionary = card_entries[card_index]
+		var root := entry["root"] as Node3D
+		var deal_out := create_tween()
+		deal_out.tween_interval(float(card_index) * INTRO_DEAL_STAGGER)
+		deal_out.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		deal_out.tween_property(root, "position", _available_card_position(card_index, card_count), INTRO_DEAL_OUT_TIME)
+		deal_out.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 0.0), INTRO_DEAL_OUT_TIME)
+		deal_out.parallel().tween_property(root, "scale", Vector3.ONE, INTRO_DEAL_OUT_TIME)
+	await get_tree().create_timer(INTRO_DEAL_OUT_TIME + float(card_count) * INTRO_DEAL_STAGGER + 0.05).timeout
+	if not _intro_is_current(generation):
+		return
+
+	for card_index in range(card_count):
+		var entry: Dictionary = card_entries[card_index]
+		var root := entry["root"] as Node3D
+		var visual := entry["visual"] as Node3D
+		root.position = _available_card_position(card_index, card_count)
+		root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+		root.scale = Vector3.ONE
+		if visual != null:
+			visual.rotation_degrees = Vector3.ZERO
+		_show_card_back(card_index)
+		entry["state"] = "available"
+		_set_card_pickable(entry, true)
+	selection_ready = true
+
+
+func _intro_is_current(generation: int) -> bool:
+	return generation == animation_generation and visible and selection_root != null and is_instance_valid(selection_root)
+
+
+func _flip_card_to_back(card_index: int, generation: int, delay: float) -> void:
+	if card_index < 0 or card_index >= card_entries.size():
+		return
+	var visual := card_entries[card_index]["visual"] as Node3D
+	if visual == null:
+		_show_card_back(card_index)
+		return
+	var flip := create_tween()
+	if delay > 0.0:
+		flip.tween_interval(delay)
+	flip.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	flip.tween_property(visual, "rotation_degrees:y", 90.0, INTRO_FLIP_TIME * 0.5)
+	flip.tween_callback(Callable(self, "_set_card_side_for_generation").bind(card_index, false, generation))
+	flip.tween_callback(Callable(self, "_set_visual_y_rotation").bind(visual, -90.0))
+	flip.tween_property(visual, "rotation_degrees:y", 0.0, INTRO_FLIP_TIME * 0.5)
+
+
+func _set_visual_y_rotation(visual: Node3D, degrees: float) -> void:
+	if visual != null and is_instance_valid(visual):
+		visual.rotation_degrees.y = degrees
+
+
+func _set_card_side_for_generation(card_index: int, show_front: bool, generation: int) -> void:
 	if generation != animation_generation or not visible:
 		return
-	for entry in card_entries:
-		entry["state"] = "available"
-	selection_ready = true
+	_set_card_side(card_index, show_front)
 
 
 func _on_card_input_event(
@@ -487,14 +606,23 @@ func _animate_card_to_slot(card_index: int, slot_index: int) -> void:
 
 
 func _show_card_front(card_index: int) -> void:
+	_set_card_side(card_index, true)
+
+
+func _show_card_back(card_index: int) -> void:
+	_set_card_side(card_index, false)
+
+
+func _set_card_side(card_index: int, show_front: bool) -> void:
 	if card_index < 0 or card_index >= card_entries.size():
 		return
 	var entry: Dictionary = card_entries[card_index]
-	(entry["back"] as MeshInstance3D).visible = false
-	(entry["front"] as MeshInstance3D).visible = true
+	(entry["back"] as MeshInstance3D).visible = not show_front
+	(entry["front"] as MeshInstance3D).visible = show_front
 	var collision := entry["collision"] as CollisionShape3D
 	if collision != null and collision.shape is BoxShape3D:
-		(collision.shape as BoxShape3D).size = Vector3(BATTLEPLAN_SIZE.x, BATTLEPLAN_SIZE.y, 0.18)
+		var card_size := BATTLEPLAN_SIZE if show_front else CARD_BACK_SIZE
+		(collision.shape as BoxShape3D).size = Vector3(card_size.x, card_size.y, 0.18)
 
 
 func _all_selected_cards_revealed() -> bool:
@@ -821,12 +949,12 @@ func _set_inspect_caption(group: Node3D, caption: String) -> void:
 
 
 func _on_card_mouse_entered(card_index: int) -> void:
-	_use_cursor("use_pointing")
 	if not selection_ready or card_index < 0 or card_index >= card_entries.size():
 		return
 	var entry: Dictionary = card_entries[card_index]
 	if String(entry["state"]) != "available":
 		return
+	_use_cursor("use_pointing")
 	var root := entry["root"] as Node3D
 	var hover := create_tween()
 	hover.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
@@ -836,12 +964,12 @@ func _on_card_mouse_entered(card_index: int) -> void:
 
 
 func _on_card_mouse_exited(card_index: int) -> void:
-	_use_cursor("use_normal")
 	if card_index < 0 or card_index >= card_entries.size():
 		return
 	var entry: Dictionary = card_entries[card_index]
 	if String(entry["state"]) != "available":
 		return
+	_use_cursor("use_normal")
 	var root := entry["root"] as Node3D
 	var hover := create_tween()
 	hover.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
