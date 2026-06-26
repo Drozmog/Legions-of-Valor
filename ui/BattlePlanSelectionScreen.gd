@@ -20,7 +20,8 @@ const CARD_SURFACE_Y := 0.58
 const TOP_SLOT_X := [-3.35, 0.0, 3.35]
 const SHUFFLE_STEP_TIME := 0.115
 const CARD_MOVE_TIME := 0.26
-const BUTTON_SIZE := Vector3(0.78, 0.045, 0.32)
+const BUTTON_SIZE := Vector3(0.78, 0.045, 0.362)
+const BUTTON_SURFACE_SIZE := Vector2(BUTTON_SIZE.x, BUTTON_SIZE.z)
 
 var dim_layer: ColorRect
 var selection_root: Node3D
@@ -547,14 +548,15 @@ func _create_action_button(
 
 	var surface := MeshInstance3D.new()
 	surface.name = "ButtonSurface"
-	var mesh := BoxMesh.new()
-	mesh.size = BUTTON_SIZE
+	var mesh := PlaneMesh.new()
+	mesh.size = BUTTON_SURFACE_SIZE
 	surface.mesh = mesh
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	material.albedo_color = Color.WHITE if texture != null else Color(0.16, 0.075, 0.018, 0.98)
 	material.albedo_texture = texture
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.texture_repeat = false
 	material.emission_enabled = true
 	material.emission = Color(0.34, 0.18, 0.035, 1.0)
 	material.emission_energy_multiplier = 0.70

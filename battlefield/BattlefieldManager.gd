@@ -188,12 +188,14 @@ var parry_system: ParrySystem = null
 const BOARD_ACTION_INSPECT: int = 1
 
 const BOARD_ACTION_CANCEL: int = 99
+const BOARD_ACTION_ACTIVE_INSIGHT_BASE: int = 100
 
 var board_action_menu: PopupMenu = null
 
 var board_slot_action_rails: Dictionary = {}
 
 var board_action_target_slot: Node = null
+var board_action_ability_map: Dictionary = {}
 
 const BOARD_ACTION_ATTACK: int = 2
 
@@ -224,6 +226,7 @@ var original_combat_priority_owner: String = ""
 var player_passed_current_lane: bool = false
 
 var ai_passed_current_lane: bool = false
+var used_active_insight_ability_keys: Dictionary = {}
 
 
 # === Functions ===
@@ -260,6 +263,7 @@ func _process(delta: float) -> void:
 	update_phase_progress_state()
 	refresh_bottom_hud_log()
 	refresh_board_slot_action_buttons()
+	refresh_player_usable_ability_icons()
 
 
 func connect_main_signals() -> void:
@@ -1090,6 +1094,7 @@ func start_next_round() -> void:
 		battle_plan_manager.advance_round()
 
 	turn_number += 1
+	used_active_insight_ability_keys.clear()
 	update_turn_counter_ui()
 	cancel_selected_card()
 	open_battle_plan_selection()
@@ -2010,6 +2015,9 @@ func update_slot_highlights() -> void:
 func handle_card_deployed(card_data: CardData) -> void:
 	if card_data == null:
 		return
+	var resolved_insight := resolve_insight_abilities(card_data, &"on_deploy")
+	if resolved_insight:
+		return
 	var ability_text_lower: String = card_data.get_ability_text().to_lower()
 	if ability_text_lower == "":
 		return
@@ -2022,6 +2030,42 @@ func handle_card_deployed(card_data: CardData) -> void:
 			log_msg(card_data.get_ability_text())
 		return
 	log_msg("Passive ability active: " + card_data.card_name)
+
+
+func resolve_insight_abilities(card_data: CardData, trigger: StringName, extra_context: Dictionary = {}) -> bool:
+	if card_data == null:
+		return false
+	var resolved_any := false
+	for ability in card_data.get_abilities():
+		if ability == null:
+			continue
+		if ability.category.to_lower() != "insight":
+			continue
+		if StringName(ability.trigger) != trigger:
+			continue
+		var context := build_ability_context(extra_context)
+		context["card"] = card_data
+		context["trigger"] = trigger
+		var result := AbilityResolver.resolve(ability, context)
+		resolved_any = true
+		if not bool(result.get("success", false)):
+			log_msg("Insight ability failed: " + ability.ability_name + " (" + String(result.get("reason", "unknown")) + ").")
+	return resolved_any
+
+
+func build_ability_context(extra_context: Dictionary = {}) -> Dictionary:
+	var context := {
+		"battlefield": self,
+		"log": Callable(self, "log_msg"),
+		"player_deck": player_deck,
+		"draw_pile": draw_pile,
+		"hand": hand,
+		"ai_deck": ai_deck,
+		"ai_hand": ai_hand,
+		"ai_discard": ai_discard,
+	}
+	context.merge(extra_context, true)
+	return context
 
 
 func ability_requires_choice(card_data: CardData) -> bool:
@@ -2869,6 +2913,59 @@ func set_battlefield_ability_icons_visible(show_icons: bool) -> void:
 
 		if slot.has_method("set_slot_ability_icons_visible"):
 			slot.set_slot_ability_icons_visible(show_icons)
+
+
+func refresh_player_usable_ability_icons() -> void:
+	if board_slots == null:
+		return
+
+	for slot in board_slots.get_children():
+		if slot == null:
+			continue
+
+		var usable_ids: Array[StringName] = []
+		var card_data := get_slot_card_data(slot)
+		var is_player_slot := String(slot.get_meta("owner", "")) == "player"
+		var is_face_down := bool(slot.get_meta("face_down", false))
+
+		if is_player_slot and card_data != null and not is_face_down:
+			for ability in card_data.get_abilities():
+				if ability == null:
+					continue
+				if ability.category.to_lower() != "insight" or ability.trigger != "active":
+					continue
+				if can_activate_insight_ability(slot, ability):
+					usable_ids.append(ability.ability_id)
+
+		if slot.has_method("set_slot_usable_ability_ids"):
+			slot.set_slot_usable_ability_ids(usable_ids)
+
+		connect_card_ability_icon_signals(slot)
+
+
+func connect_card_ability_icon_signals(slot: Node) -> void:
+	if slot == null or not slot.has_method("get_placed_card_visual"):
+		return
+	var visual := slot.call("get_placed_card_visual") as Node
+	if visual == null:
+		return
+	if visual.has_signal("ability_icon_pressed"):
+		var pressed_callable := Callable(self, "_on_card_ability_icon_pressed").bind(slot)
+		if not visual.is_connected("ability_icon_pressed", pressed_callable):
+			visual.connect("ability_icon_pressed", pressed_callable)
+	if visual.has_signal("ability_icon_hovered"):
+		var hovered_callable := Callable(self, "_on_card_ability_icon_hovered").bind(slot)
+		if not visual.is_connected("ability_icon_hovered", hovered_callable):
+			visual.connect("ability_icon_hovered", hovered_callable)
+
+
+func _on_card_ability_icon_pressed(_card_visual: Node, ability: AbilityData, slot: Node) -> void:
+	await activate_insight_ability_from_slot(slot, ability)
+
+
+func _on_card_ability_icon_hovered(_card_visual: Node, ability: AbilityData, _slot: Node) -> void:
+	if ability != null:
+		log_msg(ability.ability_name + ": " + ability.rules_text)
 
 
 func create_spell_choice_panel() -> void:
@@ -4574,6 +4671,7 @@ func show_board_slot_action_menu(slot: Node) -> void:
 
 	board_action_target_slot = slot
 	board_action_menu.clear()
+	board_action_ability_map.clear()
 
 	var lane: String = get_slot_lane(slot)
 	var card_data: CardData = get_slot_card_data(slot)
@@ -4610,6 +4708,7 @@ func show_board_slot_action_menu(slot: Node) -> void:
 
 	if card_data != null:
 		board_action_menu.add_item("Inspect", BOARD_ACTION_INSPECT)
+		add_active_insight_actions_to_board_menu(slot, card_data)
 	elif not added_action:
 		board_action_menu.add_item("Empty Slot", BOARD_ACTION_CANCEL)
 		var empty_index: int = board_action_menu.get_item_count() - 1
@@ -4623,6 +4722,13 @@ func show_board_slot_action_menu(slot: Node) -> void:
 	board_action_menu.popup()
 
 func _on_board_slot_action_selected(action_id: int) -> void:
+	if action_id >= BOARD_ACTION_ACTIVE_INSIGHT_BASE:
+		await activate_insight_from_board_action(action_id, board_action_target_slot)
+		board_action_target_slot = null
+		if board_action_menu != null:
+			board_action_menu.hide()
+		return
+
 	match action_id:
 		BOARD_ACTION_ATTACK:
 			await attack_from_board_action_menu(board_action_target_slot)
@@ -4639,6 +4745,142 @@ func _on_board_slot_action_selected(action_id: int) -> void:
 
 	if board_action_menu != null:
 		board_action_menu.hide()
+
+
+func add_active_insight_actions_to_board_menu(slot: Node, card_data: CardData) -> void:
+	if slot == null or card_data == null:
+		return
+	if String(slot.get_meta("owner", "")) != "player":
+		return
+	if bool(slot.get_meta("face_down", false)):
+		return
+	for ability in card_data.get_abilities():
+		if ability == null:
+			continue
+		if ability.category.to_lower() != "insight" or ability.trigger != "active":
+			continue
+		var action_id := BOARD_ACTION_ACTIVE_INSIGHT_BASE + board_action_ability_map.size()
+		board_action_ability_map[action_id] = ability
+		board_action_menu.add_item(ability.ability_name, action_id)
+		var item_index := board_action_menu.get_item_count() - 1
+		if not can_activate_insight_ability(slot, ability):
+			board_action_menu.set_item_disabled(item_index, true)
+
+
+func can_activate_insight_ability(slot: Node, ability: AbilityData) -> bool:
+	if slot == null or ability == null:
+		return false
+	if current_phase == BattlePhase.COMBAT and parry_system.active:
+		return false
+	var card_data := get_slot_card_data(slot)
+	if card_data == null:
+		return false
+	var usage_key := get_active_insight_usage_key(slot, ability)
+	if used_active_insight_ability_keys.has(usage_key):
+		return false
+	var handler_id := ability.get_handler_id()
+	if handler_id == &"true_sight" or handler_id == &"vantage":
+		return can_player_take_priority_action_in_lane(get_slot_lane(slot))
+	return true
+
+
+func activate_insight_from_board_action(action_id: int, slot: Node) -> void:
+	var ability := board_action_ability_map.get(action_id) as AbilityData
+	await activate_insight_ability_from_slot(slot, ability)
+
+
+func activate_insight_ability_from_slot(slot: Node, ability: AbilityData) -> void:
+	if slot == null or ability == null:
+		return
+	if not can_activate_insight_ability(slot, ability):
+		log_msg("Insight ability is not available right now: " + ability.ability_name)
+		return
+	var card_data := get_slot_card_data(slot)
+	var handler_id := ability.get_handler_id()
+	var lane := get_slot_lane(slot)
+	if handler_id == &"true_sight" or handler_id == &"vantage":
+		if not prepare_player_lane_action(lane):
+			return
+	var result := AbilityResolver.resolve(
+		ability,
+		build_ability_context({
+			"card": card_data,
+			"slot": slot,
+			"trigger": &"active",
+			"lane": lane,
+		})
+	)
+	if not bool(result.get("success", false)):
+		log_msg("Insight ability failed: " + ability.ability_name + " (" + String(result.get("reason", "unknown")) + ").")
+		return
+	used_active_insight_ability_keys[get_active_insight_usage_key(slot, ability)] = true
+	if handler_id == &"true_sight" or handler_id == &"vantage":
+		player_passed_current_lane = true
+		set_lane_priority_to_ai(lane, ability.ability_name + " used instead of attacking.")
+		await resolve_ai_current_priority_lane(lane)
+
+
+func get_active_insight_usage_key(slot: Node, ability: AbilityData) -> String:
+	return str(slot.get_instance_id()) + ":" + String(ability.ability_id) + ":" + str(turn_number)
+
+
+func resolve_stealth_hidden_decoy(back_slot: Node, card_data: CardData, owner_name: String, lane: String) -> bool:
+	if back_slot == null or card_data == null:
+		return false
+	var stealth_ability := get_card_insight_ability(card_data, &"stealth")
+	if stealth_ability == null:
+		return false
+	var result := AbilityResolver.resolve(
+		stealth_ability,
+		build_ability_context({
+			"card": card_data,
+			"slot": back_slot,
+			"trigger": &"active",
+			"lane": lane,
+			"owner": owner_name,
+		})
+	)
+	if not bool(result.get("success", false)):
+		log_msg("Insight ability failed: Stealth (" + String(result.get("reason", "unknown")) + ").")
+		return false
+
+	var front_slot := find_slot_by_owner_row_lane(owner_name, "front", lane)
+	if front_slot != null and get_slot_card_data(front_slot) == null:
+		if back_slot.has_method("clear_slot"):
+			back_slot.clear_slot()
+		if front_slot.has_method("place_card"):
+			front_slot.call("place_card", TEST_CARD_SCENE, card_data, false)
+		log_msg("Stealth deployed " + card_data.card_name + " to the " + owner_name + " front " + lane + " slot for 0 cost.")
+	else:
+		if back_slot.has_method("reveal_card"):
+			back_slot.reveal_card()
+		log_msg("Stealth revealed " + card_data.card_name + " for 0 cost, but no front slot was open.")
+	update_ai_visuals()
+	return true
+
+
+func get_card_insight_ability(card_data: CardData, ability_id: StringName) -> AbilityData:
+	if card_data == null:
+		return null
+	for ability in card_data.get_abilities():
+		if ability != null and ability.category.to_lower() == "insight" and ability.ability_id == ability_id:
+			return ability
+	return null
+
+
+func get_hidden_enemy_gambit_cards() -> Array[CardData]:
+	var cards: Array[CardData] = []
+	if board_slots == null:
+		return cards
+	for slot in board_slots.get_children():
+		if String(slot.get_meta("owner", "")) != "enemy":
+			continue
+		if not bool(slot.get_meta("face_down", false)):
+			continue
+		var card_data := get_slot_card_data(slot)
+		if is_gambit_card(card_data):
+			cards.append(card_data)
+	return cards
 
 
 func inspect_board_slot(slot: Node) -> void:
@@ -5154,6 +5396,12 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 			await advance_combat_lane_after_resolution()
 			return
 
+		if resolve_stealth_hidden_decoy(player_back_slot, player_back_card, "player", lane):
+			await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+			set_lane_priority_to_ai(lane)
+			await resolve_ai_current_priority_lane(lane)
+			return
+
 		add_aurion("ai", 1, "Successful Attack read: " + player_back_card.card_name + " was not a Gambit.")
 		log_msg("AI Attack read correctly. Your decoy is discarded. AI keeps priority in this lane.")
 		send_slot_card_to_discard(player_back_slot)
@@ -5386,6 +5634,12 @@ func resolve_attack_into_face_down_backrow(
 		send_slot_card_to_discard(enemy_back_slot)
 		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
 		await advance_combat_lane_after_resolution()
+		return
+
+	if resolve_stealth_hidden_decoy(enemy_back_slot, enemy_back_card, "enemy", lane):
+		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+		set_lane_priority_to_player(lane)
+		log_msg("Right-click the " + lane + " lane again to attack the front row, Monarch, or Pass.")
 		return
 
 	add_aurion("player", 1, "Successful Attack read: " + enemy_back_card.card_name + " was not a Gambit.")

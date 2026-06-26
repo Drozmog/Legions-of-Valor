@@ -204,6 +204,16 @@ func get_placed_card_data() -> CardData:
 	return null
 
 
+func get_placed_card_visual() -> Node3D:
+	return placed_card
+
+
+func set_slot_usable_ability_ids(ability_ids: Array[StringName]) -> void:
+	if placed_card != null and is_instance_valid(placed_card):
+		if placed_card.has_method("set_usable_ability_ids"):
+			placed_card.set_usable_ability_ids(ability_ids)
+
+
 func reveal_card() -> void:
 	if placed_card == null:
 		return

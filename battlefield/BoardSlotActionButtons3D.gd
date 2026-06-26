@@ -119,7 +119,7 @@ func _build_button(action_id: int, caption: String, node_name: String) -> void:
 	material.no_depth_test = true
 	material.render_priority = 110
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.texture_repeat = BaseMaterial3D.TEXTURE_REPEAT_DISABLED
+	material.texture_repeat = false
 
 	var action_texture := get_action_texture(action_id)
 	if action_texture != null:

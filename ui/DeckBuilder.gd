@@ -1125,8 +1125,8 @@ func create_ability_filter_panel(parent: Control) -> void:
 	ability_filter_panel = PanelContainer.new()
 	ability_filter_panel.name = "AbilityFilterPanel"
 	ability_filter_panel.visible = false
-	ability_filter_panel.position = Vector2(840.0, 52.0)
-	ability_filter_panel.custom_minimum_size = Vector2(252.0, 36.0)
+	ability_filter_panel.position = Vector2(700.0, 48.0)
+	ability_filter_panel.custom_minimum_size = Vector2(390.0, 48.0)
 	ability_filter_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	ability_filter_panel.z_index = 20
 	ability_filter_panel.add_theme_stylebox_override(
@@ -1146,8 +1146,9 @@ func create_ability_filter_panel(parent: Control) -> void:
 	row.add_theme_constant_override("separation", 4)
 	margin.add_child(row)
 
-	for label_text in ABILITY_FILTERS:
-		var filter_key := label_text.to_lower()
+	for raw_label_text in ABILITY_FILTERS:
+		var label_text: String = String(raw_label_text)
+		var filter_key: String = label_text.to_lower()
 		var button := make_ability_filter_button(filter_key, label_text)
 		button.pressed.connect(_on_ability_filter_pressed.bind(filter_key))
 		ability_buttons[filter_key] = button
@@ -1155,7 +1156,7 @@ func create_ability_filter_panel(parent: Control) -> void:
 
 
 func make_ability_filter_button(filter_key: String, label_text: String) -> Button:
-	var button := make_button("", Vector2(28, 28))
+	var button := make_button("", Vector2(44, 40))
 	button.name = label_text + "AbilityFilter"
 	button.toggle_mode = true
 	button.tooltip_text = label_text
@@ -1757,14 +1758,14 @@ func card_matches_filters(card_data: CardData) -> bool:
 	if not active_type_filters.is_empty() and not active_type_filters.has(card_type):
 		return false
 	if not active_ability_filters.is_empty():
-		var has_selected_ability := false
+		var card_ability_categories: Dictionary = {}
 		for category in card_data.get_ability_categories():
 			var clean_category := String(category).to_lower().strip_edges()
-			if active_ability_filters.has(clean_category):
-				has_selected_ability = true
-				break
-		if not has_selected_ability:
-			return false
+			if clean_category != "":
+				card_ability_categories[clean_category] = true
+		for filter_key in active_ability_filters.keys():
+			if not card_ability_categories.has(filter_key):
+				return false
 
 	if search_text != "":
 		var haystack := (
