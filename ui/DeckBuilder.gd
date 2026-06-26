@@ -511,6 +511,18 @@ func build_overlay_ui() -> void:
 		Vector2(3.20, 0.555)
 	)
 	var deck_ui_root: Control = deck_ui["control"]
+	
+	var ability_popup_ui := create_tabletop_ui_surface(
+		"AbilityFilterPopupUI",
+		Vector2i(390, 60),
+		Vector3(0, 0.135, 3.05),
+		Vector2(2.35, 0.36)
+	)
+	var ability_popup_root: Control = ability_popup_ui["control"]
+
+	# Put the popup surface first so it receives mouse input before the lower HUD.
+	var ability_surface_entry: Dictionary = tabletop_ui_surfaces.pop_back()
+	tabletop_ui_surfaces.push_front(ability_surface_entry)
 
 	var plaque_style := make_panel_style(
 		Color(0.105, 0.045, 0.014, 0.80),
@@ -584,7 +596,7 @@ func build_overlay_ui() -> void:
 
 	library_sort_button = make_library_sort_button()
 	filter_row.add_child(library_sort_button)
-	create_ability_filter_panel(library_ui_root)
+	create_ability_filter_panel(ability_popup_root)
 
 	# A separate deck ledger over the lower-right table leaves open space between.
 	var deck_plaque := PanelContainer.new()
@@ -1125,8 +1137,8 @@ func create_ability_filter_panel(parent: Control) -> void:
 	ability_filter_panel = PanelContainer.new()
 	ability_filter_panel.name = "AbilityFilterPanel"
 	ability_filter_panel.visible = false
-	ability_filter_panel.position = Vector2(700.0, 48.0)
-	ability_filter_panel.custom_minimum_size = Vector2(390.0, 48.0)
+	ability_filter_panel.position = Vector2(23.0, 6.0)
+	ability_filter_panel.custom_minimum_size = Vector2(344.0, 48.0)
 	ability_filter_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	ability_filter_panel.z_index = 20
 	ability_filter_panel.add_theme_stylebox_override(

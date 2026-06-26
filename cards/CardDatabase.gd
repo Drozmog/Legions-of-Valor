@@ -198,11 +198,124 @@ static func reload() -> void:
 static func _ensure_cache() -> void:
 	if _cache_built:
 		return
+
 	_cache_built = true
-	_collect_cards(DEFINITIONS_PATH)
+	_register_preloaded_cards()
+
+	# Optional fallback for editor/dev builds only.
+	if _all_cards.is_empty():
+		_collect_cards(DEFINITIONS_PATH)
+
 	_all_cards.sort_custom(func(a: CardData, b: CardData) -> bool:
 		return a.card_name.naturalnocasecmp_to(b.card_name) < 0
 	)
+
+	print("CardDatabase loaded cards: ", _all_cards.size())
+	
+	
+static func _register_preloaded_cards() -> void:
+	var cards: Array[CardData] = [
+		ARCH_WIZARD_MAELCOR,
+		IMPERIAL_ARCHIVE_MASTER,
+
+		ARADIN_NOX,
+		BOUND_BEHEMOTH_BARSAM,
+		CANOPY_ARCHER,
+		FAELOR_ROYAL_MESSENGER,
+		FOREST_OAKLING_ZIRALTAN,
+		HERAL_THE_SAVIOR,
+		HIGH_CANOPY_DUELIST_MIDRA,
+		INSHI_AZURE_SENTINEL,
+		JENA_OF_YEL,
+		KASHA_VAELORI_BLADEWEAVER,
+		LIORVYNN_GUARDIAN,
+		LIORVYNN_SENTRY,
+		LUNARETH_SEER_FLORIN,
+		MOON_VEIL_ASSASSIN,
+		NERIL_VEILMOTHER_HUNTRESS,
+		QUEEN_VARIEL_OF_LIORVYNN,
+		SYLVREN_SAPLING,
+		THRAAL_WATCHER,
+		TIRAEL_CALITH_GUARD,
+		ULVITH_THE_MISTBORNE_STALKER,
+		VAELORI_MIST_SEER,
+		VAELORI_SCOUT,
+		VARIELS_CHOSEN_RISAK,
+		WIND_SINGER_HUNWE,
+
+		ARCHITECT_OF_THE_DEEP,
+		UPPER_HALL_PROSPECTOR,
+
+		BRUGO_THE_BOLD,
+		CAVE_CRAWL_GRUNT,
+		DREAD_PIT_BRAWLER,
+		ELITE_MARAUDER_MUURGUL,
+		GERSHAW_SHATTER_SHIELD,
+		GORTHAK_THE_BUTCHER,
+		HIGH_CHIEFTAIN_GROG,
+		IRONHOLD_RAIDER,
+		IVAAN_THE_BONE_CRUSHER,
+		KRELL_THE_BLOODLET,
+		ORCISH_MILITIA,
+		ORKHAEL_OUTCAST,
+		ORKHAEL_SCAVENGER,
+		ORKHAEL_WARLORD_RIUYO,
+		RAGING_ORKHAEL_VLARA,
+		SIEGE_BREAKER_ORC,
+		SLAUGHTER_VETERAN_VIGO,
+		SOLKARAN_DEPTH_DWELLER,
+		THRAK_PIT_LORD,
+		URMOG_BRUGOS_CHOSEN,
+		VANGUARD_MAULER,
+		VARK_THE_MANGLER,
+		ZARKHAN_THE_PRIMEVAL,
+
+		BANNER_OF_EXPEDITION,
+		BRACERS_OF_THE_DEPTH,
+		CLOAK_OF_SECRECY,
+		DALMIRS_TOME,
+		ELYNDELLS_LEATHER_CUIRASS,
+		GRAVE_CROSSERS_PACK,
+		VAELORI_LONGBOW,
+
+		BLACKMAIL,
+		CONSORTIUM_AID,
+		ELYNDELL_ARROW_VOLLEY,
+		FOG_OF_WAR,
+		GRIDLOCK,
+		PICKPOCKET,
+		PLENTIFUL_HARVEST,
+		SOUL_SALVAGE,
+		THE_DIE_IS_CAST,
+		TRANSMUTATION,
+		WAR_PAINT,
+		FREE_TAXI_SERVICE,
+		WITHERING_OF_THE_VEIL,
+	]
+
+	for card in cards:
+		_register_card_resource(card)
+		
+		
+static func _register_card_resource(card: CardData) -> void:
+	if card == null:
+		return
+
+	if not card.is_valid():
+		push_warning("Ignoring invalid CardData: " + card.resource_path)
+		return
+
+	var key := card.card_id.strip_edges().to_lower()
+	if key == "":
+		push_warning("Ignoring CardData with empty card_id: " + card.resource_path)
+		return
+
+	if _cards_by_id.has(key):
+		push_error("Duplicate card_id '%s' in %s" % [card.card_id, card.resource_path])
+		return
+
+	_cards_by_id[key] = card
+	_all_cards.append(card)
 
 
 static func _collect_cards(path: String) -> void:
@@ -220,6 +333,8 @@ static func _collect_cards(path: String) -> void:
 				_collect_cards(entry_path)
 			elif entry_name.get_extension().to_lower() == "tres":
 				_register_card(entry_path)
+			elif entry_name.ends_with(".tres.remap"):
+				_register_card(entry_path.trim_suffix(".remap"))
 		entry_name = directory.get_next()
 	directory.list_dir_end()
 
@@ -228,13 +343,5 @@ static func _register_card(path: String) -> void:
 	var resource := ResourceLoader.load(path)
 	if not resource is CardData:
 		return
-	var card := resource as CardData
-	if not card.is_valid():
-		push_warning("Ignoring invalid CardData: " + path)
-		return
-	var key := card.card_id.strip_edges().to_lower()
-	if _cards_by_id.has(key):
-		push_error("Duplicate card_id '%s' in %s" % [card.card_id, path])
-		return
-	_cards_by_id[key] = card
-	_all_cards.append(card)
+
+	_register_card_resource(resource as CardData)
