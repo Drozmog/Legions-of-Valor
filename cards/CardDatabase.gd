@@ -200,11 +200,12 @@ static func _ensure_cache() -> void:
 		return
 
 	_cache_built = true
+
+	# Export-safe direct references.
 	_register_preloaded_cards()
 
-	# Optional fallback for editor/dev builds only.
-	if _all_cards.is_empty():
-		_collect_cards(DEFINITIONS_PATH)
+	# Also scan the definitions folder so new/unlisted .tres cards still load.
+	_collect_cards(DEFINITIONS_PATH)
 
 	_all_cards.sort_custom(func(a: CardData, b: CardData) -> bool:
 		return a.card_name.naturalnocasecmp_to(b.card_name) < 0
@@ -311,7 +312,15 @@ static func _register_card_resource(card: CardData) -> void:
 		return
 
 	if _cards_by_id.has(key):
-		push_error("Duplicate card_id '%s' in %s" % [card.card_id, card.resource_path])
+		var existing := _cards_by_id[key] as CardData
+		if existing == card or existing.resource_path == card.resource_path:
+			return
+
+		push_error("Duplicate card_id '%s' in %s and %s" % [
+			card.card_id,
+			existing.resource_path,
+			card.resource_path
+		])
 		return
 
 	_cards_by_id[key] = card
