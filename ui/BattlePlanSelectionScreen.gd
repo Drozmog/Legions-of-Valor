@@ -19,16 +19,16 @@ const BOTTOM_CARD_Z := 2.20
 const TOP_CARD_Z := -1.12
 const CARD_SURFACE_Y := 0.58
 const TOP_SLOT_X := [-3.35, 0.0, 3.35]
-const SHUFFLE_STEP_TIME := 0.075
+const SHUFFLE_STEP_TIME := 0.065
 const CARD_MOVE_TIME := 0.26
 const INTRO_DEAL_IN_TIME := 0.34
-const INTRO_PREVIEW_TIME := 0.38
+const INTRO_PREVIEW_TIME := 0.10
 const INTRO_FLIP_TIME := 0.24
 const INTRO_FLIP_STAGGER := 0.035
-const INTRO_SHUFFLE_STEPS := 16
-const INTRO_STACK_TIME := 0.32
-const INTRO_DEAL_OUT_TIME := 0.42
-const INTRO_DEAL_STAGGER := 0.065
+const INTRO_SHUFFLE_STEPS := 12
+const INTRO_STACK_TIME := 0.30
+const INTRO_DEAL_OUT_TIME := 0.38
+const INTRO_DEAL_STAGGER := 0.055
 const BUTTON_SIZE := Vector3(0.78, 0.045, 0.362)
 const BUTTON_SURFACE_SIZE := Vector2(BUTTON_SIZE.x, BUTTON_SIZE.z)
 const INSPECTOR_BUTTON_SIZE := Vector2(183.0, 85.0) # 280x130 ratio
@@ -199,7 +199,7 @@ func _create_card_entry(plan: Dictionary, card_index: int, card_count: int) -> D
 		"collision": collision,
 		"plan": plan,
 		"state": "intro",
-		"bottom_position": _available_card_position(card_index, card_count),
+		"bottom_position": _bottom_card_position(card_index, card_count),
 		"slot_index": -1,
 	}
 
@@ -210,11 +210,6 @@ func _bottom_card_position(card_index: int, card_count: int) -> Vector3:
 
 
 func _available_card_position(card_index: int, card_count: int) -> Vector3:
-	if card_count >= 5:
-		if card_index < 3:
-			return Vector3((float(card_index) - 1.0) * 2.15, CARD_SURFACE_Y, 0.74)
-		var lower_index := card_index - 3
-		return Vector3((float(lower_index) - 0.5) * 2.15, CARD_SURFACE_Y, BOTTOM_CARD_Z)
 	return _bottom_card_position(card_index, card_count)
 
 
@@ -427,7 +422,7 @@ func _run_intro_sequence(generation: int) -> void:
 		var visual := entry["visual"] as Node3D
 		entry["state"] = "intro"
 		_set_card_pickable(entry, false)
-		_show_card_front(card_index)
+		_show_card_back(card_index)
 		if visual != null:
 			visual.rotation_degrees = Vector3.ZERO
 		root.position = _intro_spawn_position(card_index, card_count)
@@ -447,12 +442,6 @@ func _run_intro_sequence(generation: int) -> void:
 	if not _intro_is_current(generation):
 		return
 
-	for card_index in range(card_count):
-		_flip_card_to_back(card_index, generation, float(card_index) * INTRO_FLIP_STAGGER)
-	await get_tree().create_timer(INTRO_FLIP_TIME + float(card_count) * INTRO_FLIP_STAGGER + 0.08).timeout
-	if not _intro_is_current(generation):
-		return
-
 	for whirl_step in range(INTRO_SHUFFLE_STEPS):
 		var step_weight := float(whirl_step) / maxf(1.0, float(INTRO_SHUFFLE_STEPS - 1))
 		for card_index in range(card_count):
@@ -463,11 +452,10 @@ func _run_intro_sequence(generation: int) -> void:
 			var radius_z := lerpf(0.72, 1.10, sin(step_weight * PI))
 			var center := _shuffle_center()
 			var target := Vector3(center.x + cos(angle) * radius_x, CARD_SURFACE_Y + 0.10 + float(card_index) * 0.012, center.z + sin(angle) * radius_z)
-			var spin := float(whirl_step + 1) * 82.0 + float(card_index) * 18.0
 			var whirl := create_tween()
 			whirl.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 			whirl.tween_property(root, "position", target, SHUFFLE_STEP_TIME)
-			whirl.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, spin), SHUFFLE_STEP_TIME)
+			whirl.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 0.0), SHUFFLE_STEP_TIME)
 			whirl.parallel().tween_property(root, "scale", Vector3(0.92, 0.92, 0.92), SHUFFLE_STEP_TIME)
 		await get_tree().create_timer(SHUFFLE_STEP_TIME).timeout
 		if not _intro_is_current(generation):
@@ -480,7 +468,7 @@ func _run_intro_sequence(generation: int) -> void:
 		stack.tween_interval(float(card_index) * 0.018)
 		stack.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		stack.tween_property(root, "position", _stack_card_position(card_index), INTRO_STACK_TIME)
-		stack.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, -7.0 + float(card_index) * 3.5), INTRO_STACK_TIME)
+		stack.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 0.0), INTRO_STACK_TIME)
 		stack.parallel().tween_property(root, "scale", Vector3(0.90, 0.90, 0.90), INTRO_STACK_TIME)
 	await get_tree().create_timer(INTRO_STACK_TIME + float(card_count) * 0.018 + 0.10).timeout
 	if not _intro_is_current(generation):
