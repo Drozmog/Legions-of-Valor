@@ -123,6 +123,7 @@ func build_main_left_controls(root: Control) -> HBoxContainer:
 	margin.add_child(row)
 
 	var log_button := make_button("▲ LOG", Vector2(0, 54))
+	log_button.name = "LogButton"
 	add_hud_cell(row, "LogCell", log_button, 0.07)
 
 	var portrait := TextureRect.new()
@@ -153,6 +154,7 @@ func build_main_left_controls(root: Control) -> HBoxContainer:
 	add_hud_cell(row, "IdentityCell", identity, 0.05)
 
 	var plans_button := make_button("BATTLEPLANS", Vector2(0, 54))
+	plans_button.name = "PlansButton"
 	add_hud_cell(row, "PlansCell", plans_button, 0.10)
 	return row
 
@@ -322,7 +324,7 @@ func build_plan_backing(root: Control) -> void:
 	root.add_child(panel)
 
 
-func configure_surface(surface: MeshInstance3D, viewport: SubViewport, interactive: bool) -> void:
+func configure_surface(surface: MeshInstance3D, viewport: SubViewport, _interactive: bool) -> void:
 	if surface == null or viewport == null:
 		return
 	viewport.transparent_bg = true
@@ -757,7 +759,6 @@ func _input(event: InputEvent) -> void:
 
 func make_button(text_value: String, minimum: Vector2, primary: bool = false) -> Button:
 	var button := Button.new()
-	button.name = text_value.capitalize().replace(" ", "") + "Button"
 	button.text = text_value
 	button.custom_minimum_size = minimum
 	button.focus_mode = Control.FOCUS_NONE
