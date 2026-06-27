@@ -8,7 +8,7 @@ func _process(_delta: float) -> void:
 	var scene := get_tree().current_scene
 	if scene == null or not is_instance_valid(scene):
 		return
-	if not scene is DeckBuilder:
+	if not (scene is DeckBuilder):
 		return
 	_clean_back_buttons(scene)
 
