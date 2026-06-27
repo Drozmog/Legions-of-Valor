@@ -318,3 +318,143 @@ func set_slot_ability_icons_visible(show_icons: bool) -> void:
 	if placed_card != null and is_instance_valid(placed_card):
 		if placed_card.has_method("set_ability_icons_visible"):
 			placed_card.set_ability_icons_visible(show_icons)
+
+	for equipment_node in equipment_nodes:
+		if equipment_node == null:
+			continue
+
+		if not is_instance_valid(equipment_node):
+			continue
+
+		if equipment_node.has_method("set_ability_icons_visible"):
+			equipment_node.set_ability_icons_visible(show_icons)
+
+
+func setup_slot_material() -> void:
+	var existing_material := get_active_material(0) as StandardMaterial3D
+
+	if existing_material != null:
+		slot_material = existing_material.duplicate()
+		material_override = slot_material
+		default_color = slot_material.albedo_color
+	else:
+		slot_material = StandardMaterial3D.new()
+		slot_material.albedo_color = default_color
+		material_override = slot_material
+
+
+func setup_highlight_outline() -> void:
+	highlight_outline = Node3D.new()
+	highlight_outline.name = "HighlightOutline"
+	add_child(highlight_outline)
+
+	outline_material = StandardMaterial3D.new()
+	outline_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	outline_material.albedo_color = valid_color
+	outline_material.emission_enabled = true
+	outline_material.emission = valid_color
+	outline_material.emission_energy_multiplier = 1.2
+	outline_material.no_depth_test = true
+
+	glow_outline = Node3D.new()
+	glow_outline.name = "GlowOutline"
+	add_child(glow_outline)
+
+	glow_material = StandardMaterial3D.new()
+	glow_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	glow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	glow_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	glow_material.albedo_color = Color(0.35, 1.0, 0.35, 0.18)
+	glow_material.emission_enabled = true
+	glow_material.emission = valid_color
+	glow_material.emission_energy_multiplier = 2.5
+	glow_material.no_depth_test = true
+
+	create_outline_bar(
+		highlight_outline,
+		"TopBar",
+		Vector3(SLOT_WIDTH + OUTLINE_THICKNESS, 0.01, OUTLINE_THICKNESS),
+		Vector3(0, OUTLINE_Y_OFFSET, -SLOT_HEIGHT / 2.0),
+		outline_material
+	)
+
+	create_outline_bar(
+		highlight_outline,
+		"BottomBar",
+		Vector3(SLOT_WIDTH + OUTLINE_THICKNESS, 0.01, OUTLINE_THICKNESS),
+		Vector3(0, OUTLINE_Y_OFFSET, SLOT_HEIGHT / 2.0),
+		outline_material
+	)
+
+	create_outline_bar(
+		highlight_outline,
+		"LeftBar",
+		Vector3(OUTLINE_THICKNESS, 0.01, SLOT_HEIGHT + OUTLINE_THICKNESS),
+		Vector3(-SLOT_WIDTH / 2.0, OUTLINE_Y_OFFSET, 0),
+		outline_material
+	)
+
+	create_outline_bar(
+		highlight_outline,
+		"RightBar",
+		Vector3(OUTLINE_THICKNESS, 0.01, SLOT_HEIGHT + OUTLINE_THICKNESS),
+		Vector3(SLOT_WIDTH / 2.0, OUTLINE_Y_OFFSET, 0),
+		outline_material
+	)
+
+	create_outline_bar(
+		glow_outline,
+		"GlowTop",
+		Vector3(SLOT_WIDTH + GLOW_THICKNESS, 0.01, GLOW_THICKNESS),
+		Vector3(0, GLOW_Y_OFFSET, -SLOT_HEIGHT / 2.0),
+		glow_material
+	)
+
+	create_outline_bar(
+		glow_outline,
+		"GlowBottom",
+		Vector3(SLOT_WIDTH + GLOW_THICKNESS, 0.01, GLOW_THICKNESS),
+		Vector3(0, GLOW_Y_OFFSET, SLOT_HEIGHT / 2.0),
+		glow_material
+	)
+
+	create_outline_bar(
+		glow_outline,
+		"GlowLeft",
+		Vector3(GLOW_THICKNESS, 0.01, SLOT_HEIGHT + GLOW_THICKNESS),
+		Vector3(-SLOT_WIDTH / 2.0, GLOW_Y_OFFSET, 0),
+		glow_material
+	)
+
+	create_outline_bar(
+		glow_outline,
+		"GlowRight",
+		Vector3(GLOW_THICKNESS, 0.01, SLOT_HEIGHT + GLOW_THICKNESS),
+		Vector3(SLOT_WIDTH / 2.0, GLOW_Y_OFFSET, 0),
+		glow_material
+	)
+
+	highlight_outline.visible = false
+	glow_outline.visible = false
+
+
+func create_outline_bar(
+	parent_node: Node3D,
+	bar_name: String,
+	bar_size: Vector3,
+	bar_position: Vector3,
+	material: StandardMaterial3D
+) -> MeshInstance3D:
+	var bar := MeshInstance3D.new()
+	bar.name = bar_name
+
+	var bar_mesh := BoxMesh.new()
+	bar_mesh.size = bar_size
+
+	bar.mesh = bar_mesh
+	bar.position = bar_position
+	bar.material_override = material
+
+	parent_node.add_child(bar)
+
+	return bar
