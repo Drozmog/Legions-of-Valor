@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://gxp6yuox5y38"]
+
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_k4p65"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_5urjx"]
+
+[resource]
+script = ExtResource("2_5urjx")
+ability_id = &"tactic_death"
+ability_name = "Tactic: Death"
+category = "attrition"
+point_cost = 11.0
+rules_text = "Banish: Return a unit (4 AP or less) to hand."
+icon = ExtResource("1_k4p65")
+handler_id = &"tactic_death"

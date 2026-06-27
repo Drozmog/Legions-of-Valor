@@ -10,6 +10,8 @@ var occupied: bool = false
 var placed_card: Node3D = null
 var equipment_cards: Array[CardData] = []
 var equipment_nodes: Array[Node3D] = []
+var stacked_unit_cards: Array[CardData] = []
+var stacked_unit_nodes: Array[Node3D] = []
 var slot_material: StandardMaterial3D
 
 var default_color: Color = Color(1.0, 1.0, 1.0, 1.0)
@@ -22,6 +24,7 @@ var glow_outline: Node3D
 
 var outline_material: StandardMaterial3D
 var glow_material: StandardMaterial3D
+var mobility_pulse_tween: Tween
 
 const SLOT_WIDTH: float = 1.02
 const SLOT_HEIGHT: float = 1.34
@@ -93,6 +96,29 @@ func set_insight_highlight(active: bool, color: Color = Color(0.18, 0.55, 1.0, 1
 		highlight_outline.visible = true
 		glow_outline.visible = true
 	else:
+		highlight_outline.visible = false
+		glow_outline.visible = false
+		_use_cursor(&"use_normal")
+
+
+func set_mobility_highlight(active: bool) -> void:
+	set_meta("mobility_selectable", active)
+	if active:
+		set_outline_color(Color(0.20, 0.62, 1.0, 1.0))
+		highlight_outline.visible = true
+		glow_outline.visible = true
+		if mobility_pulse_tween != null and mobility_pulse_tween.is_valid():
+			mobility_pulse_tween.kill()
+		mobility_pulse_tween = create_tween().set_loops()
+		mobility_pulse_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		mobility_pulse_tween.tween_property(glow_material, "emission_energy_multiplier", 3.4, 0.55)
+		mobility_pulse_tween.tween_property(glow_material, "emission_energy_multiplier", 1.8, 0.55)
+	else:
+		if mobility_pulse_tween != null and mobility_pulse_tween.is_valid():
+			mobility_pulse_tween.kill()
+		mobility_pulse_tween = null
+		if glow_material != null:
+			glow_material.emission_energy_multiplier = 2.5
 		highlight_outline.visible = false
 		glow_outline.visible = false
 		_use_cursor(&"use_normal")
@@ -194,12 +220,12 @@ func _set_visual_fade_recursive(node: Node, active: bool) -> void:
 
 
 func _on_click_area_mouse_entered() -> void:
-	if bool(get_meta("insight_selectable", false)):
+	if bool(get_meta("insight_selectable", false)) or bool(get_meta("mobility_selectable", false)):
 		_use_cursor(&"use_pointing")
 
 
 func _on_click_area_mouse_exited() -> void:
-	if bool(get_meta("insight_selectable", false)):
+	if bool(get_meta("insight_selectable", false)) or bool(get_meta("mobility_selectable", false)):
 		_use_cursor(&"use_normal")
 
 
@@ -244,8 +270,10 @@ func can_attach_equipment() -> bool:
 	return equipment_cards.size() < MAX_EQUIPMENT_PER_UNIT
 
 
-func attach_equipment(card_scene: PackedScene, card_data: CardData) -> bool:
-	if not can_attach_equipment():
+func attach_equipment(card_scene: PackedScene, card_data: CardData, force: bool = false) -> bool:
+	if not force and not can_attach_equipment():
+		return false
+	if force and (not occupied or placed_card == null or bool(get_meta("face_down", false))):
 		return false
 
 	var equipment_node := card_scene.instantiate() as Node3D
@@ -272,7 +300,58 @@ func get_equipment_cards() -> Array[CardData]:
 	return equipment_cards.duplicate()
 
 
+func add_stacked_unit(card_scene: PackedScene, card_data: CardData) -> bool:
+	if card_data == null or placed_card == null:
+		return false
+	var stacked_node := card_scene.instantiate() as Node3D
+	card_point.add_child(stacked_node)
+	stacked_node.position = Vector3(0.22, -0.012 - stacked_unit_nodes.size() * 0.006, 0.20)
+	stacked_node.rotation_degrees = Vector3(0.0, 0.0, 7.0)
+	stacked_node.scale = Vector3.ONE * 0.88
+	stacked_node.call("assign_card_data", card_data, false)
+	stacked_unit_cards.append(card_data)
+	stacked_unit_nodes.append(stacked_node)
+	return true
+
+
+func get_stacked_unit_cards() -> Array[CardData]:
+	return stacked_unit_cards.duplicate()
+
+
+func take_slot_snapshot() -> Dictionary:
+	var snapshot := {
+		"card": get_placed_card_data(),
+		"face_down": bool(get_meta("face_down", false)),
+		"equipment": equipment_cards.duplicate(),
+		"stacked_units": stacked_unit_cards.duplicate(),
+		"vortex_bonus_turn": int(get_meta("vortex_bonus_turn", -1)),
+		"used_mobility_turns": get_meta("used_mobility_turns", {}).duplicate(),
+	}
+	clear_slot()
+	return snapshot
+
+
+func restore_slot_snapshot(card_scene: PackedScene, snapshot: Dictionary) -> bool:
+	var card := snapshot.get("card") as CardData
+	if card == null:
+		return true
+	if not place_card(card_scene, card, bool(snapshot.get("face_down", false))):
+		return false
+	for equipment in snapshot.get("equipment", []):
+		attach_equipment(card_scene, equipment as CardData)
+	for stacked in snapshot.get("stacked_units", []):
+		add_stacked_unit(card_scene, stacked as CardData)
+	set_meta("vortex_bonus_turn", int(snapshot.get("vortex_bonus_turn", -1)))
+	set_meta("used_mobility_turns", snapshot.get("used_mobility_turns", {}).duplicate())
+	return true
+
+
 func clear_slot() -> void:
+	for stacked_node in stacked_unit_nodes:
+		if is_instance_valid(stacked_node):
+			stacked_node.queue_free()
+	stacked_unit_nodes.clear()
+	stacked_unit_cards.clear()
 	for equipment_node in equipment_nodes:
 		if is_instance_valid(equipment_node):
 			equipment_node.queue_free()
@@ -291,6 +370,8 @@ func clear_slot() -> void:
 	occupied = false
 	set_meta("occupied", false)
 	set_meta("face_down", false)
+	set_meta("vortex_bonus_turn", -1)
+	set_meta("used_mobility_turns", {})
 
 	print("Cleared slot: ", get_meta("slot_id"))
 
@@ -313,6 +394,17 @@ func set_slot_usable_ability_ids(ability_ids: Array[StringName]) -> void:
 	if placed_card != null and is_instance_valid(placed_card):
 		if placed_card.has_method("set_usable_ability_ids"):
 			placed_card.set_usable_ability_ids(ability_ids)
+
+
+func get_ability_visual_entries() -> Array[Dictionary]:
+	var entries: Array[Dictionary] = []
+	if placed_card != null and is_instance_valid(placed_card):
+		entries.append({"card": get_placed_card_data(), "visual": placed_card})
+	for index in range(mini(equipment_cards.size(), equipment_nodes.size())):
+		var visual := equipment_nodes[index]
+		if visual != null and is_instance_valid(visual):
+			entries.append({"card": equipment_cards[index], "visual": visual})
+	return entries
 
 
 func reveal_card() -> void:

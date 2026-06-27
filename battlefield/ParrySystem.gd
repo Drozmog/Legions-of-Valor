@@ -23,6 +23,8 @@ var attacker_slot: Node = null
 var attacker_card: CardData = null
 var defender_slot: Node = null
 var defender_card: CardData = null
+var attacker_ap: int = 0
+var defender_ap: int = 0
 var required_dp: int = 0
 var gathered_dp: int = 0
 
@@ -199,8 +201,8 @@ func _update_counter_visual(current_dp: int, req_dp: int) -> void:
 	var counter_text := "Parry: 0 / 0"
 
 	if defender_card != null and req_dp > 0:
-		var current_total: int = max(0, defender_card.ap) + max(0, current_dp)
-		var target_total: int = max(1, defender_card.ap + req_dp)
+		var current_total: int = max(0, defender_ap) + max(0, current_dp)
+		var target_total: int = max(1, defender_ap + req_dp)
 		counter_text = "Parry: %d / %d" % [current_total, target_total]
 	else:
 		counter_text = "Parry: %d / %d" % [max(0, current_dp), max(0, req_dp)]
@@ -254,7 +256,9 @@ func begin(
 	atk_slot: Node,
 	atk_card: CardData,
 	def_slot: Node,
-	def_card: CardData
+	def_card: CardData,
+	atk_power: int = -1,
+	def_power: int = -1
 ) -> void:
 	bf.set_active_combat_lane_highlight(combat_lane)
 	if atk_card == null or def_card == null:
@@ -266,10 +270,12 @@ func begin(
 	attacker_card = atk_card
 	defender_slot = def_slot
 	defender_card = def_card
+	attacker_ap = atk_power if atk_power >= 0 else atk_card.ap
+	defender_ap = def_power if def_power >= 0 else def_card.ap
 	# Phase 9 parry formula:
 	# Required pit DP = attacking/threatening AP - endangered unit AP.
 	# The visible counter shows endangered unit AP + pit DP / threatening AP.
-	required_dp = max(1, atk_card.ap - def_card.ap)
+	required_dp = max(1, attacker_ap - defender_ap)
 	gathered_dp = 0
 	bf.update_phase_instruction_ui()
 
@@ -286,9 +292,9 @@ func begin(
 			+ atk_card.card_name
 			+ ".\nDrop hand cards into the glowing pit to add DP, or let the unit die."
 			+ "\nParry target: "
-			+ str(def_card.ap)
+			+ str(defender_ap)
 			+ " + pit DP / "
-			+ str(atk_card.ap)
+			+ str(attacker_ap)
 			+ " AP"
 			+ "\nNeeded from pit: "
 			+ str(required_dp)
@@ -304,9 +310,9 @@ func begin(
 		+ str(required_dp)
 		+ " pit DP. "
 		+ "Parry: "
-		+ str(def_card.ap)
+		+ str(defender_ap)
 		+ " / "
-		+ str(atk_card.ap)
+		+ str(attacker_ap)
 	)
 
 
@@ -351,8 +357,8 @@ func sacrifice_card(card_ui: CardUI) -> void:
 	var parry_target_total: int = 0
 
 	if defender_card != null:
-		parry_total_after_sacrifice = defender_card.ap + gathered_dp
-		parry_target_total = defender_card.ap + required_dp
+		parry_total_after_sacrifice = defender_ap + gathered_dp
+		parry_target_total = defender_ap + required_dp
 
 	bf.log_msg(
 		"Parry sacrifice: "
@@ -379,8 +385,8 @@ func _complete_success() -> void:
 	var final_parry_target: int = required_dp
 
 	if defender_card != null:
-		final_parry_total = defender_card.ap + gathered_dp
-		final_parry_target = defender_card.ap + required_dp
+		final_parry_total = defender_ap + gathered_dp
+		final_parry_target = defender_ap + required_dp
 
 	bf.log_msg(
 		"Parry successful. "
@@ -419,6 +425,8 @@ func _end_prompt() -> void:
 	attacker_card = null
 	defender_slot = null
 	defender_card = null
+	attacker_ap = 0
+	defender_ap = 0
 	required_dp = 0
 	gathered_dp = 0
 

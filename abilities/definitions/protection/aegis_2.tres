@@ -5,11 +5,11 @@
 
 [resource]
 script = ExtResource("2_0ct0t")
-ability_id = &"aegis_2"
+ability_id = &"aegis"
 ability_name = "Aegis"
 category = "protection"
 point_cost = 4.0
 trigger = "protection_check"
 rules_text = "This unit cannot be targeted or destroyed by opponent's Event cards."
 icon = ExtResource("1_jxel8")
-handler_id = &"aegis_2"
+handler_id = &"aegis"

@@ -7,7 +7,7 @@
 script = ExtResource("2_x01yb")
 ability_id = &"imperial_decree"
 ability_name = "Imperial Decree"
-category = "attrition"
+category = "mobility"
 point_cost = 8.0
 rules_text = "Discard an enemy unit with 6 AP or less from the Frontline."
 icon = ExtResource("1_2oty7")

@@ -58,6 +58,15 @@ static func _ensure_default_handlers() -> void:
 		return
 	_defaults_registered = true
 	register_handler(&"volley", _resolve_volley)
+	register_handler(&"flank_swap", _resolve_mobility_flag.bind("swap_whole_lanes"))
+	register_handler(&"imperial_decree", _resolve_mobility_flag.bind("discard_frontline_unit"))
+	register_handler(&"lane_shift", _resolve_mobility_flag.bind("swap_friendly_units"))
+	register_handler(&"mobilize", _resolve_mobility_flag.bind("move_adjacent"))
+	register_handler(&"reassign", _resolve_mobility_flag.bind("rearrange_frontline"))
+	register_handler(&"siege", _resolve_mobility_flag.bind("prevent_center_intercept"))
+	register_handler(&"tactic_flow", _resolve_mobility_flag.bind("move_center_to_side"))
+	register_handler(&"vanish", _resolve_mobility_flag.bind("return_to_hand"))
+	register_handler(&"vortex", _resolve_mobility_flag.bind("merge_units"))
 	register_handler(&"intel", _resolve_intel)
 	register_handler(&"intuition", _resolve_intuition)
 	register_handler(&"intelligence", _resolve_intelligence)
@@ -77,6 +86,13 @@ static func _resolve_volley(ability: AbilityData, context: Dictionary) -> Dictio
 		"allow_diagonal_attack": true,
 		"context": context,
 	}
+
+
+static func _resolve_mobility_flag(ability: AbilityData, context: Dictionary, effect: String) -> Dictionary:
+	return _ability_success(ability, {
+		"effect": effect,
+		"context": context,
+	})
 
 
 static func _resolve_intel(ability: AbilityData, context: Dictionary) -> Dictionary:

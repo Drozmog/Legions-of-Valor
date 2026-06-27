@@ -1,14 +1,14 @@
 [gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://chwyfh1oris4b"]
 
-[ext_resource type="Texture2D" uid="uid://cibnqwmrcdvtt" path="res://ui/ability_icons/mobility.png" id="1_f1a21"]
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_l0bjv"]
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_uhna0"]
 
 [resource]
 script = ExtResource("2_uhna0")
 ability_id = &"banishment"
 ability_name = "Banishment"
-category = "mobility"
+category = "attrition"
 point_cost = 10.0
 rules_text = "All units with TP cost of less than 5 are returned to the player's hands along with any equipment"
-icon = ExtResource("1_f1a21")
+icon = ExtResource("1_l0bjv")
 handler_id = &"banishment"

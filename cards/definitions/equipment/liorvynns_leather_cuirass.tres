@@ -1,7 +1,7 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cfeep1cb2fknp"]
 
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_6wjfd"]
-[ext_resource type="Resource" uid="uid://pxklqjx73v24" path="res://abilities/definitions/protection/aegis.tres" id="2_342se"]
+[ext_resource type="Resource" uid="uid://hrlsohnncbht" path="res://abilities/definitions/protection/spell_shield.tres" id="2_342se"]
 [ext_resource type="Texture2D" uid="uid://dkks0elfxyp2y" path="res://cards/images/equipment/liorvynns_leather_cuirass.png" id="3_6wjfd"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_jhevt"]
 
