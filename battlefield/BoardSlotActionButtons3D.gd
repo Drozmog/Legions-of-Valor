@@ -20,6 +20,7 @@ const SLIDE_TIME := 0.18
 const BOARD_ACTION_INSPECT := 1
 const CARD_VISUAL_WIDTH := 1.02
 const CARD_VISUAL_HEIGHT := 1.34
+const INSPECT_FADE_ALPHA := 0.36
 
 var slot: Node3D
 var slide_direction := 1.0
@@ -244,8 +245,7 @@ func inspect_slot_card_locally() -> void:
 	var inspector := find_card_inspect_panel()
 	if inspector == null:
 		return
-	if slot.has_method("set_inspected_faded"):
-		slot.call("set_inspected_faded", true)
+	set_slot_card_faded(true)
 	var clear_callable := Callable(self, "_clear_slot_inspection_fade")
 	if not inspector.inspection_closed.is_connected(clear_callable):
 		inspector.inspection_closed.connect(clear_callable)
@@ -255,18 +255,50 @@ func inspect_slot_card_locally() -> void:
 
 
 func _clear_slot_inspection_fade() -> void:
-	if slot != null and is_instance_valid(slot) and slot.has_method("set_inspected_faded"):
-		slot.call("set_inspected_faded", false)
+	set_slot_card_faded(false)
+
+
+func set_slot_card_faded(active: bool) -> void:
+	if slot == null or not is_instance_valid(slot) or not slot.has_method("get_placed_card_visual"):
+		return
+	var visual := slot.call("get_placed_card_visual") as Node
+	if visual == null or not is_instance_valid(visual):
+		return
+	_set_visual_fade_recursive(visual, active)
+
+
+func _set_visual_fade_recursive(node: Node, active: bool) -> void:
+	if node is MeshInstance3D:
+		var mesh_instance := node as MeshInstance3D
+		if mesh_instance.material_override is StandardMaterial3D:
+			var material := mesh_instance.material_override as StandardMaterial3D
+			var next_material := material.duplicate() as StandardMaterial3D
+			var color := next_material.albedo_color
+			if active:
+				if not mesh_instance.has_meta("inspect_original_alpha"):
+					mesh_instance.set_meta("inspect_original_alpha", color.a)
+				next_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+				color.a = INSPECT_FADE_ALPHA
+			else:
+				color.a = float(mesh_instance.get_meta("inspect_original_alpha", 1.0))
+				if color.a >= 0.999:
+					next_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+				if mesh_instance.has_meta("inspect_original_alpha"):
+					mesh_instance.remove_meta("inspect_original_alpha")
+			next_material.albedo_color = color
+			mesh_instance.material_override = next_material
+	for child in node.get_children():
+		_set_visual_fade_recursive(child, active)
 
 
 func get_slot_card_screen_rect() -> Rect2:
 	var camera := get_viewport().get_camera_3d()
 	if camera == null or slot == null or not is_instance_valid(slot):
 		return Rect2(get_viewport().get_mouse_position() - Vector2(65.0, 90.0), Vector2(130.0, 180.0))
-	var visual := null
+	var visual: Variant = null
 	if slot.has_method("get_placed_card_visual"):
 		visual = slot.call("get_placed_card_visual")
-	if not visual is Node3D:
+	if not (visual is Node3D):
 		visual = slot
 	var visual_3d := visual as Node3D
 	var half_width := CARD_VISUAL_WIDTH * 0.5
