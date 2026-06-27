@@ -30,6 +30,7 @@ var draw_preview_target_scale := Vector3.ONE
 var draw_preview_following: bool = false
 var draw_preview_source_position := Vector3.ZERO
 var draw_preview_source_rotation := Vector3.ZERO
+var modal_blocked := false
 
 
 func setup(source_hand: HandUI, source_camera: Camera3D) -> void:
@@ -44,6 +45,9 @@ func _process(delta: float) -> void:
 		return
 	sync_card_visuals()
 	update_card_layout(delta)
+	if _is_modal_blocked():
+		clear_hand_interaction_state()
+		return
 	update_pressed_card_drag()
 	# A SubViewport or modal control may consume mouse-up before this node's
 	# _input callback. Recover from the physical button state so a card can
@@ -109,8 +113,11 @@ func create_card_visual(proxy: CardUI) -> Node3D:
 
 
 func update_card_layout(delta: float) -> void:
+	var blocked := _is_modal_blocked()
 	var viewport_size := get_viewport().get_visible_rect().size
-	var clearance_card_id := hovered_card_id if hovered_card_id != 0 else returning_card_id
+	var clearance_card_id := 0
+	if not blocked:
+		clearance_card_id = hovered_card_id if hovered_card_id != 0 else returning_card_id
 	var clearance_index := get_card_index_from_id(clearance_card_id)
 	for index in range(hand_ui.cards.size()):
 		var proxy: CardUI = hand_ui.cards[index]
@@ -124,29 +131,29 @@ func update_card_layout(delta: float) -> void:
 		var screen_center := get_proxy_screen_center(proxy)
 		var onscreen := screen_center.y > -180.0 and screen_center.y < viewport_size.y + 100.0
 		visual.visible = not hidden and onscreen
-		set_visual_pickable(visual, not hidden and onscreen)
+		set_visual_pickable(visual, not blocked and not hidden and onscreen)
 		if hidden or not onscreen:
 			continue
 		var target_position := get_proxy_target_position(proxy)
 		target_position.y += float(index) * 0.008
-		if clearance_index >= 0 and index != clearance_index:
+		if not blocked and clearance_index >= 0 and index != clearance_index:
 			var index_distance := absi(index - clearance_index)
 			if index_distance <= 2:
 				var spread_weight := 1.0 if index_distance == 1 else 0.45
 				var spread_direction := -1.0 if index < clearance_index else 1.0
 				target_position.x += spread_direction * hover_neighbor_spread * spread_weight
-		if card_id == hovered_card_id:
+		if not blocked and card_id == hovered_card_id:
 			target_position.y += hover_height
 		var weight := clampf(delta * layout_lerp_speed, 0.0, 1.0)
 		visual.global_position = visual.global_position.lerp(target_position, weight)
 		var target_rotation := Vector3(0.0, deg_to_rad(-proxy.rotation_degrees), 0.0)
 		visual.global_rotation = visual.global_rotation.lerp(target_rotation, weight)
 		var target_scale := get_proxy_target_scale(proxy)
-		if card_id == hovered_card_id:
+		if not blocked and card_id == hovered_card_id:
 			target_scale *= 1.025
 		visual.scale = visual.scale.lerp(target_scale, weight)
 		if visual.has_method("set_ability_icons_visible"):
-			visual.set_ability_icons_visible(hand_ui.showing_ability_icons)
+			visual.set_ability_icons_visible(hand_ui.showing_ability_icons and not blocked)
 
 	if hovered_card_id == 0 and returning_card_id != 0:
 		hover_return_time_left = maxf(hover_return_time_left - delta, 0.0)
@@ -198,6 +205,8 @@ func _on_card_input_event(
 	_shape_index: int,
 	proxy: CardUI
 ) -> void:
+	if _is_modal_blocked():
+		return
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
@@ -208,6 +217,9 @@ func _on_card_input_event(
 
 
 func update_pressed_card_drag() -> void:
+	if _is_modal_blocked():
+		clear_hand_interaction_state()
+		return
 	if pressed_card == null or press_became_drag:
 		return
 	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
@@ -220,6 +232,9 @@ func update_pressed_card_drag() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if _is_modal_blocked():
+		clear_hand_interaction_state()
+		return
 	if pressed_card == null:
 		return
 	if event is InputEventMouseButton:
@@ -231,6 +246,9 @@ func _input(event: InputEvent) -> void:
 
 
 func release_pressed_card(screen_position: Vector2) -> void:
+	if _is_modal_blocked():
+		clear_hand_interaction_state()
+		return
 	if pressed_card == null:
 		return
 	var released_card := pressed_card
@@ -248,6 +266,8 @@ func release_pressed_card(screen_position: Vector2) -> void:
 
 
 func _on_card_mouse_entered(proxy: CardUI) -> void:
+	if _is_modal_blocked():
+		return
 	if proxy != null:
 		returning_card_id = 0
 		hover_return_time_left = 0.0
@@ -325,6 +345,8 @@ func queue_next_card_spawn(world_position: Vector3) -> void:
 
 
 func start_draw_preview(card_data: CardData, source_node: Node3D) -> void:
+	if _is_modal_blocked():
+		return
 	cancel_draw_preview(false)
 	if card_data == null or source_node == null:
 		return
@@ -348,6 +370,8 @@ func start_draw_preview(card_data: CardData, source_node: Node3D) -> void:
 
 
 func update_draw_preview_target(screen_position: Vector2) -> void:
+	if _is_modal_blocked():
+		return
 	if draw_preview == null or not draw_preview_following:
 		return
 	var plane_position := screen_to_plane(screen_position, hand_plane_y + 0.10)
@@ -448,6 +472,38 @@ func _queue_free_safely(node: Node) -> void:
 	node.queue_free()
 
 
+func set_modal_blocked(blocked: bool) -> void:
+	modal_blocked = blocked
+	if blocked:
+		clear_hand_interaction_state()
+	for raw_id in card_visuals.keys():
+		var visual := card_visuals[raw_id] as Node3D
+		if visual != null and is_instance_valid(visual):
+			set_visual_pickable(visual, not blocked and visual.visible)
+
+
+func _is_modal_blocked() -> bool:
+	if modal_blocked:
+		return true
+	var scene := get_tree().current_scene
+	if scene == null:
+		return false
+	var depth: Variant = scene.get("blurred_modal_input_depth")
+	return depth != null and int(depth) > 0
+
+
+func clear_hand_interaction_state() -> void:
+	pressed_card = null
+	press_became_drag = false
+	if hovered_card_id != 0 or returning_card_id != 0:
+		hovered_card_id = 0
+		returning_card_id = 0
+		hover_return_time_left = 0.0
+		Cursors.use_normal()
+	if draw_preview != null:
+		cancel_draw_preview(false)
+
+
 func get_reference_hand_scale() -> Vector3:
 	if hand_ui != null and not hand_ui.cards.is_empty():
 		var proxy: CardUI = hand_ui.cards[0]
@@ -459,4 +515,5 @@ func get_reference_hand_scale() -> Vector3:
 func set_visual_pickable(visual: Node3D, enabled: bool) -> void:
 	var area := visual.get_node_or_null("HandCardPickArea") as Area3D
 	if area != null:
-		area.collision_layer = CARD_PICK_LAYER if enabled else 0
+		area.collision_layer = CARD_PICK_LAYER if enabled and not _is_modal_blocked() else 0
+		area.input_ray_pickable = enabled and not _is_modal_blocked()
