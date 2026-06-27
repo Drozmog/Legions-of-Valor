@@ -6,6 +6,9 @@ signal phase_action_pressed
 const GOLD := Color(0.94, 0.68, 0.19, 1.0)
 const PALE_GOLD := Color(1.0, 0.91, 0.66, 1.0)
 const PANEL_BG := Color(0.055, 0.023, 0.010, 0.94)
+const BATTLEPLAN_CARD_SIZE := Vector2(2.95, 2.11)
+const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
+const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
 
 var camera_3d: Camera3D
 var surfaces: Array[Dictionary] = []
@@ -26,6 +29,10 @@ var phase_button: Button
 var log_text: RichTextLabel
 var player_plan_box: PanelContainer
 var opponent_plan_box: PanelContainer
+var plan_card_root: Node3D
+var player_plan_card_3d: MeshInstance3D
+var opponent_plan_card_3d: MeshInstance3D
+var battleplan_face_viewports: Array[SubViewport] = []
 
 var log_open := false
 var plans_open := false
@@ -204,8 +211,8 @@ func build_log_foldout() -> void:
 func build_plan_foldout() -> void:
 	plan_open_position = Vector3(-0.3, 0.118, 2.2)
 	plan_closed_position = Vector3(-0.3, 0.118, 3.50)
-	# Two landscape battleplan cards side by side. Each half of this surface is
-	# approximately the physical 3.5:2.5 card ratio.
+	# The popup backing remains a 3D tabletop plaque, but the selected plans are
+	# now separate 3D card meshes sitting on top of it instead of 2D text panels.
 	var entry := create_surface("BattlePlans", Vector2i(1400, 500), plan_closed_position, Vector2(7.0, 2.5), false)
 	plan_surface = entry["surface"]
 	plan_viewport = entry["viewport"]
@@ -214,19 +221,19 @@ func build_plan_foldout() -> void:
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.add_theme_stylebox_override("panel", panel_style())
 	root.add_child(panel)
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 28)
-	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_top", 22)
-	margin.add_theme_constant_override("margin_bottom", 22)
-	panel.add_child(margin)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 28)
-	margin.add_child(row)
-	player_plan_box = make_plan_card("YOUR BATTLEPLAN")
-	opponent_plan_box = make_plan_card("OPPONENT BATTLEPLAN")
-	row.add_child(player_plan_box)
-	row.add_child(opponent_plan_box)
+
+	plan_card_root = Node3D.new()
+	plan_card_root.name = "BattlePlan3DCards"
+	plan_surface.add_child(plan_card_root)
+
+	player_plan_card_3d = create_battleplan_card_mesh("PlayerBattleplanCard3D")
+	player_plan_card_3d.position = Vector3(-1.78, 0.0, 0.035)
+	plan_card_root.add_child(player_plan_card_3d)
+
+	opponent_plan_card_3d = create_battleplan_card_mesh("OpponentBattleplanCard3D")
+	opponent_plan_card_3d.position = Vector3(1.78, 0.0, 0.035)
+	plan_card_root.add_child(opponent_plan_card_3d)
+
 	plan_surface.scale = Vector3(1.0, 0.02, 1.0)
 	plan_surface.visible = false
 
@@ -291,8 +298,9 @@ func set_battleplans(player_plan: Dictionary, enemy_plan: Dictionary) -> void:
 	if signature == last_plan_signature:
 		return
 	last_plan_signature = signature
-	fill_plan_card(player_plan_box, player_plan, "YOUR BATTLEPLAN")
-	fill_plan_card(opponent_plan_box, enemy_plan, "OPPONENT BATTLEPLAN")
+	cleanup_battleplan_face_viewports()
+	apply_plan_to_3d_card(player_plan_card_3d, player_plan, "YOUR BATTLEPLAN")
+	apply_plan_to_3d_card(opponent_plan_card_3d, enemy_plan, "OPPONENT BATTLEPLAN")
 
 
 func toggle_log() -> void:
@@ -335,40 +343,163 @@ func set_card_drag_active(active: bool) -> void:
 	card_drag_active = active
 
 
-func make_plan_card(caption: String) -> PanelContainer:
-	var card := PanelContainer.new()
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", button_style(Color(0.085, 0.035, 0.015, 0.97), GOLD, 3, 8))
-	var box := VBoxContainer.new()
-	box.name = "Content"
-	box.add_theme_constant_override("separation", 9)
-	card.add_child(box)
-	var title := Label.new()
-	title.name = "Title"
-	title.text = caption
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 25)
-	title.add_theme_color_override("font_color", PALE_GOLD)
-	box.add_child(title)
-	for child_name in ["Name", "Stats", "Objective"]:
-		var label := Label.new()
-		label.name = child_name
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		label.add_theme_font_size_override("font_size", 20 if child_name == "Name" else 16)
-		label.add_theme_color_override("font_color", Color.WHITE if child_name != "Objective" else Color(0.86, 0.78, 0.64, 1.0))
-		label.size_flags_vertical = Control.SIZE_EXPAND_FILL if child_name == "Objective" else Control.SIZE_SHRINK_CENTER
-		box.add_child(label)
+func create_battleplan_card_mesh(card_name: String) -> MeshInstance3D:
+	var card := MeshInstance3D.new()
+	card.name = card_name
+	card.mesh = create_rounded_battleplan_card_mesh(BATTLEPLAN_CARD_SIZE)
+	card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	card.material_override = make_battleplan_card_material(create_battleplan_face_texture({}, "BATTLEPLAN"))
 	return card
 
 
-func fill_plan_card(card: PanelContainer, plan: Dictionary, caption: String) -> void:
+func apply_plan_to_3d_card(card: MeshInstance3D, plan: Dictionary, caption: String) -> void:
 	if card == null:
 		return
-	(card.get_node("Content/Title") as Label).text = caption
-	(card.get_node("Content/Name") as Label).text = str(plan.get("name", "Not selected"))
-	(card.get_node("Content/Stats") as Label).text = "INIT %s   •   DRAW %s   •   HAND %s   •   REWARD +%s" % [plan.get("initiative_mark", "-"), plan.get("draw_amount", "-"), plan.get("max_hand_size", "-"), plan.get("aurion_reward", "-")]
-	(card.get_node("Content/Objective") as Label).text = str(plan.get("objective", "Choose a battleplan to reveal its objective."))
+	card.material_override = make_battleplan_card_material(create_battleplan_face_texture(plan, caption))
+
+
+func create_battleplan_face_texture(plan: Dictionary, caption: String) -> Texture2D:
+	var supplied_texture := get_supplied_plan_texture(plan)
+	if supplied_texture != null:
+		return supplied_texture
+
+	var viewport := SubViewport.new()
+	viewport.name = "BottomHudBattlePlanCardViewport"
+	viewport.size = Vector2i(980, 700)
+	viewport.transparent_bg = false
+	viewport.disable_3d = true
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(viewport)
+	battleplan_face_viewports.append(viewport)
+
+	var panel := PanelContainer.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.10, 0.045, 0.018, 1.0)
+	panel_style.border_color = GOLD
+	panel_style.set_border_width_all(12)
+	panel_style.set_corner_radius_all(34)
+	panel_style.shadow_color = Color(1.0, 0.55, 0.06, 0.48)
+	panel_style.shadow_size = 18
+	panel.add_theme_stylebox_override("panel", panel_style)
+	viewport.add_child(panel)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 34)
+	margin.add_theme_constant_override("margin_right", 34)
+	margin.add_theme_constant_override("margin_top", 26)
+	margin.add_theme_constant_override("margin_bottom", 28)
+	panel.add_child(margin)
+
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", 12)
+	margin.add_child(rows)
+
+	var title_label := Label.new()
+	title_label.text = caption
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 39)
+	title_label.add_theme_color_override("font_color", PALE_GOLD)
+	rows.add_child(title_label)
+
+	var name_label := Label.new()
+	name_label.text = str(plan.get("name", "Not selected"))
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 34)
+	name_label.add_theme_color_override("font_color", Color.WHITE)
+	rows.add_child(name_label)
+
+	var stat_label := Label.new()
+	stat_label.text = "INIT %s  •  DRAW %s  •  HAND %s  •  REWARD +%s" % [plan.get("initiative_mark", "-"), plan.get("draw_amount", "-"), plan.get("max_hand_size", "-"), plan.get("aurion_reward", "-")]
+	stat_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	stat_label.add_theme_font_size_override("font_size", 24)
+	stat_label.add_theme_color_override("font_color", PALE_GOLD)
+	rows.add_child(stat_label)
+
+	var objective := Label.new()
+	objective.text = str(plan.get("objective", "Choose a battleplan to reveal its objective."))
+	objective.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	objective.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	objective.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	objective.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	objective.add_theme_font_size_override("font_size", 27)
+	objective.add_theme_color_override("font_color", Color(0.86, 0.78, 0.64, 1.0))
+	rows.add_child(objective)
+	return viewport.get_texture()
+
+
+func get_supplied_plan_texture(plan: Dictionary) -> Texture2D:
+	for key in ["card_art", "battleplan_art", "texture", "art", "image", "card_texture", "texture_path"]:
+		var value: Variant = plan.get(key, null)
+		if value is Texture2D:
+			return value as Texture2D
+		if value is String and not String(value).is_empty() and ResourceLoader.exists(String(value)):
+			return load(String(value)) as Texture2D
+	return null
+
+
+func cleanup_battleplan_face_viewports() -> void:
+	for viewport in battleplan_face_viewports:
+		if viewport != null and is_instance_valid(viewport):
+			viewport.queue_free()
+	battleplan_face_viewports.clear()
+
+
+func make_battleplan_card_material(texture: Texture2D) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color.WHITE
+	material.albedo_texture = texture
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	material.no_depth_test = true
+	material.render_priority = 128
+	material.emission_enabled = true
+	material.emission = Color(0.14, 0.075, 0.018, 1.0)
+	material.emission_energy_multiplier = 0.35
+	return material
+
+
+func create_rounded_battleplan_card_mesh(size: Vector2) -> ArrayMesh:
+	var half_size := size * 0.5
+	var radius := minf(size.x, size.y) * BATTLEPLAN_CARD_CORNER_RADIUS_RATIO
+	var outline: Array[Vector2] = []
+	add_battleplan_card_corner(outline, Vector2(half_size.x - radius, half_size.y - radius), radius, 0.0, 90.0)
+	add_battleplan_card_corner(outline, Vector2(-half_size.x + radius, half_size.y - radius), radius, 90.0, 180.0)
+	add_battleplan_card_corner(outline, Vector2(-half_size.x + radius, -half_size.y + radius), radius, 180.0, 270.0)
+	add_battleplan_card_corner(outline, Vector2(half_size.x - radius, -half_size.y + radius), radius, 270.0, 360.0)
+
+	var vertices := PackedVector3Array([Vector3.ZERO])
+	var normals := PackedVector3Array([Vector3.FORWARD])
+	var uvs := PackedVector2Array([Vector2(0.5, 0.5)])
+	var indices := PackedInt32Array()
+	for point in outline:
+		vertices.append(Vector3(point.x, point.y, 0.0))
+		normals.append(Vector3.FORWARD)
+		uvs.append(Vector2((point.x + half_size.x) / size.x, 1.0 - ((point.y + half_size.y) / size.y)))
+	for index in range(1, outline.size() + 1):
+		var next_index := index + 1 if index < outline.size() else 1
+		indices.append(0)
+		indices.append(index)
+		indices.append(next_index)
+
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
+
+
+func add_battleplan_card_corner(points: Array[Vector2], center: Vector2, radius: float, start_degrees: float, end_degrees: float) -> void:
+	for segment in range(BATTLEPLAN_CARD_CORNER_SEGMENTS + 1):
+		var weight := float(segment) / float(BATTLEPLAN_CARD_CORNER_SEGMENTS)
+		var angle := deg_to_rad(lerpf(start_degrees, end_degrees, weight))
+		points.append(center + Vector2(cos(angle), sin(angle)) * radius)
 
 
 func _input(event: InputEvent) -> void:
