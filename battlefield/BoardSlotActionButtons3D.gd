@@ -312,7 +312,7 @@ func get_slot_card_screen_rect() -> Rect2:
 	var min_point := Vector2(INF, INF)
 	var max_point := Vector2(-INF, -INF)
 	for corner in corners:
-		var world_point := visual_3d.global_transform * corner
+		var world_point: Vector3 = visual_3d.global_transform * corner
 		if camera.is_position_behind(world_point):
 			continue
 		var screen_point := camera.unproject_position(world_point)
