@@ -592,7 +592,7 @@ func build_overlay_ui() -> void:
 	add_filter_caption(filter_row, "CARD")
 	add_filter_buttons(filter_row, ["All", "Unit", "Gambit", "Equipment"], type_buttons, _on_type_filter_pressed)
 
-	ability_filter_button = make_button("ABILITIES", Vector2(88, 26))
+	ability_filter_button = make_button("Abilities", Vector2(88, 26))
 	ability_filter_button.toggle_mode = true
 	ability_filter_button.pressed.connect(_on_ability_filter_toggle_pressed)
 	filter_row.add_child(ability_filter_button)
@@ -782,67 +782,151 @@ func build_deck_chip_shell(parent: Node3D) -> void:
 		# A slightly oversized dark plate sits beneath each compartment. Adjacent
 		# plates overlap by a few millimetres, producing one continuous contact
 		# shadow that blocks tabletop labels from showing through the slot gaps.
-		var shadow_backing := MeshInstance3D.new()
-		shadow_backing.name = "SlotShadowBacking"
-		var shadow_mesh := BoxMesh.new()
-		shadow_mesh.size = Vector3(0.345, 0.020, 0.70)
-		shadow_backing.mesh = shadow_mesh
-		shadow_backing.position = Vector3(0.0, 0.008, 0.008)
-		shadow_backing.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		shadow_backing.material_override = make_mat(Color(0.012, 0.006, 0.003, 1.0), 0.92, 0.0)
+		var shadow_backing := make_deck_slot_box(
+			"SlotShadowBacking",
+			Vector3(0.345, 0.020, 0.70),
+			Vector3(0.0, 0.006, 0.008),
+			Color(0.010, 0.005, 0.002, 1.0),
+			0.92,
+			0.0
+		)
 		slot.add_child(shadow_backing)
 
-		var body := MeshInstance3D.new()
-		body.name = "SlotBody"
-		var body_mesh := BoxMesh.new()
-		body_mesh.size = Vector3(0.315, 0.12, 0.66)
-		body.mesh = body_mesh
-		body.material_override = make_mat(Color(0.095, 0.042, 0.014, 1.0), 0.46, 0.30)
+		var body := make_deck_slot_box(
+			"SlotBody",
+			Vector3(0.315, 0.12, 0.66),
+			Vector3.ZERO,
+			Color(0.18, 0.085, 0.022, 1.0),
+			0.42,
+			0.35
+		)
 		slot.add_child(body)
 
-		var inset := MeshInstance3D.new()
-		inset.name = "SlotInset"
-		var inset_mesh := BoxMesh.new()
-		inset_mesh.size = Vector3(0.265, 0.018, 0.50)
-		inset.mesh = inset_mesh
-		inset.position.y = 0.068
-		inset.material_override = make_mat(Color(0.018, 0.009, 0.004, 1.0), 0.58, 0.12)
+		var left_bevel := make_deck_slot_box(
+			"SlotLeftBevel",
+			Vector3(0.030, 0.128, 0.64),
+			Vector3(-0.145, 0.010, 0.0),
+			Color(0.27, 0.135, 0.035, 1.0),
+			0.38,
+			0.42
+		)
+		slot.add_child(left_bevel)
+
+		var right_bevel := make_deck_slot_box(
+			"SlotRightBevel",
+			Vector3(0.030, 0.128, 0.64),
+			Vector3(0.145, 0.010, 0.0),
+			Color(0.07, 0.030, 0.012, 1.0),
+			0.55,
+			0.20
+		)
+		slot.add_child(right_bevel)
+
+		var inset := make_deck_slot_box(
+			"SlotInset",
+			Vector3(0.255, 0.020, 0.49),
+			Vector3(0.0, 0.071, 0.0),
+			Color(0.025, 0.021, 0.018, 1.0),
+			0.70,
+			0.08
+		)
 		slot.add_child(inset)
 
-		var fill := MeshInstance3D.new()
-		fill.name = "SlotFill"
-		var fill_mesh := BoxMesh.new()
-		fill_mesh.size = Vector3(0.245, 0.024, 0.018)
-		fill.mesh = fill_mesh
-		fill.position = Vector3(0.0, 0.082, 0.196)
-		fill.material_override = make_mat(Color(0.92, 0.58, 0.08, 1.0), 0.30, 0.46)
+		var inner_top_trim := make_deck_slot_box(
+			"SlotInnerTopTrim",
+			Vector3(0.250, 0.012, 0.018),
+			Vector3(0.0, 0.086, -0.235),
+			Color(0.76, 0.53, 0.16, 1.0),
+			0.28,
+			0.55
+		)
+		slot.add_child(inner_top_trim)
+
+		var inner_bottom_trim := make_deck_slot_box(
+			"SlotInnerBottomTrim",
+			Vector3(0.250, 0.012, 0.018),
+			Vector3(0.0, 0.086, 0.235),
+			Color(0.40, 0.25, 0.075, 1.0),
+			0.34,
+			0.42
+		)
+		slot.add_child(inner_bottom_trim)
+
+		var vertical_trim_left := make_deck_slot_box(
+			"SlotInnerLeftTrim",
+			Vector3(0.014, 0.012, 0.47),
+			Vector3(-0.128, 0.087, 0.0),
+			Color(0.58, 0.40, 0.12, 1.0),
+			0.34,
+			0.45
+		)
+		slot.add_child(vertical_trim_left)
+
+		var vertical_trim_right := make_deck_slot_box(
+			"SlotInnerRightTrim",
+			Vector3(0.014, 0.012, 0.47),
+			Vector3(0.128, 0.087, 0.0),
+			Color(0.28, 0.17, 0.055, 1.0),
+			0.42,
+			0.35
+		)
+		slot.add_child(vertical_trim_right)
+
+		var fill := make_deck_slot_box(
+			"SlotFill",
+			Vector3(0.235, 0.025, 0.018),
+			Vector3(0.0, 0.093, 0.205),
+			Color(0.92, 0.58, 0.08, 1.0),
+			0.30,
+			0.46
+		)
 		slot.add_child(fill)
 		deck_slot_fill_meshes.append(fill)
 
+		for rivet_position in [
+			Vector3(-0.102, 0.100, -0.188),
+			Vector3(0.102, 0.100, -0.188),
+			Vector3(-0.102, 0.100, 0.188),
+			Vector3(0.102, 0.100, 0.188),
+		]:
+			var rivet := make_deck_slot_rivet(rivet_position)
+			slot.add_child(rivet)
+
 		var number_label := make_deck_slot_label(
-			"SLOT " + str(slot_index + 1),
-			Vector3(0.0, 0.104, -0.145),
-			13
+			"Deck " + str(slot_index + 1),
+			Vector3(0.0, 0.111, -0.082),
+			19
 		)
 		slot.add_child(number_label)
 		deck_slot_number_labels.append(number_label)
 
 		var count_label := make_deck_slot_label(
 			"0 / " + str(MAX_DECK_SIZE),
-			Vector3(0.0, 0.103, 0.125),
-			11
+			Vector3(0.0, 0.110, 0.105),
+			16
 		)
 		slot.add_child(count_label)
 		deck_slot_count_labels.append(count_label)
 
-		var front_lip := MeshInstance3D.new()
-		front_lip.name = "SlotFrontLip"
-		var lip_mesh := BoxMesh.new()
-		lip_mesh.size = Vector3(0.335, 0.16, 0.055)
-		front_lip.mesh = lip_mesh
-		front_lip.position = Vector3(0.0, 0.045, 0.325)
-		front_lip.material_override = make_mat(Color(0.39, 0.20, 0.045, 1.0), 0.34, 0.42)
+		var front_lip := make_deck_slot_box(
+			"SlotFrontLip",
+			Vector3(0.335, 0.16, 0.055),
+			Vector3(0.0, 0.045, 0.325),
+			Color(0.34, 0.17, 0.040, 1.0),
+			0.34,
+			0.42
+		)
 		slot.add_child(front_lip)
+
+		var lip_highlight := make_deck_slot_box(
+			"SlotFrontLipHighlight",
+			Vector3(0.300, 0.018, 0.012),
+			Vector3(0.0, 0.133, 0.302),
+			Color(0.76, 0.46, 0.12, 1.0),
+			0.28,
+			0.50
+		)
+		slot.add_child(lip_highlight)
 
 		var pick_area := Area3D.new()
 		pick_area.name = "SlotPickArea"
@@ -858,14 +942,55 @@ func build_deck_chip_shell(parent: Node3D) -> void:
 		pick_area.add_child(pick_shape)
 
 	# A pull tab belongs to slot one so it is swallowed by the same wall clipping.
-	var handle := MeshInstance3D.new()
-	handle.name = "CartridgePullTab"
-	var handle_mesh := BoxMesh.new()
-	handle_mesh.size = Vector3(0.18, 0.18, 0.46)
-	handle.mesh = handle_mesh
-	handle.position = Vector3(-0.245, 0.04, 0.0)
-	handle.material_override = make_mat(Color(0.48, 0.25, 0.055, 1.0), 0.30, 0.50)
-	deck_slot_roots[0].add_child(handle)
+		var handle := MeshInstance3D.new()
+		handle.name = "CartridgePullTab"
+		var handle_mesh := BoxMesh.new()
+		handle_mesh.size = Vector3(0.065, 0.125, 0.34)
+		handle.mesh = handle_mesh
+		handle.position = Vector3(-0.175, 0.038, 0.0)
+		handle.material_override = make_mat(Color(0.36, 0.18, 0.045, 1.0), 0.34, 0.42)
+		deck_slot_roots[0].add_child(handle)
+
+		var handle_cap := MeshInstance3D.new()
+		handle_cap.name = "CartridgePullTabCap"
+		var handle_cap_mesh := BoxMesh.new()
+		handle_cap_mesh.size = Vector3(0.016, 0.090, 0.26)
+		handle_cap.mesh = handle_cap_mesh
+		handle_cap.position = Vector3(-0.208, 0.052, 0.0)
+		handle_cap.material_override = make_mat(Color(0.72, 0.48, 0.15, 1.0), 0.28, 0.55)
+		deck_slot_roots[0].add_child(handle_cap)
+
+
+func make_deck_slot_box(
+	node_name: String,
+	box_size: Vector3,
+	local_position: Vector3,
+	color: Color,
+	roughness: float,
+	metallic: float
+) -> MeshInstance3D:
+	var mesh_instance := MeshInstance3D.new()
+	mesh_instance.name = node_name
+	var mesh := BoxMesh.new()
+	mesh.size = box_size
+	mesh_instance.mesh = mesh
+	mesh_instance.position = local_position
+	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mesh_instance.material_override = make_mat(color, roughness, metallic)
+	return mesh_instance
+
+
+func make_deck_slot_rivet(local_position: Vector3) -> MeshInstance3D:
+	var rivet := MeshInstance3D.new()
+	rivet.name = "SlotCornerRivet"
+	var mesh := SphereMesh.new()
+	mesh.radius = 0.010
+	mesh.height = 0.018
+	rivet.mesh = mesh
+	rivet.position = local_position
+	rivet.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	rivet.material_override = make_mat(Color(0.78, 0.56, 0.18, 1.0), 0.25, 0.65)
+	return rivet
 
 
 func make_deck_slot_label(label_text: String, local_position: Vector3, font_size: int) -> Label3D:
@@ -874,10 +999,12 @@ func make_deck_slot_label(label_text: String, local_position: Vector3, font_size
 	label.position = local_position
 	label.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	label.font_size = font_size
-	label.pixel_size = 0.00225
+	label.pixel_size = 0.0031
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.modulate = Color(1.0, 0.88, 0.57, 1.0)
-	label.outline_size = 5
-	label.outline_modulate = Color(0.015, 0.006, 0.002, 0.95)
+	label.outline_size = 7
+	label.outline_modulate = Color(0.010, 0.004, 0.001, 1.0)
 	label.no_depth_test = false
 	return label
 
@@ -888,11 +1015,25 @@ func refresh_deck_slot_chip() -> void:
 		var card_ids: Array = data.get("cards", [])
 		var card_count := card_ids.size()
 		deck_slot_count_labels[slot_index].text = str(card_count) + " / " + str(MAX_DECK_SIZE)
+		var selected := slot_index == active_deck_slot
 		deck_slot_number_labels[slot_index].modulate = (
-			Color(1.0, 0.70, 0.18, 1.0)
-			if slot_index == active_deck_slot
+			Color(1.0, 0.76, 0.18, 1.0)
+			if selected
 			else Color(1.0, 0.88, 0.57, 1.0)
 		)
+		deck_slot_count_labels[slot_index].modulate = (
+			Color(1.0, 0.86, 0.46, 1.0)
+			if selected
+			else Color(0.90, 0.74, 0.42, 1.0)
+		)
+
+		var inset := deck_slot_roots[slot_index].get_node_or_null("SlotInset") as MeshInstance3D
+		if inset != null:
+			inset.material_override = make_mat(
+				Color(0.62, 0.39, 0.070, 1.0) if selected else Color(0.025, 0.021, 0.018, 1.0),
+				0.58,
+				0.18 if selected else 0.08
+			)
 		var fill := deck_slot_fill_meshes[slot_index]
 		var fill_box := fill.mesh as BoxMesh
 		var fill_ratio := clampf(float(card_count) / float(MAX_DECK_SIZE), 0.0, 1.0)
