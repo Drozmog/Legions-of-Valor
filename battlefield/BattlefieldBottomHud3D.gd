@@ -8,14 +8,14 @@ const INSPECT_BUTTON_TEXTURE: Texture2D = preload("res://ui/combat_buttons/inspe
 const GOLD := Color(0.94, 0.68, 0.19, 1.0)
 const PALE_GOLD := Color(1.0, 0.91, 0.66, 1.0)
 const PANEL_BG := Color(0.055, 0.023, 0.010, 0.94)
-const BATTLEPLAN_CARD_SIZE := Vector2(2.95, 2.11)
+const BATTLEPLAN_CARD_SIZE := Vector2(2.80, 2.00) # exact 3.5:2.5 landscape ratio
 const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
 const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
 const BATTLEPLAN_CARD_SURFACE_Z := 0.26
 const BATTLEPLAN_LABEL_Z := 0.31
 const BATTLEPLAN_SURFACE_RENDER_PRIORITY := 80
 const BATTLEPLAN_CARD_RENDER_PRIORITY := 127
-const BATTLEPLAN_INSPECT_BUTTON_SIZE := Vector2(0.48, 0.22)
+const BATTLEPLAN_INSPECT_BUTTON_SIZE := Vector2(0.86, 0.40) # same 280x130-ish ratio, larger click target
 
 var camera_3d: Camera3D
 var surfaces: Array[Dictionary] = []
@@ -220,13 +220,12 @@ func build_log_foldout() -> void:
 
 
 func build_plan_foldout() -> void:
-	plan_open_position = Vector3(-0.3, 0.118, 2.2)
-	plan_closed_position = Vector3(-0.3, 0.118, 3.58)
-	# The popup backing remains a 3D tabletop plaque, but the selected plans are
-	# separate 3D card meshes sitting above it instead of 2D text panels.
-	# The backing is intentionally larger than the cards so both heading labels
-	# and the bottom margins sit inside the dark underpanel.
-	var entry := create_surface("BattlePlans", Vector2i(1510, 610), plan_closed_position, Vector2(7.55, 3.05), false)
+	plan_open_position = Vector3(-0.3, 0.118, 2.17)
+	plan_closed_position = Vector3(-0.3, 0.118, 3.56)
+	# Keep the dark panel close to the card width, while giving it more vertical
+	# room at the bottom for the lower margins. Position constants below are the
+	# main manual tuning points for this Battleplans popup.
+	var entry := create_surface("BattlePlans", Vector2i(1410, 570), plan_closed_position, Vector2(7.05, 2.85), false)
 	plan_surface = entry["surface"]
 	plan_viewport = entry["viewport"]
 	if plan_surface.material_override is StandardMaterial3D:
@@ -242,27 +241,27 @@ func build_plan_foldout() -> void:
 	plan_surface.add_child(plan_card_root)
 
 	player_plan_card_3d = create_battleplan_card_mesh("PlayerBattleplanCard3D")
-	player_plan_card_3d.position = Vector3(-1.86, -0.14, BATTLEPLAN_CARD_SURFACE_Z)
+	player_plan_card_3d.position = Vector3(-1.74, -0.22, BATTLEPLAN_CARD_SURFACE_Z)
 	plan_card_root.add_child(player_plan_card_3d)
 
 	opponent_plan_card_3d = create_battleplan_card_mesh("OpponentBattleplanCard3D")
-	opponent_plan_card_3d.position = Vector3(1.86, -0.14, BATTLEPLAN_CARD_SURFACE_Z)
+	opponent_plan_card_3d.position = Vector3(1.74, -0.22, BATTLEPLAN_CARD_SURFACE_Z)
 	plan_card_root.add_child(opponent_plan_card_3d)
 
 	player_plan_label_3d = create_battleplan_3d_label("YOUR BATTLEPLAN")
-	player_plan_label_3d.position = Vector3(-1.86, 1.31, BATTLEPLAN_LABEL_Z)
+	player_plan_label_3d.position = Vector3(-1.86, 1.19, BATTLEPLAN_LABEL_Z)
 	plan_card_root.add_child(player_plan_label_3d)
 
 	opponent_plan_label_3d = create_battleplan_3d_label("OPPONENT BATTLEPLAN")
-	opponent_plan_label_3d.position = Vector3(1.86, 1.31, BATTLEPLAN_LABEL_Z)
+	opponent_plan_label_3d.position = Vector3(1.70, 1.19, BATTLEPLAN_LABEL_Z)
 	plan_card_root.add_child(opponent_plan_label_3d)
 
 	player_plan_inspect_button_3d = create_battleplan_inspect_button(true)
-	player_plan_inspect_button_3d.position = Vector3(-0.58, 1.31, BATTLEPLAN_LABEL_Z + 0.025)
+	player_plan_inspect_button_3d.position = Vector3(-0.48, 1.19, BATTLEPLAN_LABEL_Z + 0.035)
 	plan_card_root.add_child(player_plan_inspect_button_3d)
 
 	opponent_plan_inspect_button_3d = create_battleplan_inspect_button(false)
-	opponent_plan_inspect_button_3d.position = Vector3(3.28, 1.31, BATTLEPLAN_LABEL_Z + 0.025)
+	opponent_plan_inspect_button_3d.position = Vector3(3.02, 1.19, BATTLEPLAN_LABEL_Z + 0.035)
 	plan_card_root.add_child(opponent_plan_inspect_button_3d)
 
 	plan_surface.scale = Vector3(1.0, 0.02, 1.0)
@@ -414,12 +413,14 @@ func create_battleplan_inspect_button(is_player_plan: bool) -> Node3D:
 
 	var area := Area3D.new()
 	area.name = "ClickArea"
+	area.collision_layer = 32
+	area.collision_mask = 0
 	area.input_ray_pickable = true
 	root.add_child(area)
 
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(BATTLEPLAN_INSPECT_BUTTON_SIZE.x, BATTLEPLAN_INSPECT_BUTTON_SIZE.y, 0.18)
+	shape.size = Vector3(BATTLEPLAN_INSPECT_BUTTON_SIZE.x * 1.15, BATTLEPLAN_INSPECT_BUTTON_SIZE.y * 1.25, 0.26)
 	collision.shape = shape
 	area.add_child(collision)
 	area.input_event.connect(_on_battleplan_inspect_input_event.bind(is_player_plan))
@@ -440,8 +441,8 @@ func make_inspect_button_material() -> StandardMaterial3D:
 	material.no_depth_test = true
 	material.render_priority = BATTLEPLAN_CARD_RENDER_PRIORITY
 	material.emission_enabled = true
-	material.emission = Color(0.28, 0.18, 0.045, 1.0)
-	material.emission_energy_multiplier = 0.65
+	material.emission = Color(0.95, 0.67, 0.18, 1.0)
+	material.emission_energy_multiplier = 0.95
 	return material
 
 
