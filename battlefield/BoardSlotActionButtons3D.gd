@@ -287,6 +287,33 @@ func _set_visual_fade_recursive(node: Node, active: bool) -> void:
 					mesh_instance.remove_meta("inspect_original_alpha")
 			next_material.albedo_color = color
 			mesh_instance.material_override = next_material
+
+	elif node is Sprite3D:
+		var sprite := node as Sprite3D
+		var sprite_color := sprite.modulate
+		if active:
+			if not sprite.has_meta("inspect_original_alpha"):
+				sprite.set_meta("inspect_original_alpha", sprite_color.a)
+			sprite_color.a = INSPECT_FADE_ALPHA
+		else:
+			sprite_color.a = float(sprite.get_meta("inspect_original_alpha", 1.0))
+			if sprite.has_meta("inspect_original_alpha"):
+				sprite.remove_meta("inspect_original_alpha")
+		sprite.modulate = sprite_color
+
+	elif node is Label3D:
+		var label := node as Label3D
+		var label_color := label.modulate
+		if active:
+			if not label.has_meta("inspect_original_alpha"):
+				label.set_meta("inspect_original_alpha", label_color.a)
+			label_color.a = INSPECT_FADE_ALPHA
+		else:
+			label_color.a = float(label.get_meta("inspect_original_alpha", 1.0))
+			if label.has_meta("inspect_original_alpha"):
+				label.remove_meta("inspect_original_alpha")
+		label.modulate = label_color
+
 	for child in node.get_children():
 		_set_visual_fade_recursive(child, active)
 
