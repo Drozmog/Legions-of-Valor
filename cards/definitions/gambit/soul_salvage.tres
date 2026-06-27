@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c34pg1pbfqu2e"]
 
-[ext_resource type="Texture2D" uid="uid://bev60qy31sgk2" path="res://cards/images/gambit/soul_salvage.png" id="1_121vg"]
+[ext_resource type="Texture2D" uid="uid://dj8ghbr68oxhs" path="res://cards/images/gambit/soul_salvage.png" id="1_121vg"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_s3g82"]
+[ext_resource type="Resource" uid="uid://vpp7gso0sbb6" path="res://abilities/definitions/attrition/banish.tres" id="2_s3g82"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_xro16"]
 
 [resource]
@@ -10,10 +12,9 @@ card_name = "Soul Salvage"
 race = "neutral"
 card_type = "gambit"
 rarity = "normal"
-tribute_cost = 1
+tribute_cost = 2
 dp = 1
-ability_text = "Opponent loses 1 Tribute Temporarily for this turn."
-lore_text = "“In the dark, intuition is worth more than a map. One wrong swing brings wealth; one more brings the deep madness.” - Deep Tier Miner"
+abilities = Array[ExtResource("1_s3g82")]([ExtResource("2_s3g82")])
+lore_text = "\"The body returns to the earth, but the memory must return to the stars. Do not leave their songs to be crushed beneath human iron.” - Lunareth Seer Flo'rin"
 card_art = ExtResource("1_121vg")
-ability_types = Array[String](["attrition"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

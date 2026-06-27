@@ -315,6 +315,7 @@ func update_info(phase_text: String, turn_text: String, score_text: String, inst
 	score_label.text = score_text
 	instruction_label.text = instruction.replace("\n", "  •  ")
 	phase_button.text = action_text
+	phase_button.visible = not action_text.is_empty()
 	phase_button.disabled = disabled
 	var style_name := "normal"
 	phase_button.add_theme_stylebox_override(style_name, button_style(Color(0.48, 0.29, 0.045, 0.98), Color(1.0, 0.82, 0.24, 1.0), 3, 12) if ready else button_style(Color(0.13, 0.07, 0.025, 0.96), Color(0.54, 0.38, 0.12, 0.9), 2, 0))

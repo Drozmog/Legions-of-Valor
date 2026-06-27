@@ -1,6 +1,9 @@
 class_name BattlefieldManager
 extends Node3D
 
+signal insight_gambit_slot_chosen(slot: Node)
+signal stealth_deployment_slot_chosen(slot: Node)
+
 # Consolidated from BattlefieldManagerPhase.gd, BattlefieldManager.gd, and Phase 1-4 wrapper managers.
 
 const TEST_CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
@@ -63,7 +66,11 @@ var game_has_started: bool = false
 
 var waiting_for_battle_plan: bool = true
 
+var deck_selection_complete: bool = false
+
 const BATTLEPLAN_HAND_CLEANUP_TIME: float = 20.0
+
+const PHASE_TITLE_TOTAL_TIME: float = 2.0
 
 var pending_battleplan_draws: int = 0
 
@@ -90,6 +97,16 @@ var phase_label: Label = null
 var phase_instruction_label: Label = null
 
 var next_phase_button: Button = null
+
+var phase_title_overlay: Label = null
+
+var phase_blur_backdrop: ColorRect = null
+
+var phase_blur_material: ShaderMaterial = null
+
+var phase_title_tween: Tween = null
+
+var discard_warning_overlay: Label = null
 
 var turn_label: Label = null
 
@@ -122,6 +139,18 @@ var last_bottom_hud_log_text: String = ""
 var spawn_opponent_button: Button = null
 
 var ability_prompt_panel: AbilityPromptPanel = null
+
+var insight_presenter: InsightPresentation3D = null
+
+var insight_presentation_active := false
+
+var insight_gambit_selection_active := false
+
+var insight_gambit_candidate_slots: Array[Node] = []
+
+var pending_stealth_deployments: Array[Dictionary] = []
+
+var stealth_deployment_selection_slot: Node = null
 
 const AURION_WIN_TARGET: int = 25
 
@@ -156,6 +185,8 @@ var ai_temp_tp: int = 0
 var ai_current_tp: int = 0
 
 var ai_tribute_used_this_turn: bool = false
+
+var ai_tribute_finished_this_turn: bool = false
 
 var ai_has_starting_hand: bool = false
 
@@ -245,6 +276,7 @@ func _ready() -> void:
 	create_exit_button()
 	create_deck_selection_screen()
 	create_ability_prompt_panel()
+	create_insight_presenter()
 	create_debug_tp_button()
 	set_phase(BattlePhase.BATTLEPLAN)
 	setup_deck_selection_flow()
@@ -260,7 +292,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	update_hand_drag_preview(delta)
 	update_battleplan_hand_cleanup(delta)
+	update_discard_warning_overlay()
 	update_phase_progress_state()
+	try_auto_advance_combat_phase()
 	refresh_bottom_hud_log()
 	refresh_board_slot_action_buttons()
 	refresh_player_usable_ability_icons()
@@ -301,6 +335,7 @@ func setup_deck_selection_flow() -> void:
 	if battle_plan_selection_screen != null:
 		battle_plan_selection_screen.hide_selection()
 	if deck_selection_screen == null or player_deck == null:
+		deck_selection_complete = true
 		setup_battle_plan_flow()
 		return
 	deck_selection_screen.show_selection(player_deck.get_saved_deck_summaries())
@@ -319,6 +354,7 @@ func _on_prebattle_deck_selected(slot_index: int) -> void:
 			deck_selection_screen.show_selection(player_deck.get_saved_deck_summaries())
 			return
 	log_msg("Battle deck selected: " + str(player_deck.cards_remaining()) + " cards.")
+	deck_selection_complete = true
 	await get_tree().process_frame
 	setup_battle_plan_flow()
 
@@ -336,6 +372,9 @@ func setup_battle_plan_flow() -> void:
 func open_battle_plan_selection() -> void:
 	waiting_for_battle_plan = true
 	set_phase(BattlePhase.BATTLEPLAN)
+	await get_tree().create_timer(PHASE_TITLE_TOTAL_TIME).timeout
+	if current_phase != BattlePhase.BATTLEPLAN:
+		return
 
 	if battle_plan_manager == null:
 		log_msg("BattlePlanManager is missing.")
@@ -621,9 +660,117 @@ func create_phase_ui() -> void:
 	spawn_opponent_button = null
 
 	$UI.add_child(phase_panel)
+	create_center_screen_overlays()
 	update_phase_ui()
 	update_aurion_counter_ui()
 	update_turn_counter_ui()
+
+
+func create_center_screen_overlays() -> void:
+	phase_blur_backdrop = ColorRect.new()
+	phase_blur_backdrop.name = "PhaseBlurBackdrop"
+	phase_blur_backdrop.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	phase_blur_backdrop.offset_left = -310.0
+	phase_blur_backdrop.offset_top = -62.0
+	phase_blur_backdrop.offset_right = 310.0
+	phase_blur_backdrop.offset_bottom = 62.0
+	phase_blur_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	phase_blur_backdrop.color = Color.WHITE
+	phase_blur_backdrop.modulate.a = 0.0
+	phase_blur_backdrop.z_index = 119
+
+	var blur_shader := Shader.new()
+	blur_shader.code = """
+shader_type canvas_item;
+
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
+uniform float blur_lod : hint_range(0.0, 5.0) = 0.0;
+
+void fragment() {
+	vec4 blurred = textureLod(screen_texture, SCREEN_UV, blur_lod);
+	float edge_x = smoothstep(0.0, 0.13, UV.x) * smoothstep(0.0, 0.13, 1.0 - UV.x);
+	float edge_y = smoothstep(0.0, 0.28, UV.y) * smoothstep(0.0, 0.28, 1.0 - UV.y);
+	float soft_mask = edge_x * edge_y;
+	COLOR = vec4(blurred.rgb * 0.82, soft_mask);
+}
+"""
+	phase_blur_material = ShaderMaterial.new()
+	phase_blur_material.shader = blur_shader
+	phase_blur_material.set_shader_parameter("blur_lod", 0.0)
+	phase_blur_backdrop.material = phase_blur_material
+	$UI.add_child(phase_blur_backdrop)
+
+	phase_title_overlay = Label.new()
+	phase_title_overlay.name = "PhaseTitleOverlay"
+	phase_title_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	phase_title_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	phase_title_overlay.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phase_title_overlay.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	phase_title_overlay.add_theme_font_size_override("font_size", 44)
+	phase_title_overlay.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.98))
+	phase_title_overlay.add_theme_color_override("font_outline_color", Color(0.02, 0.025, 0.035, 0.92))
+	phase_title_overlay.add_theme_constant_override("outline_size", 2)
+	phase_title_overlay.add_theme_color_override("font_shadow_color", Color(1.0, 1.0, 1.0, 0.38))
+	phase_title_overlay.add_theme_constant_override("shadow_offset_x", 0)
+	phase_title_overlay.add_theme_constant_override("shadow_offset_y", 0)
+	phase_title_overlay.add_theme_constant_override("shadow_outline_size", 5)
+	phase_title_overlay.modulate.a = 0.0
+	phase_title_overlay.z_index = 120
+	$UI.add_child(phase_title_overlay)
+
+	discard_warning_overlay = Label.new()
+	discard_warning_overlay.name = "DiscardWarningOverlay"
+	discard_warning_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	discard_warning_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	discard_warning_overlay.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	discard_warning_overlay.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	discard_warning_overlay.add_theme_font_size_override("font_size", 42)
+	discard_warning_overlay.add_theme_color_override("font_color", Color(1.0, 0.18, 0.12, 1.0))
+	discard_warning_overlay.add_theme_color_override("font_shadow_color", Color(1.0, 0.0, 0.0, 0.95))
+	discard_warning_overlay.add_theme_constant_override("shadow_offset_x", 0)
+	discard_warning_overlay.add_theme_constant_override("shadow_offset_y", 0)
+	discard_warning_overlay.add_theme_constant_override("shadow_outline_size", 12)
+	discard_warning_overlay.visible = false
+	discard_warning_overlay.z_index = 121
+	$UI.add_child(discard_warning_overlay)
+
+
+func show_phase_title(title: String) -> void:
+	if phase_title_overlay == null or phase_blur_backdrop == null or phase_blur_material == null:
+		return
+	if phase_title_tween != null and phase_title_tween.is_valid():
+		phase_title_tween.kill()
+	phase_title_overlay.text = title
+	phase_title_overlay.add_theme_font_size_override("font_size", 32 if title.length() > 24 else 44)
+	phase_title_overlay.modulate.a = 0.0
+	phase_blur_backdrop.modulate.a = 0.0
+	phase_blur_material.set_shader_parameter("blur_lod", 0.0)
+	phase_title_tween = create_tween()
+	phase_title_tween.set_trans(Tween.TRANS_SINE)
+	phase_title_tween.set_ease(Tween.EASE_IN_OUT)
+	phase_title_tween.tween_property(phase_blur_backdrop, "modulate:a", 0.92, 0.34)
+	phase_title_tween.parallel().tween_property(phase_title_overlay, "modulate:a", 1.0, 0.34)
+	phase_title_tween.parallel().tween_method(set_phase_blur_amount, 0.0, 2.5, 0.34)
+	phase_title_tween.tween_interval(1.12)
+	phase_title_tween.tween_property(phase_blur_backdrop, "modulate:a", 0.0, 0.54)
+	phase_title_tween.parallel().tween_property(phase_title_overlay, "modulate:a", 0.0, 0.54)
+	phase_title_tween.parallel().tween_method(set_phase_blur_amount, 2.5, 0.0, 0.54)
+
+
+func set_phase_blur_amount(amount: float) -> void:
+	if phase_blur_material != null:
+		phase_blur_material.set_shader_parameter("blur_lod", amount)
+
+
+func update_discard_warning_overlay() -> void:
+	if discard_warning_overlay == null:
+		return
+	var discard_count := 0
+	if battleplan_hand_cleanup_active and hand != null:
+		discard_count = maxi(hand.cards.size() - hand.max_hand_size, 0)
+	discard_warning_overlay.visible = discard_count > 0
+	if discard_count > 0:
+		discard_warning_overlay.text = "Discard " + str(discard_count) + " Cards"
 
 
 func create_bottom_hud_3d() -> void:
@@ -699,6 +846,13 @@ func create_ability_prompt_panel() -> void:
 	$UI.add_child(ability_prompt_panel)
 
 
+func create_insight_presenter() -> void:
+	insight_presenter = InsightPresentation3D.new()
+	insight_presenter.name = "InsightPresentation3D"
+	$UI.add_child(insight_presenter)
+	insight_presenter.setup(self, get_card_inspect_panel())
+
+
 func _on_ability_choice_made(use_ability: bool, card_data: CardData, ability_text: String) -> void:
 	if card_data == null:
 		return
@@ -716,6 +870,8 @@ func set_phase(new_phase: int) -> void:
 	current_phase = new_phase
 	update_phase_ui()
 	update_slot_highlights()
+	if current_phase != BattlePhase.BATTLEPLAN or deck_selection_complete:
+		show_phase_title(get_phase_name(current_phase))
 
 	match current_phase:
 		BattlePhase.BATTLEPLAN:
@@ -730,6 +886,19 @@ func set_phase(new_phase: int) -> void:
 
 		BattlePhase.COMBAT:
 			begin_combat_phase()
+
+
+func get_phase_name(phase: int) -> String:
+	match phase:
+		BattlePhase.BATTLEPLAN:
+			return "BATTLEPLAN"
+		BattlePhase.TRIBUTE:
+			return "TRIBUTE"
+		BattlePhase.DEPLOYMENT:
+			return "DEPLOYMENT"
+		BattlePhase.COMBAT:
+			return "COMBAT"
+	return ""
 
 
 func begin_deployment_phase() -> void:
@@ -761,9 +930,15 @@ func run_ai_deployment_turn_if_needed() -> void:
 
 
 func begin_combat_phase() -> void:
+	phase_transition_busy = true
 	cleanup_face_up_gambits_before_combat()
 	reset_combat_state()
 	clear_active_combat_lane_highlight()
+	await get_tree().create_timer(PHASE_TITLE_TOTAL_TIME).timeout
+	if current_phase != BattlePhase.COMBAT:
+		phase_transition_busy = false
+		return
+	phase_transition_busy = false
 
 	if player_has_initiative:
 		log_msg("Phase: Combat. Player has initiative. Right-click the leftmost or rightmost lane, then choose Attack, Check, or Pass.")
@@ -789,7 +964,7 @@ func update_phase_ui() -> void:
 				next_phase_button.text = "Choose Battleplan"
 		BattlePhase.TRIBUTE:
 			phase_label.text = "TRIBUTE PHASE"
-			next_phase_button.text = "Go to Deployment"
+			next_phase_button.text = "Tribute in Progress"
 		BattlePhase.DEPLOYMENT:
 			phase_label.text = "DEPLOYMENT PHASE"
 			next_phase_button.text = (
@@ -797,7 +972,7 @@ func update_phase_ui() -> void:
 			)
 		BattlePhase.COMBAT:
 			phase_label.text = "COMBAT PHASE"
-			next_phase_button.text = "End Combat / Next Round"
+			next_phase_button.text = ""
 
 	update_phase_instruction_ui()
 	update_turn_counter_ui()
@@ -821,7 +996,7 @@ func is_current_phase_complete() -> bool:
 		BattlePhase.BATTLEPLAN:
 			return false
 		BattlePhase.TRIBUTE:
-			return tribute_manager != null and tribute_manager.tribute_card_used_this_turn
+			return false
 		BattlePhase.DEPLOYMENT:
 			return true
 		BattlePhase.COMBAT:
@@ -834,11 +1009,19 @@ func is_current_phase_complete() -> bool:
 	return false
 
 
+func try_auto_advance_combat_phase() -> void:
+	if game_over or current_phase != BattlePhase.COMBAT:
+		return
+	if is_current_phase_complete():
+		start_next_round()
+
+
 func is_prebattle_modal_open() -> bool:
 	return (
 		(deck_selection_screen != null and deck_selection_screen.visible)
 		or (battle_plan_selection_screen != null and battle_plan_selection_screen.visible)
 		or waiting_for_battle_plan
+		or insight_presentation_active
 	)
 
 
@@ -946,13 +1129,7 @@ func get_phase_instruction_text() -> String:
 
 		BattlePhase.TRIBUTE:
 			if tribute_manager != null and tribute_manager.tribute_card_used_this_turn:
-				return (
-					"Tribute used this turn.
-"
-					+ "Press Go to Deployment when ready.
-"
-					+ "Permanent TP refreshes each round."
-				)
+				return "Tribute offered. Deployment will begin automatically."
 
 			return (
 				"Drag exactly 1 card from hand to Tribute.
@@ -982,11 +1159,7 @@ func get_phase_instruction_text() -> String:
 
 		BattlePhase.COMBAT:
 			if combat_direction_selected and combat_next_lane_index >= combat_lane_order.size():
-				return (
-					"All combat lanes are resolved.
-"
-					+ "Press End Combat / Next Round."
-				)
+				return "All combat lanes are resolved."
 
 			if not combat_direction_selected:
 				if player_has_initiative:
@@ -1067,21 +1240,18 @@ func _on_next_phase_pressed() -> void:
 					else:
 						log_msg("Resolving the AI Deployment turn.")
 					await run_ai_deployment_turn_if_needed()
-				update_phase_ui()
-				return
-
 			set_phase(BattlePhase.COMBAT)
 
-		BattlePhase.COMBAT:
-			start_next_round()
-
-
 func start_next_round() -> void:
+	phase_transition_busy = true
 	clear_active_combat_lane_highlight()
 	reset_face_down_gambit_setup_counters()
 	if parry_system.active:
 		log_msg("Resolve the parry prompt before ending combat.")
+		phase_transition_busy = false
 		return
+	queue_surviving_stealth_deployments()
+	await resolve_pending_stealth_deployments()
 
 	resolve_dominance_before_cleanup()
 	cleanup_battlefield_spells()
@@ -1097,7 +1267,58 @@ func start_next_round() -> void:
 	used_active_insight_ability_keys.clear()
 	update_turn_counter_ui()
 	cancel_selected_card()
+	phase_transition_busy = false
 	open_battle_plan_selection()
+
+
+func resolve_pending_stealth_deployments() -> void:
+	for pending in pending_stealth_deployments.duplicate():
+		var back_slot := pending.get("slot") as Node
+		var card_data := pending.get("card") as CardData
+		var lane := String(pending.get("lane", ""))
+		if back_slot == null or card_data == null or get_slot_card_data(back_slot) != card_data:
+			continue
+		back_slot.reveal_card()
+		back_slot.set_meta("stealth_pending", false)
+		var front_slot := find_slot_by_owner_row_lane("player", "front", lane)
+		if front_slot == null or get_slot_card_data(front_slot) != null:
+			continue
+		stealth_deployment_selection_slot = back_slot
+		insight_presentation_active = true
+		back_slot.call("set_insight_highlight", true, Color(0.72, 0.24, 1.0, 1.0))
+		show_phase_title("DEPLOY " + card_data.card_name.to_upper() + " FOR FREE")
+		await stealth_deployment_slot_chosen
+		back_slot.call("set_insight_highlight", false, Color.WHITE)
+		stealth_deployment_selection_slot = null
+		insight_presentation_active = false
+		if get_slot_card_data(back_slot) == card_data and get_slot_card_data(front_slot) == null:
+			back_slot.clear_slot()
+			front_slot.call("place_card", TEST_CARD_SCENE, card_data, false)
+	pending_stealth_deployments.clear()
+
+
+func queue_surviving_stealth_deployments() -> void:
+	if board_slots == null:
+		return
+	for slot in board_slots.get_children():
+		if String(slot.get_meta("owner", "")) != "player" or String(slot.get_meta("row", "")) != "back":
+			continue
+		if not bool(slot.get_meta("face_down", false)):
+			continue
+		var card_data := get_slot_card_data(slot)
+		if card_data == null or get_card_insight_ability(card_data, &"stealth") == null:
+			continue
+		var already_pending := false
+		for pending in pending_stealth_deployments:
+			if pending.get("slot") == slot:
+				already_pending = true
+				break
+		if not already_pending:
+			pending_stealth_deployments.append({
+				"slot": slot,
+				"card": card_data,
+				"lane": get_slot_lane(slot),
+			})
 
 
 func reset_combat_state() -> void:
@@ -1538,6 +1759,14 @@ func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
 
 
 func _on_slot_clicked(slot: Node) -> void:
+	if stealth_deployment_selection_slot != null:
+		if slot == stealth_deployment_selection_slot:
+			stealth_deployment_slot_chosen.emit(slot)
+		return
+	if insight_gambit_selection_active:
+		if insight_gambit_candidate_slots.has(slot):
+			insight_gambit_slot_chosen.emit(slot)
+		return
 	if is_prebattle_modal_open():
 		return
 	if current_phase == BattlePhase.COMBAT:
@@ -1757,6 +1986,7 @@ func try_sacrifice_selected_card_to_tribute() -> bool:
 		tribute_pile.add_card(selected_card_data)
 
 	update_tribute_counter()
+	call_deferred("try_auto_advance_tribute_phase")
 	return true
 
 
@@ -2015,7 +2245,7 @@ func update_slot_highlights() -> void:
 func handle_card_deployed(card_data: CardData) -> void:
 	if card_data == null:
 		return
-	var resolved_insight := resolve_insight_abilities(card_data, &"on_deploy")
+	var resolved_insight := await resolve_insight_abilities(card_data, &"on_deploy")
 	if resolved_insight:
 		return
 	var ability_text_lower: String = card_data.get_ability_text().to_lower()
@@ -2043,14 +2273,234 @@ func resolve_insight_abilities(card_data: CardData, trigger: StringName, extra_c
 			continue
 		if StringName(ability.trigger) != trigger:
 			continue
-		var context := build_ability_context(extra_context)
-		context["card"] = card_data
-		context["trigger"] = trigger
-		var result := AbilityResolver.resolve(ability, context)
+		var result := await resolve_insight_with_presentation(ability, extra_context)
 		resolved_any = true
 		if not bool(result.get("success", false)):
 			log_msg("Insight ability failed: " + ability.ability_name + " (" + String(result.get("reason", "unknown")) + ").")
 	return resolved_any
+
+
+func resolve_insight_with_presentation(ability: AbilityData, extra_context: Dictionary = {}) -> Dictionary:
+	if ability == null:
+		return {"success": false, "reason": "missing_ability"}
+	match ability.get_handler_id():
+		&"intel":
+			return await present_intel()
+		&"intelligence":
+			return await present_intelligence()
+		&"secrecy":
+			return await present_secrecy()
+		&"seer":
+			return await present_ai_deck_choice()
+		&"vantage":
+			return await present_ai_deck_choice()
+		&"vision":
+			return await present_vision()
+		&"intuition", &"true_sight":
+			return await present_hidden_enemy_gambit_choice(ability)
+	return AbilityResolver.resolve(ability, build_ability_context(extra_context))
+
+
+func present_insight_cards(cards: Array[CardData], config: Dictionary) -> Dictionary:
+	if insight_presenter == null or cards.is_empty():
+		return {"success": false, "reason": "no_cards_to_present"}
+	insight_presentation_active = true
+	insight_presenter.present(cards, config)
+	var result: Dictionary = await insight_presenter.completed
+	insight_presentation_active = false
+	result["success"] = true
+	return result
+
+
+func pop_ai_deck_top_cards(count: int) -> Array[CardData]:
+	var cards: Array[CardData] = []
+	for i in range(mini(count, ai_deck.size())):
+		cards.append(ai_deck.pop_back() as CardData)
+	return cards
+
+
+func peek_player_deck_top_cards(count: int) -> Array[CardData]:
+	var cards: Array[CardData] = []
+	if player_deck == null:
+		return cards
+	for offset in range(mini(count, player_deck.deck.size())):
+		cards.append(player_deck.deck[player_deck.deck.size() - 1 - offset] as CardData)
+	return cards
+
+
+func get_insight_world_position(source_name: String) -> Vector3:
+	match source_name:
+		"enemy_deck":
+			if opponent_visuals != null and opponent_visuals.deck_root != null:
+				return opponent_visuals.deck_root.global_position
+		"enemy_hand":
+			if opponent_visuals != null and opponent_visuals.hand_root != null:
+				return opponent_visuals.hand_root.global_position
+		"enemy_discard":
+			if opponent_visuals != null and opponent_visuals.discard_root != null:
+				return opponent_visuals.discard_root.global_position
+		"player_deck":
+			if draw_pile != null:
+				return draw_pile.global_position
+		"player_hand":
+			var hand_origin := get_node_or_null("CardAnimationManager/PlayerHandOrigin") as Node3D
+			if hand_origin != null:
+				return hand_origin.global_position
+	return Vector3(0.0, 0.8, 0.8)
+
+
+func present_intel() -> Dictionary:
+	var cards := pop_ai_deck_top_cards(3)
+	if cards.is_empty():
+		show_phase_title("NO CARDS TO REVEAL")
+		return {"success": false, "reason": "opponent_deck_empty"}
+	update_ai_visuals()
+	var result := await present_insight_cards(cards, {
+		"mode": "choose",
+		"source_position": get_insight_world_position("enemy_deck"),
+		"chosen_destination": get_insight_world_position("player_hand"),
+		"other_destination": get_insight_world_position("enemy_deck") + Vector3(0.0, -0.04, 0.0),
+		"lift_return_pile": opponent_visuals.deck_root if opponent_visuals != null else null,
+	})
+	var chosen_index := clampi(int(result.get("index", 0)), 0, cards.size() - 1)
+	var chosen := cards[chosen_index]
+	if hand != null:
+		var old_limit := hand.max_hand_size
+		if not hand.can_accept_card():
+			hand.max_hand_size = old_limit + 1
+		hand.add_card_to_hand(chosen)
+		hand.max_hand_size = old_limit
+	for index in range(cards.size()):
+		if index != chosen_index:
+			ai_deck.insert(0, cards[index])
+	update_ai_visuals()
+	return {"success": true, "cards_seen": cards, "card_taken": chosen}
+
+
+func present_ai_deck_choice() -> Dictionary:
+	var cards := pop_ai_deck_top_cards(3)
+	if cards.is_empty():
+		show_phase_title("NO CARDS TO REVEAL")
+		return {"success": false, "reason": "opponent_deck_empty"}
+	update_ai_visuals()
+	var result := await present_insight_cards(cards, {
+		"mode": "choose",
+		"source_position": get_insight_world_position("enemy_deck"),
+		"chosen_destination": get_insight_world_position("enemy_discard"),
+		"other_destination": get_insight_world_position("enemy_deck"),
+	})
+	var chosen_index := clampi(int(result.get("index", 0)), 0, cards.size() - 1)
+	var discarded := cards[chosen_index]
+	ai_discard.append(discarded)
+	var returned: Array[CardData] = []
+	for index in range(cards.size()):
+		if index != chosen_index:
+			returned.append(cards[index])
+	for index in range(returned.size() - 1, -1, -1):
+		ai_deck.append(returned[index])
+	update_ai_visuals()
+	return {"success": true, "cards_seen": cards, "card_discarded": discarded}
+
+
+func present_intelligence() -> Dictionary:
+	var cards: Array[CardData] = []
+	for card in ai_hand:
+		cards.append(card as CardData)
+	if cards.is_empty():
+		show_phase_title("OPPONENT HAND IS EMPTY")
+		return {"success": false, "reason": "opponent_hand_empty"}
+	if opponent_visuals != null:
+		for index in range(cards.size()):
+			opponent_visuals.set_hand_card_action_hidden(index, true)
+	var result := await present_insight_cards(cards, {
+		"mode": "hidden_pick",
+		"face_down": true,
+		"shuffle": true,
+		"source_position": get_insight_world_position("enemy_hand"),
+	})
+	if opponent_visuals != null:
+		for index in range(cards.size()):
+			opponent_visuals.set_hand_card_action_hidden(index, false)
+	return {"success": true, "cards_seen": [result.get("card")]}
+
+
+func present_secrecy() -> Dictionary:
+	var indexes: Array[int] = []
+	for index in range(ai_hand.size()):
+		indexes.append(index)
+	indexes.shuffle()
+	var cards: Array[CardData] = []
+	for index in range(mini(2, indexes.size())):
+		cards.append(ai_hand[indexes[index]] as CardData)
+	if cards.is_empty():
+		show_phase_title("OPPONENT HAND IS EMPTY")
+		return {"success": false, "reason": "opponent_hand_empty"}
+	if opponent_visuals != null:
+		for index in indexes.slice(0, cards.size()):
+			opponent_visuals.set_hand_card_action_hidden(int(index), true)
+	await present_insight_cards(cards, {
+		"mode": "reveal",
+		"source_position": get_insight_world_position("enemy_hand"),
+	})
+	if opponent_visuals != null:
+		for index in indexes.slice(0, cards.size()):
+			opponent_visuals.set_hand_card_action_hidden(int(index), false)
+	return {"success": true, "cards_seen": cards}
+
+
+func present_vision() -> Dictionary:
+	var cards := peek_player_deck_top_cards(3)
+	if cards.is_empty():
+		show_phase_title("NO CARDS TO REVEAL")
+		return {"success": false, "reason": "player_deck_empty"}
+	await present_insight_cards(cards, {
+		"mode": "reveal",
+		"source_position": get_insight_world_position("player_deck"),
+	})
+	return {"success": true, "cards_seen": cards}
+
+
+func present_hidden_enemy_gambit_choice(ability: AbilityData) -> Dictionary:
+	insight_gambit_candidate_slots.clear()
+	if board_slots != null:
+		for slot in board_slots.get_children():
+			if String(slot.get_meta("owner", "")) != "enemy":
+				continue
+			if String(slot.get_meta("row", "")) != "back" or not bool(slot.get_meta("face_down", false)):
+				continue
+			if not is_gambit_card(get_slot_card_data(slot)):
+				continue
+			insight_gambit_candidate_slots.append(slot)
+	if insight_gambit_candidate_slots.is_empty():
+		show_phase_title("NO GAMBITS TO REVEAL")
+		return {"success": false, "reason": "no_hidden_enemy_gambits"}
+	var reveal_all := ability.get_handler_id() == &"true_sight"
+	var remaining_slots: Array[Node] = insight_gambit_candidate_slots.duplicate()
+	var cards_seen: Array[CardData] = []
+	while not remaining_slots.is_empty():
+		insight_gambit_candidate_slots = remaining_slots.duplicate()
+		insight_gambit_selection_active = true
+		insight_presentation_active = true
+		for slot in remaining_slots:
+			slot.call("set_insight_highlight", true, Color(0.18, 0.55, 1.0, 1.0))
+		var chosen_slot: Node = await insight_gambit_slot_chosen
+		for slot in remaining_slots:
+			slot.call("set_insight_highlight", false, Color.WHITE)
+		insight_gambit_selection_active = false
+		insight_presentation_active = false
+		var card_data := get_slot_card_data(chosen_slot)
+		if card_data != null:
+			cards_seen.append(card_data)
+			var revealed_cards: Array[CardData] = [card_data]
+			await present_insight_cards(revealed_cards, {
+				"mode": "reveal",
+				"source_position": (chosen_slot as Node3D).global_position,
+			})
+		remaining_slots.erase(chosen_slot)
+		if not reveal_all:
+			break
+	insight_gambit_candidate_slots.clear()
+	return {"success": true, "cards_seen": cards_seen}
 
 
 func build_ability_context(extra_context: Dictionary = {}) -> Dictionary:
@@ -2522,6 +2972,17 @@ func is_node_inside_target(node: Node, target: Node) -> bool:
 
 func _on_tribute_changed(_status_text: String) -> void:
 	update_tribute_counter()
+	try_auto_advance_tribute_phase()
+
+
+func try_auto_advance_tribute_phase() -> void:
+	if current_phase != BattlePhase.TRIBUTE:
+		return
+	if tribute_manager == null or not tribute_manager.tribute_card_used_this_turn:
+		return
+	if not ai_tribute_finished_this_turn:
+		return
+	set_phase(BattlePhase.DEPLOYMENT)
 
 
 func update_tribute_counter() -> void:
@@ -2928,7 +3389,7 @@ func refresh_player_usable_ability_icons() -> void:
 		var is_player_slot := String(slot.get_meta("owner", "")) == "player"
 		var is_face_down := bool(slot.get_meta("face_down", false))
 
-		if is_player_slot and card_data != null and not is_face_down:
+		if is_player_slot and card_data != null and not is_face_down and not phase_transition_busy:
 			for ability in card_data.get_abilities():
 				if ability == null:
 					continue
@@ -3048,7 +3509,7 @@ func advance_combat_lane_after_resolution() -> void:
 
 	if combat_next_lane_index >= combat_lane_order.size():
 		combat_priority_owner = ""
-		log_msg("All combat lanes resolved. Press End Combat / Next Round when ready.")
+		log_msg("All combat lanes resolved. Starting the next round.")
 		return
 
 	reset_priority_for_current_lane()
@@ -3498,14 +3959,18 @@ func ai_start_tribute_phase() -> void:
 	ai_temp_tp = 0
 	ai_current_tp = ai_current_perm_tp
 	ai_tribute_used_this_turn = false
+	ai_tribute_finished_this_turn = false
 
 	if next_phase_button != null:
 		next_phase_button.disabled = true
 
 	await ai_offer_one_card_to_tribute()
+	ai_tribute_finished_this_turn = true
 
 	if next_phase_button != null:
 		next_phase_button.disabled = false
+
+	try_auto_advance_tribute_phase()
 
 
 func ai_offer_one_card_to_tribute() -> void:
@@ -4622,6 +5087,7 @@ func refresh_board_slot_action_buttons() -> void:
 	var controls_blocked := (
 		game_over
 		or current_phase != BattlePhase.COMBAT
+		or phase_transition_busy
 		or combat_resolution_running
 		or parry_system.active
 		or is_prebattle_modal_open()
@@ -4656,14 +5122,14 @@ func refresh_board_slot_action_buttons() -> void:
 
 
 func _on_board_slot_action_button_pressed(action_id: int, slot: Node) -> void:
-	if slot == null or game_over:
+	if slot == null or game_over or phase_transition_busy:
 		return
 	board_action_target_slot = slot
 	await _on_board_slot_action_selected(action_id)
 
 
 func show_board_slot_action_menu(slot: Node) -> void:
-	if slot == null:
+	if slot == null or phase_transition_busy:
 		return
 
 	if board_action_menu == null:
@@ -4801,15 +5267,12 @@ func activate_insight_ability_from_slot(slot: Node, ability: AbilityData) -> voi
 	if handler_id == &"true_sight" or handler_id == &"vantage":
 		if not prepare_player_lane_action(lane):
 			return
-	var result := AbilityResolver.resolve(
-		ability,
-		build_ability_context({
-			"card": card_data,
-			"slot": slot,
-			"trigger": &"active",
-			"lane": lane,
-		})
-	)
+	var result := await resolve_insight_with_presentation(ability, {
+		"card": card_data,
+		"slot": slot,
+		"trigger": &"active",
+		"lane": lane,
+	})
 	if not bool(result.get("success", false)):
 		log_msg("Insight ability failed: " + ability.ability_name + " (" + String(result.get("reason", "unknown")) + ").")
 		return
@@ -4844,17 +5307,17 @@ func resolve_stealth_hidden_decoy(back_slot: Node, card_data: CardData, owner_na
 		log_msg("Insight ability failed: Stealth (" + String(result.get("reason", "unknown")) + ").")
 		return false
 
+	if owner_name == "player":
+		pending_stealth_deployments.append({"slot": back_slot, "card": card_data, "lane": lane})
+		back_slot.set_meta("stealth_pending", true)
+		return true
+
 	var front_slot := find_slot_by_owner_row_lane(owner_name, "front", lane)
 	if front_slot != null and get_slot_card_data(front_slot) == null:
-		if back_slot.has_method("clear_slot"):
-			back_slot.clear_slot()
-		if front_slot.has_method("place_card"):
-			front_slot.call("place_card", TEST_CARD_SCENE, card_data, false)
-		log_msg("Stealth deployed " + card_data.card_name + " to the " + owner_name + " front " + lane + " slot for 0 cost.")
+		back_slot.clear_slot()
+		front_slot.call("place_card", TEST_CARD_SCENE, card_data, false)
 	else:
-		if back_slot.has_method("reveal_card"):
-			back_slot.reveal_card()
-		log_msg("Stealth revealed " + card_data.card_name + " for 0 cost, but no front slot was open.")
+		back_slot.reveal_card()
 	update_ai_visuals()
 	return true
 
@@ -5381,6 +5844,11 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 	# Hidden back-row cards must be resolved before AI can hit the Monarch.
 	if player_back_is_face_down:
 		player_back_slot.set_meta("interacted_this_round", true)
+		if not is_gambit_card(player_back_card) and get_card_insight_ability(player_back_card, &"stealth") != null:
+			if resolve_stealth_hidden_decoy(player_back_slot, player_back_card, "player", lane):
+				await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+				await advance_combat_lane_after_resolution()
+				return
 
 		if player_back_slot.has_method("reveal_card"):
 			player_back_slot.reveal_card()
@@ -5394,12 +5862,6 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 			send_slot_card_to_discard(player_back_slot)
 			await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
 			await advance_combat_lane_after_resolution()
-			return
-
-		if resolve_stealth_hidden_decoy(player_back_slot, player_back_card, "player", lane):
-			await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-			set_lane_priority_to_ai(lane)
-			await resolve_ai_current_priority_lane(lane)
 			return
 
 		add_aurion("ai", 1, "Successful Attack read: " + player_back_card.card_name + " was not a Gambit.")

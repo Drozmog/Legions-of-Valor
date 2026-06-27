@@ -10,6 +10,8 @@ signal battle_plan_selected(plan: Dictionary)
 
 const CARD_PICK_LAYER := 16
 const BUTTON_PICK_LAYER := 32
+const BATTLEPLAN_RENDER_LAYER_NUMBER := 20
+const BATTLEPLAN_RENDER_LAYER_MASK := 1 << (BATTLEPLAN_RENDER_LAYER_NUMBER - 1)
 const CARD_BACK_SIZE := Vector2(1.48, 2.07) # 2.5 x 3.5 portrait back.
 const BATTLEPLAN_SIZE := Vector2(3.08, 2.20) # Exact 3.5 x 2.5 landscape ratio.
 # Matches Card3DTest's 0.065 radius on a 1.02-wide card.
@@ -35,7 +37,14 @@ const INSPECTOR_BUTTON_SIZE := Vector2(183.0, 85.0) # 280x130 ratio
 
 var dim_layer: ColorRect
 var selection_root: Node3D
-var world_dimmer: MeshInstance3D
+var blur_overlay_material: ShaderMaterial
+var blur_overlay_tween: Tween
+var blur_overlay_progress := 0.0
+var battleplan_viewport: SubViewport
+var battleplan_viewport_camera: Camera3D
+var battleplan_viewport_display: TextureRect
+var main_camera_had_battleplan_layer := true
+var main_camera_layer_overridden := false
 var card_entries: Array[Dictionary] = []
 var face_viewports: Array[SubViewport] = []
 var revealed_indices: Array[int] = []
@@ -74,11 +83,41 @@ func build_base_ui() -> void:
 	ui_built = true
 	dim_layer = ColorRect.new()
 	dim_layer.name = "BattlePlanDimmer"
-	dim_layer.color = Color.TRANSPARENT
+	dim_layer.color = Color.WHITE
 	dim_layer.visible = false
 	dim_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var blur_shader := Shader.new()
+	blur_shader.code = """
+shader_type canvas_item;
+
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
+uniform float blur_lod : hint_range(0.0, 4.0) = 0.0;
+uniform float opacity : hint_range(0.0, 1.0) = 0.0;
+
+void fragment() {
+	vec4 blurred = textureLod(screen_texture, SCREEN_UV, blur_lod);
+	COLOR = vec4(blurred.rgb * 0.90, opacity);
+}
+"""
+	blur_overlay_material = ShaderMaterial.new()
+	blur_overlay_material.shader = blur_shader
+	dim_layer.material = blur_overlay_material
 	add_child(dim_layer)
+	battleplan_viewport = SubViewport.new()
+	battleplan_viewport.name = "BattlePlanSharpViewport"
+	battleplan_viewport.transparent_bg = true
+	battleplan_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	add_child(battleplan_viewport)
+	battleplan_viewport_display = TextureRect.new()
+	battleplan_viewport_display.name = "BattlePlanSharpOverlay"
+	battleplan_viewport_display.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	battleplan_viewport_display.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	battleplan_viewport_display.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	battleplan_viewport_display.stretch_mode = TextureRect.STRETCH_SCALE
+	battleplan_viewport_display.texture = battleplan_viewport.get_texture()
+	battleplan_viewport_display.z_index = 1
+	add_child(battleplan_viewport_display)
 
 
 func show_selection(plans: Array[Dictionary]) -> void:
@@ -121,29 +160,88 @@ func _create_selection_world(plans: Array[Dictionary]) -> void:
 	selection_root = Node3D.new()
 	selection_root.name = "BattlePlanSelection3D"
 	scene_root.add_child(selection_root)
-	_create_world_dimmer()
+	_prepare_sharp_battleplan_viewport()
+	_animate_blur_overlay_in()
 
 	var shown_count := mini(5, plans.size())
 	for card_index in range(shown_count):
 		card_entries.append(_create_card_entry(plans[card_index], card_index, shown_count))
 
 
-func _create_world_dimmer() -> void:
-	world_dimmer = MeshInstance3D.new()
-	world_dimmer.name = "BattlePlanWorldDimmer"
-	var mesh := PlaneMesh.new()
-	mesh.size = Vector2(40.0, 28.0)
-	world_dimmer.mesh = mesh
-	world_dimmer.position = Vector3(0.0, CARD_SURFACE_Y - 0.10, 0.0)
-	world_dimmer.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.albedo_color = Color(0.0, 0.0, 0.0, 0.48)
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.render_priority = 90
-	world_dimmer.material_override = material
-	selection_root.add_child(world_dimmer)
+func _prepare_sharp_battleplan_viewport() -> void:
+	if battleplan_viewport == null:
+		return
+	var main_viewport := get_viewport()
+	var main_camera := main_viewport.get_camera_3d()
+	if main_camera == null:
+		return
+	var viewport_size := main_viewport.get_visible_rect().size
+	battleplan_viewport.size = Vector2i(maxi(1, int(viewport_size.x)), maxi(1, int(viewport_size.y)))
+	battleplan_viewport.world_3d = main_viewport.world_3d
+	if battleplan_viewport_camera == null:
+		battleplan_viewport_camera = Camera3D.new()
+		battleplan_viewport_camera.name = "BattlePlanOverlayCamera"
+		battleplan_viewport.add_child(battleplan_viewport_camera)
+	battleplan_viewport_camera.global_transform = main_camera.global_transform
+	battleplan_viewport_camera.projection = main_camera.projection
+	battleplan_viewport_camera.fov = main_camera.fov
+	battleplan_viewport_camera.size = main_camera.size
+	battleplan_viewport_camera.near = main_camera.near
+	battleplan_viewport_camera.far = main_camera.far
+	battleplan_viewport_camera.keep_aspect = main_camera.keep_aspect
+	battleplan_viewport_camera.cull_mask = BATTLEPLAN_RENDER_LAYER_MASK
+	battleplan_viewport_camera.current = true
+	main_camera_had_battleplan_layer = main_camera.get_cull_mask_value(BATTLEPLAN_RENDER_LAYER_NUMBER)
+	main_camera.set_cull_mask_value(BATTLEPLAN_RENDER_LAYER_NUMBER, false)
+	main_camera_layer_overridden = true
+
+
+func _restore_main_camera_render_layer() -> void:
+	if not main_camera_layer_overridden:
+		return
+	var main_camera := get_viewport().get_camera_3d()
+	if main_camera != null:
+		main_camera.set_cull_mask_value(BATTLEPLAN_RENDER_LAYER_NUMBER, main_camera_had_battleplan_layer)
+	main_camera_layer_overridden = false
+
+
+func _animate_blur_overlay_in() -> void:
+	if blur_overlay_material == null or dim_layer == null:
+		return
+	dim_layer.visible = true
+	blur_overlay_progress = 0.0
+	_set_blur_overlay_progress(0.0)
+	if blur_overlay_tween != null and blur_overlay_tween.is_valid():
+		blur_overlay_tween.kill()
+	blur_overlay_tween = create_tween()
+	blur_overlay_tween.set_trans(Tween.TRANS_SINE)
+	blur_overlay_tween.set_ease(Tween.EASE_OUT)
+	blur_overlay_tween.tween_method(_set_blur_overlay_progress, 0.0, 1.0, 0.75)
+
+
+func _set_blur_overlay_progress(progress: float) -> void:
+	blur_overlay_progress = clampf(progress, 0.0, 1.0)
+	if blur_overlay_material == null:
+		return
+	blur_overlay_material.set_shader_parameter("blur_lod", 1.8 * blur_overlay_progress)
+	blur_overlay_material.set_shader_parameter("opacity", 0.82 * blur_overlay_progress)
+
+
+func _fade_out_blur_overlay() -> void:
+	if blur_overlay_material == null or blur_overlay_progress <= 0.0:
+		return
+	if blur_overlay_tween != null and blur_overlay_tween.is_valid():
+		blur_overlay_tween.kill()
+	blur_overlay_tween = create_tween()
+	blur_overlay_tween.set_trans(Tween.TRANS_SINE)
+	blur_overlay_tween.set_ease(Tween.EASE_IN_OUT)
+	blur_overlay_tween.tween_method(
+		_set_blur_overlay_progress,
+		blur_overlay_progress,
+		0.0,
+		0.4
+	)
+	await blur_overlay_tween.finished
 
 
 func _create_card_entry(plan: Dictionary, card_index: int, card_count: int) -> Dictionary:
@@ -160,6 +258,7 @@ func _create_card_entry(plan: Dictionary, card_index: int, card_count: int) -> D
 
 	var back := MeshInstance3D.new()
 	back.name = "CardBack"
+	back.layers = BATTLEPLAN_RENDER_LAYER_MASK
 	back.mesh = _create_rounded_card_mesh(CARD_BACK_SIZE)
 	back.position.z = 0.014
 	back.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -168,6 +267,7 @@ func _create_card_entry(plan: Dictionary, card_index: int, card_count: int) -> D
 
 	var front := MeshInstance3D.new()
 	front.name = "BattlePlanFront"
+	front.layers = BATTLEPLAN_RENDER_LAYER_MASK
 	front.mesh = _create_rounded_card_mesh(BATTLEPLAN_SIZE)
 	front.position.z = 0.018
 	front.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
@@ -666,6 +766,7 @@ func _create_action_button(
 
 	var surface := MeshInstance3D.new()
 	surface.name = "ButtonSurface"
+	surface.layers = BATTLEPLAN_RENDER_LAYER_MASK
 	var mesh := PlaneMesh.new()
 	mesh.size = BUTTON_SURFACE_SIZE
 	surface.mesh = mesh
@@ -685,6 +786,7 @@ func _create_action_button(
 
 	var label := Label3D.new()
 	label.name = "ButtonLabel"
+	label.layers = BATTLEPLAN_RENDER_LAYER_MASK
 	label.text = caption
 	label.position = Vector3(0.0, 0.03, 0.0)
 	label.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
@@ -739,11 +841,13 @@ func _select_plan(card_index: int) -> void:
 	if not actions_ready or card_index < 0 or card_index >= card_entries.size():
 		return
 	var plan: Dictionary = card_entries[card_index]["plan"]
+	actions_ready = false
 	_cleanup_inspector_actions()
 	if shared_inspector != null and shared_inspector.visible:
 		shared_inspector.hide_card()
+	await _fade_out_blur_overlay()
 	battle_plan_selected.emit(plan)
-	call_deferred("hide_selection")
+	hide_selection()
 
 
 func _toggle_inspect(card_index: int) -> void:
@@ -1007,10 +1111,17 @@ func _use_cursor(method_name: StringName) -> void:
 
 
 func _cleanup_selection_world() -> void:
+	_restore_main_camera_render_layer()
+	if blur_overlay_tween != null and blur_overlay_tween.is_valid():
+		blur_overlay_tween.kill()
+	blur_overlay_tween = null
 	if selection_root != null and is_instance_valid(selection_root):
 		selection_root.queue_free()
 	selection_root = null
-	world_dimmer = null
+	blur_overlay_progress = 0.0
+	if dim_layer != null:
+		dim_layer.visible = false
+	_set_blur_overlay_progress(0.0)
 	card_entries.clear()
 	revealed_indices.clear()
 	action_groups.clear()

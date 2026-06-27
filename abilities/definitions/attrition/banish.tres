@@ -1,14 +1,14 @@
 [gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://vpp7gso0sbb6"]
 
-[ext_resource type="Texture2D" uid="uid://cibnqwmrcdvtt" path="res://ui/ability_icons/mobility.png" id="1_usxmt"]
-[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_n2kg1"]
+[ext_resource type="Texture2D" uid="uid://dhbe6ypmtixix" path="res://ui/ability_icons/attrition.png" id="1_8357v"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_am31w"]
 
 [resource]
-script = ExtResource("2_n2kg1")
+script = ExtResource("2_am31w")
 ability_id = &"banish"
 ability_name = "Banish"
 category = "mobility"
 point_cost = 6.0
 rules_text = "Return a unit and all its equipment to back to the player's hand"
-icon = ExtResource("1_usxmt")
+icon = ExtResource("1_8357v")
 handler_id = &"banish"

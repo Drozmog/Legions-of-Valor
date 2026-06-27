@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://5oql3ev678s8"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_intb1"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_6qhax"]
+[ext_resource type="Resource" uid="uid://b3y343g61avih" path="res://abilities/definitions/attrition/calamity.tres" id="2_284r8"]
+[ext_resource type="Texture2D" uid="uid://cqa1o8idosdmt" path="res://cards/images/gambit/astral_calamity.png" id="3_m50c2"]
+
+[resource]
+script = ExtResource("2_6qhax")
+card_id = "astral_calamity"
+card_name = "Astral Calamity"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 5
+dp = 2
+abilities = Array[ExtResource("1_intb1")]([ExtResource("2_284r8")])
+lore_text = "\"I command world-shattering strength, yet I cannot even hold a simple ceramic cup without the terrifying fear of crushing it to dust. Forgive me for what is about to happen.\" - Jena of Y'el"
+card_art = ExtResource("3_m50c2")
+metadata/_custom_type_script = "uid://20ngslec6o41"

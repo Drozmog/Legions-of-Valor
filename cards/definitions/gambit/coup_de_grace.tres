@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bnknrarqmksnp"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_ve2xn"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_5aplj"]
+[ext_resource type="Resource" uid="uid://brlve2ybu2eix" path="res://abilities/definitions/attrition/assasinate.tres" id="2_qoq0l"]
+[ext_resource type="Texture2D" uid="uid://3upm2g11cgpp" path="res://cards/images/gambit/coup_de_grace.png" id="3_488js"]
+
+[resource]
+script = ExtResource("2_5aplj")
+card_id = "coup_de_grace"
+card_name = "Coup de Grâce"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 6
+dp = 4
+abilities = Array[ExtResource("1_ve2xn")]([ExtResource("2_qoq0l")])
+lore_text = "“In the shadow's ledger, background does not matter. There is only the contract, the target, and the keep.”"
+card_art = ExtResource("3_488js")
+metadata/_custom_type_script = "uid://20ngslec6o41"

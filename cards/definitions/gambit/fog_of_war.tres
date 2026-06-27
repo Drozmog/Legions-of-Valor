@@ -1,10 +1,12 @@
-[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bubsblywyn0nv"]
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dfidpwsn6qspj"]
 
-[ext_resource type="Texture2D" uid="uid://d1mwyxx4wv0ds" path="res://cards/images/gambit/fog_of_war.png" id="1_605rh"]
-[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_wvasv"]
+[ext_resource type="Texture2D" uid="uid://dvlgi8wpbp7mn" path="res://cards/images/gambit/fog_of_war.png" id="1_605rh"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_jyj33"]
+[ext_resource type="Resource" uid="uid://bodqbbxdysn8n" path="res://abilities/definitions/control/fog_of_war.tres" id="2_brpet"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_wsgjt"]
 
 [resource]
-script = ExtResource("2_wvasv")
+script = ExtResource("2_wsgjt")
 card_id = "fog_of_war"
 card_name = "Fog of War"
 race = "neutral"
@@ -12,9 +14,7 @@ card_type = "gambit"
 rarity = "normal"
 tribute_cost = 3
 dp = 4
-ability_text = "No player can parry this turn."
-lore_text = "“In the smoke of the crossing, there are no kings or captains.
-There are only those who can breathe and those who cannot.” - High Canopy Duelist"
+abilities = Array[ExtResource("1_jyj33")]([ExtResource("2_brpet")])
+lore_text = "\"The silver sea mists will now roll inland from the gulf, blinding their scouts and turning their heavy cavalry charge into a disoriented slaughter.\"- Lady Ulvith, The Mistborne Stalker"
 card_art = ExtResource("1_605rh")
-ability_types = Array[String](["control"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

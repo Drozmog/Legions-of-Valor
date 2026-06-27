@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://lo8516x3hf1e"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_apjhv"]
+[ext_resource type="Resource" uid="uid://cc6faaieguhb4" path="res://abilities/definitions/mobility/imperial_decree.tres" id="2_qigcw"]
+[ext_resource type="Texture2D" uid="uid://bvjhurms6b2d4" path="res://cards/images/gambit/imperial_decree.png" id="3_lg582"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_yvroc"]
+
+[resource]
+script = ExtResource("4_yvroc")
+card_id = "imperial_decree"
+card_name = "Imperial Decree"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 5
+dp = 2
+abilities = Array[ExtResource("1_apjhv")]([ExtResource("2_qigcw")])
+lore_text = "“The last decree of an empire that spent six thousand years building a dream, only to watch it turn to dust.”"
+card_art = ExtResource("3_lg582")
+metadata/_custom_type_script = "uid://20ngslec6o41"

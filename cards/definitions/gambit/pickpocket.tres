@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ctipc6rrkn7vs"]
 
-[ext_resource type="Texture2D" uid="uid://cuo5yx5hxqhf5" path="res://cards/images/gambit/pickpocket.png" id="1_1nbi0"]
+[ext_resource type="Texture2D" uid="uid://dwr4ywdakp0c0" path="res://cards/images/gambit/pickpocket.png" id="1_1nbi0"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_vss2q"]
+[ext_resource type="Resource" uid="uid://mjckdlhps3ue" path="res://abilities/definitions/attrition/scorch.tres" id="2_vss2q"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_xs1k4"]
 
 [resource]
@@ -12,8 +14,7 @@ card_type = "gambit"
 rarity = "normal"
 tribute_cost = 2
 dp = 2
-ability_text = "Remove 1 equipment from any enemy unit."
-lore_text = "“I could have sworn me goblet was in me bag. Darn it” - Boric Coinpacker"
+abilities = Array[ExtResource("1_vss2q")]([ExtResource("2_vss2q")])
+lore_text = "“I could have sworn me goblet was in me bag. Darn it” - Boric Coinpack"
 card_art = ExtResource("1_1nbi0")
-ability_types = Array[String](["attrition"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

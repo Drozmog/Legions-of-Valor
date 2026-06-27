@@ -1,7 +1,9 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://caq7u4lmy0rbh"]
 
-[ext_resource type="Texture2D" uid="uid://dm22mbewme2op" path="res://cards/images/gambit/blackmail.png" id="1_degnq"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_degnq"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_1dl7v"]
+[ext_resource type="Resource" uid="uid://cwecqrltnqj18" path="res://abilities/definitions/control/chain_down.tres" id="2_dru8g"]
+[ext_resource type="Texture2D" uid="uid://dqmlvuljuldin" path="res://cards/images/gambit/blackmail.png" id="3_mm347"]
 
 [resource]
 script = ExtResource("2_1dl7v")
@@ -12,8 +14,7 @@ card_type = "gambit"
 rarity = "normal"
 tribute_cost = 3
 dp = 3
-ability_text = "Targeted unit cannot attack or use ability this turn."
-lore_text = "\"I have an idea! Replace the sky with human made steal for 3 long heartbeats and watch their morale.\" - Dame Valen of Calith"
-card_art = ExtResource("1_degnq")
-ability_types = Array[String](["control"])
+abilities = Array[ExtResource("1_degnq")]([ExtResource("2_dru8g")])
+lore_text = "\"I know exactly who smuggled that ore across the border, and I know whose family name will be ruined if the ledger reaches the high council. Now, sign the paper contract, or I make the call.\" - Malvorn to Thalric Nox"
+card_art = ExtResource("3_mm347")
 metadata/_custom_type_script = "uid://20ngslec6o41"

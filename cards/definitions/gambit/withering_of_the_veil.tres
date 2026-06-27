@@ -1,7 +1,9 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://ctv2maun0ukse"]
 
-[ext_resource type="Texture2D" uid="uid://cpibv4i4h0opi" path="res://cards/images/gambit/withering_of_the_veil.png" id="1_a4g3v"]
+[ext_resource type="Texture2D" uid="uid://djyjqck3eq1r4" path="res://cards/images/gambit/withering_of_the_veil.png" id="1_a4g3v"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_ry1b4"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_kvqvy"]
+[ext_resource type="Resource" uid="uid://b41g1lhn50tt0" path="res://abilities/definitions/attrition/cursed_mist.tres" id="2_ry1b4"]
 
 [resource]
 script = ExtResource("2_kvqvy")
@@ -12,8 +14,7 @@ card_type = "gambit"
 rarity = "normal"
 tribute_cost = 2
 dp = 2
-ability_text = "Opponent discards 1 card from his hand and loses 1 aurion."
+abilities = Array[ExtResource("1_ry1b4")]([ExtResource("2_ry1b4")])
 lore_text = "“A remnant of the ancient warnings against misusing the light, a divine retribution that smells of old sulfur.” - Ulvith, The Mistborne Stalker"
 card_art = ExtResource("1_a4g3v")
-ability_types = Array[String](["attrition"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

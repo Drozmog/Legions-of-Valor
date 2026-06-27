@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://c3u3qsnurnfth"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_mh8lp"]
+[ext_resource type="Resource" uid="uid://8t5rcgb1rygc" path="res://abilities/definitions/economy/arms_race.tres" id="2_61j3a"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_hgu8b"]
+[ext_resource type="Texture2D" uid="uid://b2x3ljv3xm4w6" path="res://cards/images/gambit/arms_race.png" id="3_4sc6i"]
+
+[resource]
+script = ExtResource("2_hgu8b")
+card_id = "arms_race"
+card_name = "Arms Race"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 6
+dp = 4
+abilities = Array[ExtResource("1_mh8lp")]([ExtResource("2_61j3a")])
+lore_text = "\"Let them bring their centuries of elegance. We’ll answer with the weight of the mountain. Arm the vanguard!\" - Knight Siegmere"
+card_art = ExtResource("3_4sc6i")
+metadata/_custom_type_script = "uid://20ngslec6o41"

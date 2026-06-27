@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://t0j22ikqbb3k"
-path="res://.godot/imported/royal_decree.png-bcd8a11dd3dd91ef6590eb719ba854f0.ctex"
+uid="uid://b58ntyf8fj7me"
+path="res://.godot/imported/liorvynn_arrow_volley.png-ec12f5c6e5141774b6c69b063fdbb6ba.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/gambit/royal_decree.png"
-dest_files=["res://.godot/imported/royal_decree.png-bcd8a11dd3dd91ef6590eb719ba854f0.ctex"]
+source_file="res://cards/images/gambit/liorvynn_arrow_volley.png"
+dest_files=["res://.godot/imported/liorvynn_arrow_volley.png-ec12f5c6e5141774b6c69b063fdbb6ba.ctex"]
 
 [params]
 

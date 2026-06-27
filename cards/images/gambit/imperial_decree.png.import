@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d15ph8g2qjrqv"
-path="res://.godot/imported/free_taxi_service.png-1f59dd8a0b84aecf0625d3219f5078d2.ctex"
+uid="uid://bvjhurms6b2d4"
+path="res://.godot/imported/imperial_decree.png-3a25dd30245c731969c765ff2d66c9d1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/gambit/free_taxi_service.png"
-dest_files=["res://.godot/imported/free_taxi_service.png-1f59dd8a0b84aecf0625d3219f5078d2.ctex"]
+source_file="res://cards/images/gambit/imperial_decree.png"
+dest_files=["res://.godot/imported/imperial_decree.png-3a25dd30245c731969c765ff2d66c9d1.ctex"]
 
 [params]
 

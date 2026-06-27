@@ -1,7 +1,9 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b3lrd8kqt5ywo"]
 
-[ext_resource type="Texture2D" uid="uid://qyl72kmn6v54" path="res://cards/images/gambit/gridlock.png" id="1_st5la"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_ng5vn"]
+[ext_resource type="Texture2D" uid="uid://bvn4rg41e64k3" path="res://cards/images/gambit/gridlock.png" id="1_st5la"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_elyop"]
+[ext_resource type="Resource" uid="uid://bixgqia07mvch" path="res://abilities/definitions/control/lockdown.tres" id="2_ng5vn"]
 
 [resource]
 script = ExtResource("2_elyop")
@@ -10,10 +12,9 @@ card_name = "Gridlock"
 race = "neutral"
 card_type = "gambit"
 rarity = "normal"
-tribute_cost = 2
-dp = 1
-ability_text = "Enemy units this turn cannot trigger their \"On-Deploy\" or \"Active\" abilities."
+tribute_cost = 3
+dp = 4
+abilities = Array[ExtResource("1_ng5vn")]([ExtResource("2_ng5vn")])
 lore_text = "“The first sign of exposure is always beautiful. The second is the realization that your mind no longer belongs to you.” - Jena of Y'el"
 card_art = ExtResource("1_st5la")
-ability_types = Array[String](["control"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

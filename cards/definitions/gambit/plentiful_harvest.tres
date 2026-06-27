@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://4ppv1ayu8gue"]
 
-[ext_resource type="Texture2D" uid="uid://de83o1pho04e6" path="res://cards/images/gambit/plentiful_harvest.png" id="1_6vt65"]
+[ext_resource type="Texture2D" uid="uid://ckoj0edcniqjr" path="res://cards/images/gambit/plentiful_harvest.png" id="1_6vt65"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_h0bju"]
+[ext_resource type="Resource" uid="uid://dquh8oye5a4ha" path="res://abilities/definitions/economy/harvest.tres" id="2_h0bju"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_x2jgr"]
 
 [resource]
@@ -12,8 +14,7 @@ card_type = "gambit"
 rarity = "normal"
 tribute_cost = 5
 dp = 3
-ability_text = "Take the top 2 card of your deck and add them to your tribute pile."
-lore_text = "\"The Dwarves might come down to fight if they find out they're missing out on this inside their ironholds.\" -Vaelori Scout"
+abilities = Array[ExtResource("1_h0bju")]([ExtResource("2_h0bju")])
+lore_text = "The pure snow-melts of the valley sustain a quiet abundance, feeding the longhouses of those who still hold to the Old Principles.\" -Soren, Grave Crosser"
 card_art = ExtResource("1_6vt65")
-ability_types = Array[String](["economy"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

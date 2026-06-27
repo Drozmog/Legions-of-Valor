@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://usrj5itf8787"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_n74no"]
+[ext_resource type="Resource" uid="uid://dgheuojciggtq" path="res://abilities/definitions/economy/tithe.tres" id="2_n74no"]
+[ext_resource type="Texture2D" uid="uid://ddnbufl4bgej7" path="res://cards/images/gambit/drums_of_war.png" id="3_pkmma"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_a7hj2"]
+
+[resource]
+script = ExtResource("4_a7hj2")
+card_id = "drums_of_war"
+card_name = "Drums of War"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 5
+dp = 3
+abilities = Array[ExtResource("1_n74no")]([ExtResource("2_n74no")])
+lore_text = "\"I don't care if everyone heard me. Brugo says 3 times.\" - Orcish Militia"
+card_art = ExtResource("3_pkmma")
+metadata/_custom_type_script = "uid://20ngslec6o41"

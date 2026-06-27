@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://1c4ihg5vfyap"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_3q2to"]
+[ext_resource type="Resource" uid="uid://bd0ognec5o1ab" path="res://abilities/definitions/attrition/one_man_army.tres" id="2_3q2to"]
+[ext_resource type="Texture2D" uid="uid://dgiupdmyoh7ok" path="res://cards/images/gambit/one_man_army.png" id="3_lij6r"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_gq3hw"]
+
+[resource]
+script = ExtResource("4_gq3hw")
+card_id = "one_man_army"
+card_name = "One Man Army"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 5
+dp = 2
+abilities = Array[ExtResource("1_3q2to")]([ExtResource("2_3q2to")])
+lore_text = "“We sign the peace today, human. You may feel like we are negotiating from a position of weakness but know that we are a proud people capable of great things.”"
+card_art = ExtResource("3_lij6r")
+metadata/_custom_type_script = "uid://20ngslec6o41"

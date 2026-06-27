@@ -1,7 +1,9 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b3i65rc5jarg3"]
 
-[ext_resource type="Texture2D" uid="uid://dwpbb5u6oua4w" path="res://cards/images/gambit/transmutation.png" id="1_v1w5g"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_lxtcd"]
+[ext_resource type="Texture2D" uid="uid://oenoxfci1e42" path="res://cards/images/gambit/transmutation.png" id="1_v1w5g"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_7w3tl"]
+[ext_resource type="Resource" uid="uid://cdjeshh8c1mst" path="res://abilities/definitions/economy/transmute.tres" id="2_lxtcd"]
 
 [resource]
 script = ExtResource("2_7w3tl")
@@ -12,8 +14,7 @@ card_type = "gambit"
 rarity = "normal"
 tribute_cost = 2
 dp = 1
-ability_text = "Discard 2 cards from your hand and draw 3 more."
-lore_text = "\"I have an idea! Replace the sky with human made steal for 3 long heartbeats and watch their morale.\" - Dame Valen of Calith"
+abilities = Array[ExtResource("1_lxtcd")]([ExtResource("2_lxtcd")])
+lore_text = "“To turn stone into steel is progress. To turn the light into currency is the ultimate gamble of the Consortium.” - Consortium Peacekeeper"
 card_art = ExtResource("1_v1w5g")
-ability_types = Array[String](["economy"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -42,6 +42,8 @@ func _ready() -> void:
 
 	click_area.input_ray_pickable = true
 	click_area.input_event.connect(_on_click_area_input_event)
+	click_area.mouse_entered.connect(_on_click_area_mouse_entered)
+	click_area.mouse_exited.connect(_on_click_area_mouse_exited)
 
 
 func set_highlight(active: bool) -> void:
@@ -83,6 +85,18 @@ func set_promotion_highlight(active: bool) -> void:
 		glow_outline.visible = false
 
 
+func set_insight_highlight(active: bool, color: Color = Color(0.18, 0.55, 1.0, 1.0)) -> void:
+	set_meta("insight_selectable", active)
+	if active:
+		set_outline_color(color)
+		highlight_outline.visible = true
+		glow_outline.visible = true
+	else:
+		highlight_outline.visible = false
+		glow_outline.visible = false
+		_use_cursor(&"use_normal")
+
+
 func set_outline_color(color: Color) -> void:
 	if outline_material != null:
 		outline_material.albedo_color = color
@@ -106,6 +120,22 @@ func _on_click_area_input_event(
 
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
 			slot_right_clicked.emit(self)
+
+
+func _on_click_area_mouse_entered() -> void:
+	if bool(get_meta("insight_selectable", false)):
+		_use_cursor(&"use_pointing")
+
+
+func _on_click_area_mouse_exited() -> void:
+	if bool(get_meta("insight_selectable", false)):
+		_use_cursor(&"use_normal")
+
+
+func _use_cursor(method_name: StringName) -> void:
+	var cursors := get_node_or_null("/root/Cursors")
+	if cursors != null and cursors.has_method(method_name):
+		cursors.call(method_name)
 
 
 func place_card(card_scene: PackedScene, card_data: CardData, place_face_down: bool = false) -> bool:
