@@ -1,6 +1,8 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cruwwcnoq434d"]
 
-[ext_resource type="Texture2D" uid="uid://n3capfxhb4my" path="res://cards/images/equipment/dalmirs_tome.png" id="1_50le6"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_2xcmf"]
+[ext_resource type="Texture2D" uid="uid://c008asmh5kf6o" path="res://cards/images/equipment/dalmirs_tome.png" id="1_50le6"]
+[ext_resource type="Resource" uid="uid://s86pn3whqv5a" path="res://abilities/definitions/economy/hard_bargain.tres" id="2_2xcmf"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_chscg"]
 
 [resource]
@@ -11,7 +13,9 @@ race = "neutral"
 card_type = "equipment"
 rarity = "normal"
 tribute_cost = 1
-ability_text = "Hard Bargain → When this unit wins a clash: gain +2 Aurion, if this unit is destroyed, lose 2 Aurion"
+abilities = Array[ExtResource("1_2xcmf")]([ExtResource("2_2xcmf")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"Protect me? The only way this book is protecting anyone is if they throw it at the enemy\" - Velgrum the Gatekeeper "
 card_art = ExtResource("1_50le6")
-ability_types = Array[String](["Economy"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

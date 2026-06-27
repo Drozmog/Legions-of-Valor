@@ -1,6 +1,8 @@
-[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b7ytlxkly84yi"]
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://b847ykah8t0we"]
 
-[ext_resource type="Texture2D" uid="uid://6vcd7npayjsk" path="res://cards/images/equipment/grave_crossers_pack.png" id="1_an4ie"]
+[ext_resource type="Texture2D" uid="uid://bcwjykvqc51qv" path="res://cards/images/equipment/grave_crossers_pack.png" id="1_an4ie"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_wqfbw"]
+[ext_resource type="Resource" uid="uid://cew5pjbkp6qlm" path="res://abilities/definitions/assault/delirium.tres" id="2_i7h13"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_mndvo"]
 
 [resource]
@@ -12,8 +14,9 @@ card_type = "equipment"
 rarity = "normal"
 tribute_cost = 1
 dp = 1
-ability_text = "Delirium → Gain +3 AP for this clash; if you do, destroy this unit after combat"
-lore_text = "The Equipment of Soren, a revered Human Legend."
+abilities = Array[ExtResource("1_wqfbw")]([ExtResource("2_i7h13")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"The weight on your shoulders isn't the stone or the dry salt lines. It is the memory of the peak you left behind. Carry it quietly, and the shale won't slip.\" - Soren, Grave Crosser"
 card_art = ExtResource("1_an4ie")
-ability_types = Array[String](["assault"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

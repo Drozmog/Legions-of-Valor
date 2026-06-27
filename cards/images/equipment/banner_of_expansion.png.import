@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://uktr51k5skib"
-path="res://.godot/imported/elyndells_leather_cuirass.png-34c2f5903c2a2ea40b41e1c7495e6319.ctex"
+uid="uid://bssyewbmdgx1j"
+path="res://.godot/imported/banner_of_expansion.png-4c783fd5d73c0728101e5fbeeed747a2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/equipment/elyndells_leather_cuirass.png"
-dest_files=["res://.godot/imported/elyndells_leather_cuirass.png-34c2f5903c2a2ea40b41e1c7495e6319.ctex"]
+source_file="res://cards/images/equipment/banner_of_expansion.png"
+dest_files=["res://.godot/imported/banner_of_expansion.png-4c783fd5d73c0728101e5fbeeed747a2.ctex"]
 
 [params]
 

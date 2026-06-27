@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://bv5l73vt36uvr"]
 
-[ext_resource type="Texture2D" uid="uid://cg4hc7rgt3f35" path="res://battleplans/images/ascension/hold_your_formations.png" id="1_16ebb"]
+[ext_resource type="Texture2D" uid="uid://bsr4twkorv82t" path="res://battleplans/images/ascension/standard_of_naereons_hearth.png" id="1_16ebb"]
 [ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_yckr2"]
 
 [resource]

@@ -1,6 +1,6 @@
 [gd_resource type="Resource" script_class="BattlePlanData" format=3 uid="uid://c8a8cpt8quwtt"]
 
-[ext_resource type="Texture2D" uid="uid://6rufjjt7et7a" path="res://battleplans/images/bulwark/gravemarch_recon.png" id="1_rfipy"]
+[ext_resource type="Texture2D" uid="uid://dky71fgab6lj5" path="res://battleplans/images/bulwark/a_seers_incredible_foresight.png" id="1_rfipy"]
 [ext_resource type="Script" uid="uid://bwivinifegc5u" path="res://battleplans/BattlePlanData.gd" id="2_4spwc"]
 
 [resource]

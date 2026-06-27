@@ -1,7 +1,9 @@
-[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dgstd6k7bupww"]
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://d35yi5ww7h5qi"]
 
-[ext_resource type="Texture2D" uid="uid://hg2q3tgl72a3" path="res://cards/images/equipment/vaelori_longbow.png" id="1_ey1mf"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_44o13"]
+[ext_resource type="Texture2D" uid="uid://bmlnspeutrckg" path="res://cards/images/equipment/vaelori_longbow.png" id="1_ey1mf"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_e6obh"]
+[ext_resource type="Resource" uid="uid://wpgrnexw4bcf" path="res://abilities/definitions/mobility/volley.tres" id="3_brbq7"]
 
 [resource]
 script = ExtResource("2_e6obh")
@@ -12,8 +14,9 @@ card_type = "equipment"
 rarity = "normal"
 tribute_cost = 1
 dp = 1
-ability_text = "Volley → Can attack diagonal lanes."
-lore_text = "Standard issue for the Canopy Archers."
+abilities = Array[ExtResource("1_44o13")]([ExtResource("3_brbq7")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "The grain of the wood only moves one way. Do not force the curve. Pull until the string hums the old hunting stanza, and the arrow will go home by itself.\" - Taya, Giant-Carrier Scout"
 card_art = ExtResource("1_ey1mf")
-ability_types = Array[String](["mobility"])
 metadata/_custom_type_script = "uid://20ngslec6o41"

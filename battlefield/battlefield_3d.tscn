@@ -18,7 +18,6 @@
 [ext_resource type="Texture2D" uid="uid://clqjgpari18ls" path="res://ui/battleplan_buttons/select_button.png" id="13_0uadp"]
 [ext_resource type="Script" uid="uid://d4enyei8am72a" path="res://battle/BattlePlanManager.gd" id="14_vaox5"]
 [ext_resource type="Texture2D" uid="uid://rwt8mp83m5da" path="res://ui/combat_buttons/inspect_button.png" id="14_whobu"]
-[ext_resource type="Texture2D" uid="uid://dbekam0mqltse" path="res://ui/combat_buttons/pass_button.png" id="15_whobu"]
 [ext_resource type="Script" uid="uid://b620xjxapgjsm" path="res://battlefield/DiscardPile.gd" id="17_daqav"]
 [ext_resource type="Texture2D" uid="uid://bgjff8r7til78" path="res://Textures/Battlefield/ParryTable.png" id="18_djscq"]
 [ext_resource type="Script" uid="uid://rpa2sw7oae1o" path="res://battlefield/OpponentVisuals.gd" id="19_moveh"]
@@ -410,7 +409,6 @@ offset_bottom = 40.0
 script = ExtResource("12_fcsx3")
 select_button_texture = ExtResource("13_0uadp")
 inspect_button_texture = ExtResource("14_whobu")
-back_button_texture = ExtResource("15_whobu")
 
 [node name="DrawPile" type="Node3D" parent="." unique_id=2072337119]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.7078722, 0.1, 2.19526)

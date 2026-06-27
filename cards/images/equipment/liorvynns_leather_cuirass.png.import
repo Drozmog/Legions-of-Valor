@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cjsqf1gxncfs3"
-path="res://.godot/imported/banner_of_expedition.png-be3b252b0cf502910315008456c00d10.ctex"
+uid="uid://dkks0elfxyp2y"
+path="res://.godot/imported/liorvynns_leather_cuirass.png-e991acd4eabc04eff93359000d193571.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://cards/images/equipment/banner_of_expedition.png"
-dest_files=["res://.godot/imported/banner_of_expedition.png-be3b252b0cf502910315008456c00d10.ctex"]
+source_file="res://cards/images/equipment/liorvynns_leather_cuirass.png"
+dest_files=["res://.godot/imported/liorvynns_leather_cuirass.png-e991acd4eabc04eff93359000d193571.ctex"]
 
 [params]
 

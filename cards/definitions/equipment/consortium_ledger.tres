@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://57ybxgu7mpht"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_spudn"]
+[ext_resource type="Resource" uid="uid://bfpnt7vq0rskw" path="res://abilities/definitions/economy/logistic_specialist.tres" id="2_spudn"]
+[ext_resource type="Texture2D" uid="uid://b7nsnmqfltlb2" path="res://cards/images/equipment/consortium_ledger.png" id="3_74fyl"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_3h7yy"]
+
+[resource]
+script = ExtResource("4_3h7yy")
+card_id = "consortium_ledger"
+card_name = "Consortium Ledger"
+race = "neutral"
+card_type = "equipment"
+rarity = "normal"
+tribute_cost = 2
+dp = 2
+abilities = Array[ExtResource("1_spudn")]([ExtResource("2_spudn")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"Long after the war-drums break, the contract remains.\" - Baron Malvorn of the Consortium"
+card_art = ExtResource("3_74fyl")
+metadata/_custom_type_script = "uid://20ngslec6o41"

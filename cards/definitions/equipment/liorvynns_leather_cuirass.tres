@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cfeep1cb2fknp"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_6wjfd"]
+[ext_resource type="Resource" uid="uid://pxklqjx73v24" path="res://abilities/definitions/protection/aegis.tres" id="2_342se"]
+[ext_resource type="Texture2D" uid="uid://dkks0elfxyp2y" path="res://cards/images/equipment/liorvynns_leather_cuirass.png" id="3_6wjfd"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_jhevt"]
+
+[resource]
+script = ExtResource("5_jhevt")
+card_id = "liorvynns_leather_cuirass"
+card_name = "Liorvynn's Leather Cuirass"
+race = "neutral"
+card_type = "equipment"
+rarity = "normal"
+tribute_cost = 1
+dp = 1
+abilities = Array[ExtResource("1_6wjfd")]([ExtResource("2_342se")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"We wrap our skin in hide because we remember the maternal warmth of the den.\" - Ulvith, The Mistborne Stalker"
+card_art = ExtResource("3_6wjfd")
+metadata/_custom_type_script = "uid://20ngslec6o41"

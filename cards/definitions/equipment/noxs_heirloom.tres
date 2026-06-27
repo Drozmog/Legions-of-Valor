@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://tye5l6m0dbnm"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_hhp5m"]
+[ext_resource type="Resource" uid="uid://cycqlnt2aklay" path="res://abilities/definitions/control/swift.tres" id="2_hhp5m"]
+[ext_resource type="Resource" uid="uid://djq4hdpyigoiq" path="res://abilities/definitions/economy/sovereign.tres" id="3_72e5k"]
+[ext_resource type="Texture2D" uid="uid://cqpbncmd8uu8c" path="res://cards/images/equipment/noxs_heirloom.png" id="4_stjo3"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_yvh45"]
+
+[resource]
+script = ExtResource("5_yvh45")
+card_id = "noxs_heirloom"
+card_name = "Nox's Heirloom"
+race = "neutral"
+card_type = "equipment"
+rarity = "normal"
+tribute_cost = 5
+dp = 3
+abilities = Array[ExtResource("1_hhp5m")]([ExtResource("2_hhp5m"), ExtResource("3_72e5k")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"Oh don't be afraid, darling. This isn't even metal\" - Aradin Nox"
+card_art = ExtResource("4_stjo3")
+metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://db7s18eejasdg"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_k1ufr"]
+[ext_resource type="Resource" uid="uid://d4k3duulc1uyl" path="res://abilities/definitions/attrition/shatter.tres" id="2_376a7"]
+[ext_resource type="Resource" uid="uid://wpgrnexw4bcf" path="res://abilities/definitions/mobility/volley.tres" id="3_h350l"]
+[ext_resource type="Texture2D" uid="uid://tuiiotmmubiq" path="res://cards/images/equipment/shatter_maul.png" id="4_f65gl"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_qhhtg"]
+
+[resource]
+script = ExtResource("4_qhhtg")
+card_id = "shatter_maul"
+card_name = "Shatter-Maul"
+race = "neutral"
+card_type = "equipment"
+rarity = "normal"
+tribute_cost = 3
+dp = 1
+abilities = Array[ExtResource("1_k1ufr")]([ExtResource("2_376a7"), ExtResource("3_h350l")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"Before the war, my father used a hammer just like this to break up hard dirt on the farm. The tool didn't change, honestl the targets just got a lot heavier.\" - Elite Marauder, Muurgul"
+card_art = ExtResource("4_f65gl")
+metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -1,21 +1,22 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://5s2ryjjxay3t"]
 
-[ext_resource type="Texture2D" uid="uid://cjsqf1gxncfs3" path="res://cards/images/equipment/banner_of_expedition.png" id="1_lu726"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_tipyg"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_anc7g"]
+[ext_resource type="Resource" uid="uid://bmu7iwc1wr2yl" path="res://abilities/definitions/protection/shielded.tres" id="2_laon4"]
+[ext_resource type="Texture2D" uid="uid://dimtpqqva0d8u" path="res://cards/images/equipment/bracers_of_the_depth.png" id="4_6vri0"]
 
 [resource]
 script = ExtResource("2_anc7g")
-card_id = "banner_of_expedition"
-card_name = "Banner of Expedition"
+card_id = "bracers_of_the_depth"
+card_name = "Bracers of the Depth"
 race = "neutral"
 card_type = "equipment"
 rarity = "normal"
-tribute_cost = 3
-dp = 1
-ability_text = "Momentum → Gain +2 AP for each unit of the same race deployed (cannot stack).
-
-Honed Edge → This unit gets +2 to AP while attacking."
-lore_text = "A rallying point for the River Calith Marines."
-card_art = ExtResource("1_lu726")
-ability_types = Array[String](["assault", "assault"])
+tribute_cost = 2
+dp = 2
+abilities = Array[ExtResource("1_tipyg")]([ExtResource("2_laon4")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"Velgrum says these bracers make me look fat, the mouth on that short dwarf\" - Consortium Peacekeeper"
+card_art = ExtResource("4_6vri0")
 metadata/_custom_type_script = "uid://20ngslec6o41"

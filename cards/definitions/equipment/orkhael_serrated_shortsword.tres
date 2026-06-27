@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bruasgodg1x3k"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_smbjf"]
+[ext_resource type="Resource" uid="uid://bwh5ffpie6s7o" path="res://abilities/definitions/attrition/cleave.tres" id="2_ul6bg"]
+[ext_resource type="Texture2D" uid="uid://c3sy7cd6mokit" path="res://cards/images/equipment/orkhael_serrated_shortsword.png" id="3_smbjf"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_46cae"]
+
+[resource]
+script = ExtResource("5_46cae")
+card_id = "orkhael_serrated_shortsword"
+card_name = "Orkhael Serrated Shortsword"
+race = "neutral"
+card_type = "equipment"
+rarity = "normal"
+tribute_cost = 2
+dp = 2
+abilities = Array[ExtResource("1_smbjf")]([ExtResource("2_ul6bg")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"This weapon is just one of life's many jokes. Not as sharp as the Elves and not as dull as the orcs. So do the Orkhael slash or do they swing?\" - Orkhael Warlord, Riuyo"
+card_art = ExtResource("3_smbjf")
+metadata/_custom_type_script = "uid://20ngslec6o41"

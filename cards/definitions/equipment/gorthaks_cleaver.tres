@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://gchtgwid2q3s"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_enifx"]
+[ext_resource type="Resource" uid="uid://deqnqi7iwq4u8" path="res://abilities/definitions/mobility/lane_shift.tres" id="2_5t0u2"]
+[ext_resource type="Resource" uid="uid://dp8kcatyql8r3" path="res://abilities/definitions/assault/bloodthirst.tres" id="3_idp23"]
+[ext_resource type="Texture2D" uid="uid://dh3tt0beh8m6q" path="res://cards/images/equipment/gorthaks_cleaver.png" id="4_6y5ig"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_gr2jk"]
+
+[resource]
+script = ExtResource("4_gr2jk")
+card_id = "gorthaks_cleaver"
+card_name = "Gorthak's Cleaver"
+race = "neutral"
+card_type = "equipment"
+rarity = "normal"
+tribute_cost = 5
+dp = 3
+abilities = Array[ExtResource("1_enifx")]([ExtResource("2_5t0u2"), ExtResource("3_idp23")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"The weapon wasn't special. He only wielded it for a few heartbeats and now it's imbued. Let's not piss him off, lads.\" - Thraak Pit-lord"
+card_art = ExtResource("4_6y5ig")
+metadata/_custom_type_script = "uid://20ngslec6o41"

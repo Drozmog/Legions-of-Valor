@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://bhugojovsa0p0"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_wghog"]
+[ext_resource type="Resource" uid="uid://cnrp7k2o231lc" path="res://abilities/definitions/assault/momentum.tres" id="2_2n0w8"]
+[ext_resource type="Resource" uid="uid://craomtrl3onai" path="res://abilities/definitions/assault/honed_edge.tres" id="3_l74i7"]
+[ext_resource type="Texture2D" uid="uid://bssyewbmdgx1j" path="res://cards/images/equipment/banner_of_expansion.png" id="4_wghog"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_wg01p"]
+
+[resource]
+script = ExtResource("5_wg01p")
+card_id = "banner_of_expansion"
+card_name = "Banner of Expansion"
+race = "neutral"
+card_type = "equipment"
+rarity = "normal"
+tribute_cost = 3
+dp = 1
+abilities = Array[ExtResource("1_wghog")]([ExtResource("2_2n0w8"), ExtResource("3_l74i7")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"The barracks are loud, the soot is getting in my food, and my armor is rusting. Did we burn down half the elven forest to sit under a tree? Get moving.\" - Iron-Field Knight, Jacques"
+card_art = ExtResource("4_wghog")
+metadata/_custom_type_script = "uid://20ngslec6o41"

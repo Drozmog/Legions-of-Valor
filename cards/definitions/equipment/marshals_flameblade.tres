@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://dgmv6ud4dfuv7"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_85f5l"]
+[ext_resource type="Resource" uid="uid://bnp15otxd5gjx" path="res://abilities/definitions/protection/plated.tres" id="2_85f5l"]
+[ext_resource type="Resource" uid="uid://b8f24lfanj7lh" path="res://abilities/definitions/economy/focus.tres" id="3_mm2g5"]
+[ext_resource type="Texture2D" uid="uid://m3oaum8fhwpg" path="res://cards/images/equipment/marshals_flameblade.png" id="4_auxkp"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="5_51ylt"]
+
+[resource]
+script = ExtResource("5_51ylt")
+card_id = "marshals_flameblade"
+card_name = "Marshal's Flameblade"
+race = "neutral"
+card_type = "equipment"
+rarity = "normal"
+tribute_cost = 5
+dp = 4
+abilities = Array[ExtResource("1_85f5l")]([ExtResource("2_85f5l"), ExtResource("3_mm2g5")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"The shortsword feels perfectly balancedl. The Marshal doesn't need all that glowing gold fire or magical nonsense to find the weak joint in a knight's armor. Maybe he should let me have it.\" - Hector"
+card_art = ExtResource("4_auxkp")
+metadata/_custom_type_script = "uid://20ngslec6o41"

@@ -1,4 +1,3 @@
-@tool
 class_name OpponentVisuals
 extends Node3D
 

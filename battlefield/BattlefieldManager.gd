@@ -880,9 +880,18 @@ func set_blurred_modal_input_blocked(blocked: bool) -> void:
 		_set_control_tree_mouse_blocked(hand, true)
 	elif not should_block:
 		for state in blurred_modal_hand_filters:
-			var control := state.get("control") as Control
-			if control != null and is_instance_valid(control):
+			var control_variant: Variant = state.get("control", null)
+
+			if control_variant == null:
+				continue
+
+			if not is_instance_valid(control_variant):
+				continue
+
+			if control_variant is Control:
+				var control := control_variant as Control
 				control.mouse_filter = int(state.get("mouse_filter", Control.MOUSE_FILTER_STOP))
+
 		blurred_modal_hand_filters.clear()
 	if bottom_hud_3d != null and bottom_hud_3d.has_method("set_modal_blocked"):
 		bottom_hud_3d.call("set_modal_blocked", should_block)

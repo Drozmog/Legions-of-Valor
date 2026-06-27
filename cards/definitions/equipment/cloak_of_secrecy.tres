@@ -1,7 +1,9 @@
 [gd_resource type="Resource" script_class="CardData" format=3 uid="uid://betf7ne85lkyf"]
 
-[ext_resource type="Texture2D" uid="uid://q6suw6kpbp0k" path="res://cards/images/equipment/cloak_of_secrecy.png" id="1_3qu0u"]
+[ext_resource type="Texture2D" uid="uid://bdyehb1lrcv1a" path="res://cards/images/equipment/cloak_of_secrecy.png" id="1_3qu0u"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_fxyki"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_fwss0"]
+[ext_resource type="Resource" uid="uid://dtai56wn1xj4p" path="res://abilities/definitions/insight/secrecy.tres" id="2_fxyki"]
 
 [resource]
 script = ExtResource("2_fwss0")
@@ -12,8 +14,9 @@ card_type = "equipment"
 rarity = "normal"
 tribute_cost = 2
 dp = 2
-ability_text = "Secrecy → When deployed: Look at 2 of your opponent's card at random."
-lore_text = "Woven from the same mists as the Mistborne Stalkers."
+abilities = Array[ExtResource("1_fxyki")]([ExtResource("2_fxyki")])
+ability_text = "Shielded → Gain +2AP if Defending (only)."
+ability_types = Array[String](["protection"])
+lore_text = "\"Now you see me. Now you'll never see me\" - Ulvith the Mistborne"
 card_art = ExtResource("1_3qu0u")
-ability_types = Array[String](["insight"])
 metadata/_custom_type_script = "uid://20ngslec6o41"
