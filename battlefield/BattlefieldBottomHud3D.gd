@@ -9,6 +9,10 @@ const PANEL_BG := Color(0.055, 0.023, 0.010, 0.94)
 const BATTLEPLAN_CARD_SIZE := Vector2(2.95, 2.11)
 const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
 const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
+const BATTLEPLAN_CARD_SURFACE_Z := 0.26
+const BATTLEPLAN_LABEL_Z := 0.31
+const BATTLEPLAN_SURFACE_RENDER_PRIORITY := 80
+const BATTLEPLAN_CARD_RENDER_PRIORITY := 127
 
 var camera_3d: Camera3D
 var surfaces: Array[Dictionary] = []
@@ -32,6 +36,8 @@ var opponent_plan_box: PanelContainer
 var plan_card_root: Node3D
 var player_plan_card_3d: MeshInstance3D
 var opponent_plan_card_3d: MeshInstance3D
+var player_plan_label_3d: Label3D
+var opponent_plan_label_3d: Label3D
 var battleplan_face_viewports: Array[SubViewport] = []
 
 var log_open := false
@@ -212,10 +218,12 @@ func build_plan_foldout() -> void:
 	plan_open_position = Vector3(-0.3, 0.118, 2.2)
 	plan_closed_position = Vector3(-0.3, 0.118, 3.50)
 	# The popup backing remains a 3D tabletop plaque, but the selected plans are
-	# now separate 3D card meshes sitting on top of it instead of 2D text panels.
+	# separate 3D card meshes sitting above it instead of 2D text panels.
 	var entry := create_surface("BattlePlans", Vector2i(1400, 500), plan_closed_position, Vector2(7.0, 2.5), false)
 	plan_surface = entry["surface"]
 	plan_viewport = entry["viewport"]
+	if plan_surface.material_override is StandardMaterial3D:
+		(plan_surface.material_override as StandardMaterial3D).render_priority = BATTLEPLAN_SURFACE_RENDER_PRIORITY
 	var root: Control = entry["control"]
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -227,12 +235,20 @@ func build_plan_foldout() -> void:
 	plan_surface.add_child(plan_card_root)
 
 	player_plan_card_3d = create_battleplan_card_mesh("PlayerBattleplanCard3D")
-	player_plan_card_3d.position = Vector3(-1.78, 0.0, 0.035)
+	player_plan_card_3d.position = Vector3(-1.78, -0.12, BATTLEPLAN_CARD_SURFACE_Z)
 	plan_card_root.add_child(player_plan_card_3d)
 
 	opponent_plan_card_3d = create_battleplan_card_mesh("OpponentBattleplanCard3D")
-	opponent_plan_card_3d.position = Vector3(1.78, 0.0, 0.035)
+	opponent_plan_card_3d.position = Vector3(1.78, -0.12, BATTLEPLAN_CARD_SURFACE_Z)
 	plan_card_root.add_child(opponent_plan_card_3d)
+
+	player_plan_label_3d = create_battleplan_3d_label("YOUR BATTLEPLAN")
+	player_plan_label_3d.position = Vector3(-1.78, 1.16, BATTLEPLAN_LABEL_Z)
+	plan_card_root.add_child(player_plan_label_3d)
+
+	opponent_plan_label_3d = create_battleplan_3d_label("OPPONENT BATTLEPLAN")
+	opponent_plan_label_3d.position = Vector3(1.78, 1.16, BATTLEPLAN_LABEL_Z)
+	plan_card_root.add_child(opponent_plan_label_3d)
 
 	plan_surface.scale = Vector3(1.0, 0.02, 1.0)
 	plan_surface.visible = false
@@ -352,6 +368,22 @@ func create_battleplan_card_mesh(card_name: String) -> MeshInstance3D:
 	return card
 
 
+func create_battleplan_3d_label(label_text: String) -> Label3D:
+	var label := Label3D.new()
+	label.name = label_text.capitalize().replace(" ", "") + "Label3D"
+	label.text = label_text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.font_size = 46
+	label.pixel_size = 0.0038
+	label.modulate = PALE_GOLD
+	label.outline_modulate = Color(0.02, 0.008, 0.0, 1.0)
+	label.outline_size = 10
+	label.no_depth_test = true
+	label.render_priority = BATTLEPLAN_CARD_RENDER_PRIORITY
+	return label
+
+
 func apply_plan_to_3d_card(card: MeshInstance3D, plan: Dictionary, caption: String) -> void:
 	if card == null:
 		return
@@ -454,7 +486,7 @@ func make_battleplan_card_material(texture: Texture2D) -> StandardMaterial3D:
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	material.no_depth_test = true
-	material.render_priority = 128
+	material.render_priority = BATTLEPLAN_CARD_RENDER_PRIORITY
 	material.emission_enabled = true
 	material.emission = Color(0.14, 0.075, 0.018, 1.0)
 	material.emission_energy_multiplier = 0.35
