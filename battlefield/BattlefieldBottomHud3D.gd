@@ -3,6 +3,8 @@ extends Node3D
 
 signal phase_action_pressed
 
+const INSPECT_BUTTON_TEXTURE: Texture2D = preload("res://ui/combat_buttons/inspect_button.png")
+
 const GOLD := Color(0.94, 0.68, 0.19, 1.0)
 const PALE_GOLD := Color(1.0, 0.91, 0.66, 1.0)
 const PANEL_BG := Color(0.055, 0.023, 0.010, 0.94)
@@ -13,6 +15,7 @@ const BATTLEPLAN_CARD_SURFACE_Z := 0.26
 const BATTLEPLAN_LABEL_Z := 0.31
 const BATTLEPLAN_SURFACE_RENDER_PRIORITY := 80
 const BATTLEPLAN_CARD_RENDER_PRIORITY := 127
+const BATTLEPLAN_INSPECT_BUTTON_SIZE := Vector2(0.48, 0.22)
 
 var camera_3d: Camera3D
 var surfaces: Array[Dictionary] = []
@@ -38,6 +41,8 @@ var player_plan_card_3d: MeshInstance3D
 var opponent_plan_card_3d: MeshInstance3D
 var player_plan_label_3d: Label3D
 var opponent_plan_label_3d: Label3D
+var player_plan_inspect_button_3d: Node3D
+var opponent_plan_inspect_button_3d: Node3D
 var battleplan_face_viewports: Array[SubViewport] = []
 
 var log_open := false
@@ -216,10 +221,12 @@ func build_log_foldout() -> void:
 
 func build_plan_foldout() -> void:
 	plan_open_position = Vector3(-0.3, 0.118, 2.2)
-	plan_closed_position = Vector3(-0.3, 0.118, 3.50)
+	plan_closed_position = Vector3(-0.3, 0.118, 3.58)
 	# The popup backing remains a 3D tabletop plaque, but the selected plans are
 	# separate 3D card meshes sitting above it instead of 2D text panels.
-	var entry := create_surface("BattlePlans", Vector2i(1400, 500), plan_closed_position, Vector2(7.0, 2.5), false)
+	# The backing is intentionally larger than the cards so both heading labels
+	# and the bottom margins sit inside the dark underpanel.
+	var entry := create_surface("BattlePlans", Vector2i(1510, 610), plan_closed_position, Vector2(7.55, 3.05), false)
 	plan_surface = entry["surface"]
 	plan_viewport = entry["viewport"]
 	if plan_surface.material_override is StandardMaterial3D:
@@ -235,20 +242,28 @@ func build_plan_foldout() -> void:
 	plan_surface.add_child(plan_card_root)
 
 	player_plan_card_3d = create_battleplan_card_mesh("PlayerBattleplanCard3D")
-	player_plan_card_3d.position = Vector3(-1.78, -0.12, BATTLEPLAN_CARD_SURFACE_Z)
+	player_plan_card_3d.position = Vector3(-1.86, -0.14, BATTLEPLAN_CARD_SURFACE_Z)
 	plan_card_root.add_child(player_plan_card_3d)
 
 	opponent_plan_card_3d = create_battleplan_card_mesh("OpponentBattleplanCard3D")
-	opponent_plan_card_3d.position = Vector3(1.78, -0.12, BATTLEPLAN_CARD_SURFACE_Z)
+	opponent_plan_card_3d.position = Vector3(1.86, -0.14, BATTLEPLAN_CARD_SURFACE_Z)
 	plan_card_root.add_child(opponent_plan_card_3d)
 
 	player_plan_label_3d = create_battleplan_3d_label("YOUR BATTLEPLAN")
-	player_plan_label_3d.position = Vector3(-1.78, 1.16, BATTLEPLAN_LABEL_Z)
+	player_plan_label_3d.position = Vector3(-1.86, 1.31, BATTLEPLAN_LABEL_Z)
 	plan_card_root.add_child(player_plan_label_3d)
 
 	opponent_plan_label_3d = create_battleplan_3d_label("OPPONENT BATTLEPLAN")
-	opponent_plan_label_3d.position = Vector3(1.78, 1.16, BATTLEPLAN_LABEL_Z)
+	opponent_plan_label_3d.position = Vector3(1.86, 1.31, BATTLEPLAN_LABEL_Z)
 	plan_card_root.add_child(opponent_plan_label_3d)
+
+	player_plan_inspect_button_3d = create_battleplan_inspect_button(true)
+	player_plan_inspect_button_3d.position = Vector3(-0.58, 1.31, BATTLEPLAN_LABEL_Z + 0.025)
+	plan_card_root.add_child(player_plan_inspect_button_3d)
+
+	opponent_plan_inspect_button_3d = create_battleplan_inspect_button(false)
+	opponent_plan_inspect_button_3d.position = Vector3(3.28, 1.31, BATTLEPLAN_LABEL_Z + 0.025)
+	plan_card_root.add_child(opponent_plan_inspect_button_3d)
 
 	plan_surface.scale = Vector3(1.0, 0.02, 1.0)
 	plan_surface.visible = false
@@ -382,6 +397,128 @@ func create_battleplan_3d_label(label_text: String) -> Label3D:
 	label.no_depth_test = true
 	label.render_priority = BATTLEPLAN_CARD_RENDER_PRIORITY
 	return label
+
+
+func create_battleplan_inspect_button(is_player_plan: bool) -> Node3D:
+	var root := Node3D.new()
+	root.name = "PlayerBattleplanInspectButton" if is_player_plan else "OpponentBattleplanInspectButton"
+
+	var surface := MeshInstance3D.new()
+	surface.name = "InspectButtonSurface"
+	var mesh := PlaneMesh.new()
+	mesh.size = BATTLEPLAN_INSPECT_BUTTON_SIZE
+	surface.mesh = mesh
+	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	surface.material_override = make_inspect_button_material()
+	root.add_child(surface)
+
+	var area := Area3D.new()
+	area.name = "ClickArea"
+	area.input_ray_pickable = true
+	root.add_child(area)
+
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(BATTLEPLAN_INSPECT_BUTTON_SIZE.x, BATTLEPLAN_INSPECT_BUTTON_SIZE.y, 0.18)
+	collision.shape = shape
+	area.add_child(collision)
+	area.input_event.connect(_on_battleplan_inspect_input_event.bind(is_player_plan))
+	area.mouse_entered.connect(_on_battleplan_inspect_mouse_entered)
+	area.mouse_exited.connect(_on_battleplan_inspect_mouse_exited)
+	return root
+
+
+func make_inspect_button_material() -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color.WHITE
+	material.albedo_texture = INSPECT_BUTTON_TEXTURE
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	material.texture_repeat = false
+	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	material.no_depth_test = true
+	material.render_priority = BATTLEPLAN_CARD_RENDER_PRIORITY
+	material.emission_enabled = true
+	material.emission = Color(0.28, 0.18, 0.045, 1.0)
+	material.emission_energy_multiplier = 0.65
+	return material
+
+
+func _on_battleplan_inspect_input_event(
+	_camera: Node,
+	event: InputEvent,
+	_event_position: Vector3,
+	_normal: Vector3,
+	_shape_index: int,
+	is_player_plan: bool
+) -> void:
+	if card_drag_active or not plans_open:
+		return
+	if not event is InputEventMouseButton:
+		return
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
+		return
+	inspect_battleplan(is_player_plan)
+	get_viewport().set_input_as_handled()
+
+
+func _on_battleplan_inspect_mouse_entered() -> void:
+	hud_cursor_active = true
+	Cursors.use_pointing()
+
+
+func _on_battleplan_inspect_mouse_exited() -> void:
+	hud_cursor_active = false
+	Cursors.use_normal()
+
+
+func inspect_battleplan(is_player_plan: bool) -> void:
+	var card := player_plan_card_3d if is_player_plan else opponent_plan_card_3d
+	if card == null or not is_instance_valid(card):
+		return
+	var inspector := find_card_inspect_panel()
+	if inspector == null:
+		return
+	var texture := get_card_mesh_texture(card)
+	if texture == null:
+		return
+	inspector.show_texture(texture, get_battleplan_card_source_rect(card), true)
+
+
+func get_card_mesh_texture(card: MeshInstance3D) -> Texture2D:
+	if card != null and card.material_override is StandardMaterial3D:
+		return (card.material_override as StandardMaterial3D).albedo_texture
+	return null
+
+
+func get_battleplan_card_source_rect(card: MeshInstance3D) -> Rect2:
+	if camera_3d == null or card == null:
+		return Rect2()
+	var center := camera_3d.unproject_position(card.global_position)
+	var source_size := Vector2(430.0, 305.0)
+	return Rect2(center - source_size * 0.5, source_size)
+
+
+func find_card_inspect_panel() -> CardInspectPanel:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	var direct := scene.get_node_or_null("UI/CardInspectPanel") as CardInspectPanel
+	if direct != null:
+		return direct
+	return find_card_inspect_panel_recursive(scene)
+
+
+func find_card_inspect_panel_recursive(node: Node) -> CardInspectPanel:
+	if node is CardInspectPanel:
+		return node as CardInspectPanel
+	for child in node.get_children():
+		var found := find_card_inspect_panel_recursive(child)
+		if found != null:
+			return found
+	return null
 
 
 func apply_plan_to_3d_card(card: MeshInstance3D, plan: Dictionary, caption: String) -> void:
