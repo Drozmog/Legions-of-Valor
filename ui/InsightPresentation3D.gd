@@ -139,12 +139,21 @@ void fragment() {
 	back_button.text = "" if back_texture != null else "BACK"
 	back_button.icon = back_texture
 	back_button.expand_icon = true
-	var back_style := StyleBoxFlat.new()
-	back_style.bg_color = Color.TRANSPARENT if back_texture != null else Color(0.055, 0.045, 0.035, 0.96)
-	back_style.border_color = Color.TRANSPARENT if back_texture != null else Color(0.82, 0.68, 0.38, 0.95)
-	back_style.set_border_width_all(2)
-	back_style.set_corner_radius_all(5)
-	back_button.add_theme_stylebox_override("normal", back_style)
+	back_button.flat = back_texture != null
+	if back_texture != null:
+		var empty_style := StyleBoxEmpty.new()
+		for style_name in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+			back_button.add_theme_stylebox_override(style_name, empty_style)
+	else:
+		var back_style := StyleBoxFlat.new()
+		back_style.bg_color = Color(0.055, 0.045, 0.035, 0.96)
+		back_style.border_color = Color(0.82, 0.68, 0.38, 0.95)
+		back_style.set_border_width_all(2)
+		back_style.set_corner_radius_all(5)
+		back_button.add_theme_stylebox_override("normal", back_style)
+		back_button.add_theme_stylebox_override("hover", back_style)
+		back_button.add_theme_stylebox_override("pressed", back_style)
+		back_button.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	back_button.visible = false
 	add_child(back_button)
 
