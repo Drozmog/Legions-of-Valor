@@ -3,20 +3,23 @@ extends Node3D
 
 signal phase_action_pressed
 
-const HUD_LAYOUT_SCENE: PackedScene = preload("res://battlefield/BattlefieldBottomHudLayout3D.tscn")
 const INSPECT_BUTTON_TEXTURE: Texture2D = preload("res://ui/combat_buttons/inspect_button.png")
 
 const GOLD := Color(0.94, 0.68, 0.19, 1.0)
 const PALE_GOLD := Color(1.0, 0.91, 0.66, 1.0)
 const PANEL_BG := Color(0.055, 0.023, 0.010, 0.94)
+const BATTLEPLAN_CARD_SIZE := Vector2(2.80, 1.70) # exact 3.5:2.5 landscape ratio
 const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
 const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
+const BATTLEPLAN_CARD_SURFACE_Z := 0.26
+const BATTLEPLAN_LABEL_Z := 0.31
 const BATTLEPLAN_SURFACE_RENDER_PRIORITY := 80
 const BATTLEPLAN_CARD_RENDER_PRIORITY := 127
+const BATTLEPLAN_INSPECT_BUTTON_SIZE := Vector2(0.86, 0.40) # same 280x130-ish ratio, larger click target
 
 var camera_3d: Camera3D
-var layout_root: Node3D
 var surfaces: Array[Dictionary] = []
+var active_viewport: SubViewport
 
 var main_surface: MeshInstance3D
 var right_surface: MeshInstance3D
@@ -31,6 +34,9 @@ var score_label: Label
 var instruction_label: Label
 var phase_button: Button
 var log_text: RichTextLabel
+var player_plan_box: PanelContainer
+var opponent_plan_box: PanelContainer
+var plan_card_root: Node3D
 var player_plan_card_3d: MeshInstance3D
 var opponent_plan_card_3d: MeshInstance3D
 var player_plan_label_3d: Label3D
@@ -38,7 +44,6 @@ var opponent_plan_label_3d: Label3D
 var player_plan_inspect_button_3d: Node3D
 var opponent_plan_inspect_button_3d: Node3D
 var battleplan_face_viewports: Array[SubViewport] = []
-var battleplan_card_size := Vector2(2.8, 1.7)
 
 var log_open := false
 var plans_open := false
@@ -56,221 +61,152 @@ var hud_cursor_active := false
 
 func _ready() -> void:
 	camera_3d = get_viewport().get_camera_3d()
-	load_editable_layout_scene()
-	bind_main_bar()
-	bind_log_foldout()
-	bind_plan_foldout()
+	build_main_bar()
+	build_log_foldout()
+	build_plan_foldout()
 	set_process_input(true)
 
 
-func load_editable_layout_scene() -> void:
-	layout_root = get_node_or_null("BattlefieldBottomHudLayout3D") as Node3D
-	if layout_root == null:
-		layout_root = HUD_LAYOUT_SCENE.instantiate() as Node3D
-		add_child(layout_root)
-
-
-func bind_main_bar() -> void:
-	var left_viewport := layout_root.get_node("MainLeftViewport") as SubViewport
-	var left_root := left_viewport.get_node("MainLeftRoot") as Control
-	main_surface = layout_root.get_node("MainLeftSurface") as MeshInstance3D
-	var right_viewport := layout_root.get_node("MainRightViewport") as SubViewport
-	var right_root := right_viewport.get_node("MainRightRoot") as Control
-	right_surface = layout_root.get_node("MainRightSurface") as MeshInstance3D
-
-	configure_surface(main_surface, left_viewport, true)
-	configure_surface(right_surface, right_viewport, true)
-	var left_row := build_main_left_controls(left_root)
-	var right_row := build_main_right_controls(right_root)
-
-	surfaces.append(make_surface_entry(left_viewport, main_surface, true))
-	surfaces.append(make_surface_entry(right_viewport, right_surface, true))
-
-	var log_button := left_row.get_node("LogCell/LogButton") as Button
-	log_button.pressed.connect(toggle_log)
-	var plans_button := left_row.get_node("PlansCell/PlansButton") as Button
-	plans_button.pressed.connect(toggle_plans)
-	phase_button = right_row.get_node("PhaseButtonCell/PhaseButton") as Button
-	phase_button.pressed.connect(func(): phase_action_pressed.emit())
-
-
-func build_main_left_controls(root: Control) -> HBoxContainer:
-	clear_children(root)
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_PASS
-	var panel := PanelContainer.new()
-	panel.name = "Panel"
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.offset_left = 5.0
-	panel.offset_top = 5.0
-	panel.offset_right = -5.0
-	panel.offset_bottom = -5.0
-	panel.add_theme_stylebox_override("panel", panel_style())
-	root.add_child(panel)
-
-	var margin := MarginContainer.new()
-	margin.name = "Margin"
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_top", 25)
-	margin.add_theme_constant_override("margin_bottom", 25)
-	panel.add_child(margin)
-
-	var row := HBoxContainer.new()
-	row.name = "Row"
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 0)
-	margin.add_child(row)
+func build_main_bar() -> void:
+	# Equal left/right plaques. Their Y and Z match the previous single HUD exactly.
+	# The viewport and mesh are both 10:1. Matching their aspect ratios keeps
+	# the rendered controls from being stretched across the tabletop plaque.
+	var left_entry := create_surface("BattleHudLeft", Vector2i(1600, 200), Vector3(-4, 0.075, 3.87), Vector2(3, 0.30), true)
+	var right_entry := create_surface("BattleHudRight", Vector2i(1600, 200), Vector3(4, 0.075, 3.87), Vector2(3, 0.30), true)
+	main_surface = left_entry["surface"]
+	right_surface = right_entry["surface"]
+	var left_row := make_main_panel_row(left_entry["control"] as Control, 0)
+	var right_row := make_main_panel_row(right_entry["control"] as Control, 0)
 
 	var log_button := make_button("▲ LOG", Vector2(0, 54))
-	log_button.name = "LogButton"
-	add_hud_cell(row, "LogCell", log_button, 0.07)
+	log_button.pressed.connect(toggle_log)
+	add_hud_cell(left_row, log_button, 0.07)
 
 	var portrait := TextureRect.new()
-	portrait.name = "Portrait"
 	portrait.texture = preload("res://ui/Profile Pictures/siegmere.png")
 	portrait.custom_minimum_size = Vector2(140, 140)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_hud_cell(row, "PortraitCell", portrait, 0.05)
+	add_hud_cell(left_row, portrait, 0.05)
 
 	var identity := VBoxContainer.new()
-	identity.name = "Identity"
 	identity.custom_minimum_size = Vector2(142, 20)
 	identity.alignment = BoxContainer.ALIGNMENT_CENTER
 	var player_name := Label.new()
-	player_name.name = "PlayerName"
 	player_name.text = "DROZMOG"
 	player_name.add_theme_font_size_override("font_size", 60)
 	player_name.add_theme_color_override("font_color", PALE_GOLD)
 	identity.add_child(player_name)
 	var role := Label.new()
-	role.name = "Role"
 	role.text = "Grand Marshal"
 	role.add_theme_font_size_override("font_size", 30)
 	role.add_theme_color_override("font_color", Color(0.72, 0.57, 0.34, 1.0))
 	identity.add_child(role)
-	add_hud_cell(row, "IdentityCell", identity, 0.05)
+	add_hud_cell(left_row, identity, 0.05)
 
 	var plans_button := make_button("BATTLEPLANS", Vector2(0, 54))
-	plans_button.name = "PlansButton"
-	add_hud_cell(row, "PlansCell", plans_button, 0.10)
-	return row
+	plans_button.pressed.connect(toggle_plans)
+	add_hud_cell(left_row, plans_button, 0.10)
 
-
-func build_main_right_controls(root: Control) -> HBoxContainer:
-	clear_children(root)
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_PASS
-	var panel := PanelContainer.new()
-	panel.name = "Panel"
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.offset_left = 5.0
-	panel.offset_top = 5.0
-	panel.offset_right = -5.0
-	panel.offset_bottom = -5.0
-	panel.add_theme_stylebox_override("panel", panel_style())
-	root.add_child(panel)
-
-	var margin := MarginContainer.new()
-	margin.name = "Margin"
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_top", 25)
-	margin.add_theme_constant_override("margin_bottom", 25)
-	panel.add_child(margin)
-
-	var row := HBoxContainer.new()
-	row.name = "Row"
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 0)
-	margin.add_child(row)
-
-	var status_stack := VBoxContainer.new()
-	status_stack.name = "StatusStack"
-	status_stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	status_stack.add_theme_constant_override("separation", 0)
-
-	var phase_heading := HBoxContainer.new()
-	phase_heading.name = "PhaseHeading"
-	phase_heading.custom_minimum_size = Vector2(205, 0)
-	phase_heading.alignment = BoxContainer.ALIGNMENT_CENTER
-	phase_heading.add_theme_constant_override("separation", 18)
-	phase_label = Label.new()
-	phase_label.name = "PhaseLabel"
-	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	phase_label.add_theme_font_size_override("font_size", 50)
-	phase_label.add_theme_color_override("font_color", PALE_GOLD)
-	phase_heading.add_child(phase_label)
-	turn_label = Label.new()
-	turn_label.name = "TurnLabel"
-	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	turn_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	turn_label.add_theme_font_size_override("font_size", 50)
-	turn_label.add_theme_color_override("font_color", GOLD)
-	phase_heading.add_child(turn_label)
-	status_stack.add_child(phase_heading)
-
+	var phase_info := VBoxContainer.new()
+	phase_info.alignment = BoxContainer.ALIGNMENT_CENTER
+	phase_info.add_theme_constant_override("separation", 0)
 	score_label = Label.new()
-	score_label.name = "ScoreLabel"
 	score_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	score_label.add_theme_font_size_override("font_size", 45)
 	score_label.add_theme_color_override("font_color", Color.WHITE)
-	status_stack.add_child(score_label)
-
+	phase_info.add_child(score_label)
 	instruction_label = Label.new()
-	instruction_label.name = "InstructionLabel"
 	instruction_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	instruction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	instruction_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	instruction_label.add_theme_font_size_override("font_size", 30)
 	instruction_label.add_theme_color_override("font_color", Color(0.84, 0.75, 0.61, 1.0))
 	instruction_label.visible = false
-	status_stack.add_child(instruction_label)
-	add_hud_cell(row, "StatusCell", status_stack, 1.0)
+	phase_info.add_child(instruction_label)
+
+	var phase_heading := HBoxContainer.new()
+	phase_heading.custom_minimum_size = Vector2(205, 0)
+	phase_heading.alignment = BoxContainer.ALIGNMENT_CENTER
+	phase_heading.add_theme_constant_override("separation", 18)
+	phase_label = Label.new()
+	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	phase_label.add_theme_font_size_override("font_size", 50)
+	phase_label.add_theme_color_override("font_color", PALE_GOLD)
+	phase_heading.add_child(phase_label)
+	turn_label = Label.new()
+	turn_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	turn_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	turn_label.add_theme_font_size_override("font_size", 50)
+	turn_label.add_theme_color_override("font_color", GOLD)
+	phase_heading.add_child(turn_label)
+
+	var status_stack := VBoxContainer.new()
+	status_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	status_stack.add_theme_constant_override("separation", 0)
+	status_stack.add_child(phase_heading)
+	status_stack.add_child(phase_info)
+	add_hud_cell(right_row, status_stack, 1)
 
 	phase_button = make_button("CONTINUE", Vector2(0, 54), true)
-	phase_button.name = "PhaseButton"
-	add_hud_cell(row, "PhaseButtonCell", phase_button, 0.70)
+	phase_button.pressed.connect(func(): phase_action_pressed.emit())
+	add_hud_cell(right_row, phase_button, 0.70)
+
+
+func make_main_panel_row(root: Control, separation: int) -> HBoxContainer:
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.offset_left = 5.0
+	panel.offset_top = 5.0
+	panel.offset_right = -5.0
+	panel.offset_bottom = -5.0
+	panel.add_theme_stylebox_override("panel", panel_style())
+	root.add_child(panel)
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 25)
+	margin.add_theme_constant_override("margin_bottom", 25)
+	panel.add_child(margin)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", separation)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	margin.add_child(row)
 	return row
 
 
-func bind_log_foldout() -> void:
-	log_viewport = layout_root.get_node("LogViewport") as SubViewport
-	var root := log_viewport.get_node("LogRoot") as Control
-	log_surface = layout_root.get_node("LogSurface") as MeshInstance3D
-	log_open_position = (layout_root.get_node("LogOpenMarker") as Node3D).position
-	log_closed_position = (layout_root.get_node("LogClosedMarker") as Node3D).position
-	configure_surface(log_surface, log_viewport, true)
-	build_log_controls(root)
-	log_surface.position = log_closed_position
-	log_surface.scale = Vector3(1.0, 0.02, 1.0)
-	log_surface.visible = false
-	surfaces.append(make_surface_entry(log_viewport, log_surface, true))
+func add_hud_cell(row: HBoxContainer, content: Control, width_ratio: float) -> void:
+	var cell := CenterContainer.new()
+	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	cell.size_flags_stretch_ratio = width_ratio
+	cell.mouse_filter = Control.MOUSE_FILTER_PASS
+	row.add_child(cell)
+	cell.add_child(content)
 
 
-func build_log_controls(root: Control) -> void:
-	clear_children(root)
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_PASS
+func build_log_foldout() -> void:
+	log_open_position = Vector3(-3.22, 0.115, 2.6)
+	log_closed_position = Vector3(-3.22, 0.115, 3.58)
+	var entry := create_surface("BattleLog", Vector2i(900, 430), log_closed_position, Vector2(4.45, 2.05), true)
+	log_surface = entry["surface"]
+	log_viewport = entry["viewport"]
+	var root: Control = entry["control"]
 	var panel := PanelContainer.new()
-	panel.name = "Panel"
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.add_theme_stylebox_override("panel", panel_style())
 	root.add_child(panel)
 	var margin := MarginContainer.new()
-	margin.name = "Margin"
 	margin.add_theme_constant_override("margin_left", 20)
 	margin.add_theme_constant_override("margin_right", 20)
 	margin.add_theme_constant_override("margin_top", 16)
 	margin.add_theme_constant_override("margin_bottom", 16)
 	panel.add_child(margin)
 	log_text = RichTextLabel.new()
-	log_text.name = "LogText"
 	log_text.bbcode_enabled = false
 	log_text.scroll_active = true
 	log_text.scroll_following = true
@@ -279,58 +215,78 @@ func build_log_controls(root: Control) -> void:
 	log_text.add_theme_font_size_override("normal_font_size", 17)
 	log_text.add_theme_color_override("default_color", Color(0.92, 0.84, 0.68, 1.0))
 	margin.add_child(log_text)
+	log_surface.scale = Vector3(1.0, 0.02, 1.0)
+	log_surface.visible = false
 
 
-func bind_plan_foldout() -> void:
-	var popup := layout_root.get_node("BattleplanHudPopup3D") as Node3D
-	plan_viewport = popup.get_node("PlanViewport") as SubViewport
-	plan_surface = popup.get_node("PlanSurface") as MeshInstance3D
-	plan_open_position = (popup.get_node("PlanOpenMarker") as Node3D).position
-	plan_closed_position = (popup.get_node("PlanClosedMarker") as Node3D).position
-	configure_surface(plan_surface, plan_viewport, false)
+func build_plan_foldout() -> void:
+	plan_open_position = Vector3(-0.3, 0.118, 2.42)
+	plan_closed_position = Vector3(-0.3, 0.118, 3.56)
+	# Keep the dark panel close to the card width, while giving it more vertical
+	# room at the bottom for the lower margins. Position constants below are the
+	# main manual tuning points for this Battleplans popup.
+	var entry := create_surface("BattlePlans", Vector2i(1410, 570), plan_closed_position, Vector2(7.05, 2.35), false)
+	plan_surface = entry["surface"]
+	plan_viewport = entry["viewport"]
 	if plan_surface.material_override is StandardMaterial3D:
 		(plan_surface.material_override as StandardMaterial3D).render_priority = BATTLEPLAN_SURFACE_RENDER_PRIORITY
-	var root := plan_viewport.get_node("RootControl") as Control
-	build_plan_backing(root)
-
-	player_plan_card_3d = popup.get_node("PlanSurface/BattlePlan3DCards/PlayerBattleplanCard3D") as MeshInstance3D
-	opponent_plan_card_3d = popup.get_node("PlanSurface/BattlePlan3DCards/OpponentBattleplanCard3D") as MeshInstance3D
-	player_plan_label_3d = popup.get_node("PlanSurface/BattlePlan3DCards/PlayerBattleplanLabel3D") as Label3D
-	opponent_plan_label_3d = popup.get_node("PlanSurface/BattlePlan3DCards/OpponentBattleplanLabel3D") as Label3D
-	player_plan_inspect_button_3d = popup.get_node("PlanSurface/BattlePlan3DCards/PlayerBattleplanInspectButton") as Node3D
-	opponent_plan_inspect_button_3d = popup.get_node("PlanSurface/BattlePlan3DCards/OpponentBattleplanInspectButton") as Node3D
-
-	battleplan_card_size = get_plane_mesh_size(player_plan_card_3d, battleplan_card_size)
-	prepare_battleplan_card(player_plan_card_3d)
-	prepare_battleplan_card(opponent_plan_card_3d)
-	prepare_battleplan_label(player_plan_label_3d, "YOUR BATTLEPLAN")
-	prepare_battleplan_label(opponent_plan_label_3d, "OPPONENT BATTLEPLAN")
-	prepare_inspect_button(player_plan_inspect_button_3d, true)
-	prepare_inspect_button(opponent_plan_inspect_button_3d, false)
-
-	plan_surface.position = plan_closed_position
-	plan_surface.scale = Vector3(1.0, 0.02, 1.0)
-	plan_surface.visible = false
-
-
-func build_plan_backing(root: Control) -> void:
-	clear_children(root)
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_PASS
+	var root: Control = entry["control"]
 	var panel := PanelContainer.new()
-	panel.name = "Panel"
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	panel.add_theme_stylebox_override("panel", panel_style())
 	root.add_child(panel)
 
+	plan_card_root = Node3D.new()
+	plan_card_root.name = "BattlePlan3DCards"
+	plan_surface.add_child(plan_card_root)
 
-func configure_surface(surface: MeshInstance3D, viewport: SubViewport, _interactive: bool) -> void:
-	if surface == null or viewport == null:
-		return
+	player_plan_card_3d = create_battleplan_card_mesh("PlayerBattleplanCard3D")
+	player_plan_card_3d.position = Vector3(-1.74, -0.22, BATTLEPLAN_CARD_SURFACE_Z)
+	plan_card_root.add_child(player_plan_card_3d)
+
+	opponent_plan_card_3d = create_battleplan_card_mesh("OpponentBattleplanCard3D")
+	opponent_plan_card_3d.position = Vector3(1.74, -0.22, BATTLEPLAN_CARD_SURFACE_Z)
+	plan_card_root.add_child(opponent_plan_card_3d)
+
+	player_plan_label_3d = create_battleplan_3d_label("YOUR BATTLEPLAN")
+	player_plan_label_3d.position = Vector3(-1.86, 1.19, BATTLEPLAN_LABEL_Z)
+	plan_card_root.add_child(player_plan_label_3d)
+
+	opponent_plan_label_3d = create_battleplan_3d_label("OPPONENT BATTLEPLAN")
+	opponent_plan_label_3d.position = Vector3(1.70, 1.19, BATTLEPLAN_LABEL_Z)
+	plan_card_root.add_child(opponent_plan_label_3d)
+
+	player_plan_inspect_button_3d = create_battleplan_inspect_button(true)
+	player_plan_inspect_button_3d.position = Vector3(-0.48, 1.19, BATTLEPLAN_LABEL_Z + 0.035)
+	plan_card_root.add_child(player_plan_inspect_button_3d)
+
+	opponent_plan_inspect_button_3d = create_battleplan_inspect_button(false)
+	opponent_plan_inspect_button_3d.position = Vector3(3.02, 1.19, BATTLEPLAN_LABEL_Z + 0.035)
+	plan_card_root.add_child(opponent_plan_inspect_button_3d)
+
+	plan_surface.scale = Vector3(1.0, 0.02, 1.0)
+	plan_surface.visible = false
+
+
+func create_surface(surface_name: String, viewport_size: Vector2i, world_position: Vector3, world_size: Vector2, interactive: bool) -> Dictionary:
+	var viewport := SubViewport.new()
+	viewport.name = surface_name + "Viewport"
+	viewport.size = viewport_size
 	viewport.transparent_bg = true
 	viewport.disable_3d = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	viewport.gui_embed_subwindows = true
+	add_child(viewport)
+	var control := Control.new()
+	control.set_anchors_preset(Control.PRESET_FULL_RECT)
+	control.mouse_filter = Control.MOUSE_FILTER_PASS
+	viewport.add_child(control)
+	var surface := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = world_size
+	surface.mesh = quad
+	surface.position = world_position
+	surface.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var material := StandardMaterial3D.new()
 	material.albedo_texture = viewport.get_texture()
@@ -341,29 +297,10 @@ func configure_surface(surface: MeshInstance3D, viewport: SubViewport, _interact
 	material.no_depth_test = true
 	material.render_priority = 127
 	surface.material_override = material
-
-
-func make_surface_entry(viewport: SubViewport, surface: MeshInstance3D, interactive: bool) -> Dictionary:
-	return {
-		"viewport": viewport,
-		"control": viewport.get_child(0) if viewport.get_child_count() > 0 else null,
-		"surface": surface,
-		"viewport_size": viewport.size,
-		"world_size": get_quad_mesh_size(surface, Vector2.ONE),
-		"interactive": interactive,
-	}
-
-
-func get_quad_mesh_size(surface: MeshInstance3D, fallback: Vector2) -> Vector2:
-	if surface != null and surface.mesh is QuadMesh:
-		return (surface.mesh as QuadMesh).size
-	return fallback
-
-
-func get_plane_mesh_size(surface: MeshInstance3D, fallback: Vector2) -> Vector2:
-	if surface != null and surface.mesh is PlaneMesh:
-		return (surface.mesh as PlaneMesh).size
-	return fallback
+	add_child(surface)
+	var entry := {"viewport": viewport, "control": control, "surface": surface, "viewport_size": viewport_size, "world_size": world_size, "interactive": interactive}
+	surfaces.append(entry)
+	return entry
 
 
 func update_info(phase_text: String, turn_text: String, score_text: String, instruction: String, action_text: String, disabled: bool, ready: bool) -> void:
@@ -436,18 +373,19 @@ func set_card_drag_active(active: bool) -> void:
 	card_drag_active = active
 
 
-func prepare_battleplan_card(card: MeshInstance3D) -> void:
-	if card == null:
-		return
-	card.mesh = create_rounded_battleplan_card_mesh(battleplan_card_size)
+func create_battleplan_card_mesh(card_name: String) -> MeshInstance3D:
+	var card := MeshInstance3D.new()
+	card.name = card_name
+	card.mesh = create_rounded_battleplan_card_mesh(BATTLEPLAN_CARD_SIZE)
 	card.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	card.material_override = make_battleplan_card_material(create_battleplan_face_texture({}, "BATTLEPLAN"))
+	return card
 
 
-func prepare_battleplan_label(label: Label3D, text_value: String) -> void:
-	if label == null:
-		return
-	label.text = text_value
+func create_battleplan_3d_label(label_text: String) -> Label3D:
+	var label := Label3D.new()
+	label.name = label_text.capitalize().replace(" ", "") + "Label3D"
+	label.text = label_text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.font_size = 46
@@ -457,24 +395,38 @@ func prepare_battleplan_label(label: Label3D, text_value: String) -> void:
 	label.outline_size = 10
 	label.no_depth_test = true
 	label.render_priority = BATTLEPLAN_CARD_RENDER_PRIORITY
+	return label
 
 
-func prepare_inspect_button(button_root: Node3D, is_player_plan: bool) -> void:
-	if button_root == null:
-		return
-	var surface := button_root.get_node_or_null("InspectButtonSurface") as MeshInstance3D
-	if surface != null:
-		surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		surface.material_override = make_inspect_button_material()
-	var area := button_root.get_node_or_null("ClickArea") as Area3D
-	if area == null:
-		return
+func create_battleplan_inspect_button(is_player_plan: bool) -> Node3D:
+	var root := Node3D.new()
+	root.name = "PlayerBattleplanInspectButton" if is_player_plan else "OpponentBattleplanInspectButton"
+
+	var surface := MeshInstance3D.new()
+	surface.name = "InspectButtonSurface"
+	var mesh := PlaneMesh.new()
+	mesh.size = BATTLEPLAN_INSPECT_BUTTON_SIZE
+	surface.mesh = mesh
+	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	surface.material_override = make_inspect_button_material()
+	root.add_child(surface)
+
+	var area := Area3D.new()
+	area.name = "ClickArea"
 	area.collision_layer = 32
 	area.collision_mask = 0
 	area.input_ray_pickable = true
+	root.add_child(area)
+
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(BATTLEPLAN_INSPECT_BUTTON_SIZE.x * 1.15, BATTLEPLAN_INSPECT_BUTTON_SIZE.y * 1.25, 0.26)
+	collision.shape = shape
+	area.add_child(collision)
 	area.input_event.connect(_on_battleplan_inspect_input_event.bind(is_player_plan))
 	area.mouse_entered.connect(_on_battleplan_inspect_mouse_entered)
 	area.mouse_exited.connect(_on_battleplan_inspect_mouse_exited)
+	return root
 
 
 func make_inspect_button_material() -> StandardMaterial3D:
@@ -494,7 +446,14 @@ func make_inspect_button_material() -> StandardMaterial3D:
 	return material
 
 
-func _on_battleplan_inspect_input_event(_camera: Node, event: InputEvent, _event_position: Vector3, _normal: Vector3, _shape_index: int, is_player_plan: bool) -> void:
+func _on_battleplan_inspect_input_event(
+	_camera: Node,
+	event: InputEvent,
+	_event_position: Vector3,
+	_normal: Vector3,
+	_shape_index: int,
+	is_player_plan: bool
+) -> void:
 	if card_drag_active or not plans_open:
 		return
 	if not event is InputEventMouseButton:
@@ -743,7 +702,10 @@ func _input(event: InputEvent) -> void:
 		target_viewport.push_input(forwarded, true)
 		if event is InputEventMouseMotion:
 			var hovered := target_viewport.gui_get_hovered_control()
-			var wants_pointing := hovered != null and hovered.mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND
+			var wants_pointing := (
+				hovered != null
+				and hovered.mouse_default_cursor_shape == Control.CURSOR_POINTING_HAND
+			)
 			if wants_pointing:
 				hud_cursor_active = true
 				Cursors.use_pointing()
@@ -774,24 +736,21 @@ func make_button(text_value: String, minimum: Vector2, primary: bool = false) ->
 	return button
 
 
-func add_hud_cell(row: HBoxContainer, cell_name: String, content: Control, width_ratio: float) -> void:
-	var cell := CenterContainer.new()
-	cell.name = cell_name
-	cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	cell.size_flags_stretch_ratio = width_ratio
-	cell.mouse_filter = Control.MOUSE_FILTER_PASS
-	row.add_child(cell)
-	cell.add_child(content)
-
-
 func panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = PANEL_BG
 	style.border_color = GOLD
 	style.set_border_width_all(0)
 	style.set_corner_radius_all(11)
+	# A flat tabletop plaque avoids the square shadow corner produced by
+	# StyleBoxFlat shadows around rounded panels.
 	style.shadow_size = 0
+	return style
+
+
+func portrait_style() -> StyleBoxFlat:
+	var style := button_style(Color(0.20, 0.095, 0.025, 1.0), GOLD, 3, 4)
+	style.set_corner_radius_all(23)
 	return style
 
 
@@ -809,8 +768,3 @@ func button_style(bg: Color, border: Color, width: int, shadow: int) -> StyleBox
 		style.shadow_color = Color(1.0, 0.55, 0.06, 0.55)
 		style.shadow_size = shadow
 	return style
-
-
-func clear_children(node: Node) -> void:
-	for child in node.get_children():
-		child.queue_free()
