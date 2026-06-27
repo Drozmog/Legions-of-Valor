@@ -8,7 +8,7 @@ const INSPECT_BUTTON_TEXTURE: Texture2D = preload("res://ui/combat_buttons/inspe
 const GOLD := Color(0.94, 0.68, 0.19, 1.0)
 const PALE_GOLD := Color(1.0, 0.91, 0.66, 1.0)
 const PANEL_BG := Color(0.055, 0.023, 0.010, 0.94)
-const BATTLEPLAN_CARD_SIZE := Vector2(2.80, 2.00) # exact 3.5:2.5 landscape ratio
+const BATTLEPLAN_CARD_SIZE := Vector2(2.80, 1.70) # exact 3.5:2.5 landscape ratio
 const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
 const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
 const BATTLEPLAN_CARD_SURFACE_Z := 0.26
@@ -220,12 +220,12 @@ func build_log_foldout() -> void:
 
 
 func build_plan_foldout() -> void:
-	plan_open_position = Vector3(-0.3, 0.118, 2.17)
+	plan_open_position = Vector3(-0.3, 0.118, 2.42)
 	plan_closed_position = Vector3(-0.3, 0.118, 3.56)
 	# Keep the dark panel close to the card width, while giving it more vertical
 	# room at the bottom for the lower margins. Position constants below are the
 	# main manual tuning points for this Battleplans popup.
-	var entry := create_surface("BattlePlans", Vector2i(1410, 570), plan_closed_position, Vector2(7.05, 2.85), false)
+	var entry := create_surface("BattlePlans", Vector2i(1410, 570), plan_closed_position, Vector2(7.05, 2.35), false)
 	plan_surface = entry["surface"]
 	plan_viewport = entry["viewport"]
 	if plan_surface.material_override is StandardMaterial3D:

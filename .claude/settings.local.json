@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/PC/Desktop/**)",
+      "Bash(./Godot_v4.6.3-stable_win64.exe --version)",
+      "Bash(\"/c/Users/PC/Desktop/Godot_v4.6.3-stable_win64.exe\" --headless --editor --quit-after 240 --path \"G:/Legions of Valor Base Game\")",
+      "Bash(cat)",
+      "Bash(python /tmp/del_parry.py)",
+      "Bash(py /tmp/del_parry.py)",
+      "Bash(python3 /tmp/del_parry.py)",
+      "Bash(mv \"G:/Legions of Valor Base Game/battlefield/BattlefieldManager.gd.prebak\" /tmp/BattlefieldManager.gd.prebak 2>/dev/null && echo \"backup moved to /tmp \\(out of project tree\\)\"; echo \"--- line counts ---\"; wc -l \"G:/Legions of Valor Base Game/battlefield/BattlefieldManager.gd\" \"G:/Legions of Valor Base Game/battlefield/ParrySystem.gd\" \"G:/Legions of Valor Base Game/cards/CardRules.gd\")",
+      "Bash(\"C:\\\\Users\\\\PC\\\\Desktop\\\\Godot_v4.6.3-stable_win64.exe\" --headless --editor --quit-after 240 --path \"G:\\\\Legions of Valor Base Game\")"
+    ]
+  }
+}
