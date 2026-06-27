@@ -17,6 +17,9 @@ const HIDDEN_X := 0.46
 const SHOWN_X := 0.76
 const BUTTON_Z_SPACING := 0.23
 const SLIDE_TIME := 0.18
+const BOARD_ACTION_INSPECT := 1
+const CARD_VISUAL_WIDTH := 1.02
+const CARD_VISUAL_HEIGHT := 1.34
 
 var slot: Node3D
 var slide_direction := 1.0
@@ -37,6 +40,9 @@ func setup(slot_node: Node3D, direction: float) -> void:
 
 
 func set_actions(action_ids: Array[int]) -> void:
+	if _is_modal_blocked():
+		action_ids = []
+
 	var signature := ",".join(action_ids.map(func(value: int) -> String: return str(value)))
 	if signature == state_signature:
 		return
@@ -182,8 +188,8 @@ func get_action_texture(action_id: int) -> Texture2D:
 func _set_button_pickable(button_root: Node3D, pickable: bool) -> void:
 	var area := button_root.get_node_or_null("ClickArea") as Area3D
 	if area != null:
-		area.collision_layer = 8 if pickable else 0
-		area.input_ray_pickable = pickable
+		area.collision_layer = 8 if pickable and not _is_modal_blocked() else 0
+		area.input_ray_pickable = pickable and not _is_modal_blocked()
 
 
 func _on_button_input_event(
@@ -194,13 +200,20 @@ func _on_button_input_event(
 	_shape_index: int,
 	action_id: int
 ) -> void:
+	if _is_modal_blocked():
+		return
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			action_pressed.emit(action_id, slot)
+			if action_id == BOARD_ACTION_INSPECT:
+				inspect_slot_card_locally()
+			else:
+				action_pressed.emit(action_id, slot)
 			get_viewport().set_input_as_handled()
 
 
 func _on_button_mouse_entered(button_root: Node3D) -> void:
+	if _is_modal_blocked():
+		return
 	Cursors.use_pointing()
 
 	var surface := button_root.get_node_or_null("ButtonSurface") as MeshInstance3D
@@ -218,3 +231,94 @@ func _on_button_mouse_exited(button_root: Node3D) -> void:
 		var material := surface.material_override as StandardMaterial3D
 		material.emission = Color(0.32, 0.17, 0.035, 1.0)
 		material.emission_energy_multiplier = 0.65
+
+
+func inspect_slot_card_locally() -> void:
+	if slot == null or not is_instance_valid(slot):
+		return
+	if not slot.has_method("get_placed_card_data"):
+		return
+	var card_data := slot.call("get_placed_card_data") as CardData
+	if card_data == null:
+		return
+	var inspector := find_card_inspect_panel()
+	if inspector == null:
+		return
+	if slot.has_method("set_inspected_faded"):
+		slot.call("set_inspected_faded", true)
+	var clear_callable := Callable(self, "_clear_slot_inspection_fade")
+	if not inspector.inspection_closed.is_connected(clear_callable):
+		inspector.inspection_closed.connect(clear_callable)
+	inspector.z_index = maxi(inspector.z_index, 950)
+	inspector.last_source_rect = get_slot_card_screen_rect()
+	inspector.show_card(null, card_data)
+
+
+func _clear_slot_inspection_fade() -> void:
+	if slot != null and is_instance_valid(slot) and slot.has_method("set_inspected_faded"):
+		slot.call("set_inspected_faded", false)
+
+
+func get_slot_card_screen_rect() -> Rect2:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null or slot == null or not is_instance_valid(slot):
+		return Rect2(get_viewport().get_mouse_position() - Vector2(65.0, 90.0), Vector2(130.0, 180.0))
+	var visual := null
+	if slot.has_method("get_placed_card_visual"):
+		visual = slot.call("get_placed_card_visual")
+	if not visual is Node3D:
+		visual = slot
+	var visual_3d := visual as Node3D
+	var half_width := CARD_VISUAL_WIDTH * 0.5
+	var half_height := CARD_VISUAL_HEIGHT * 0.5
+	var corners := [
+		Vector3(-half_width, 0.0, -half_height),
+		Vector3(half_width, 0.0, -half_height),
+		Vector3(half_width, 0.0, half_height),
+		Vector3(-half_width, 0.0, half_height),
+	]
+	var min_point := Vector2(INF, INF)
+	var max_point := Vector2(-INF, -INF)
+	for corner in corners:
+		var world_point := visual_3d.global_transform * corner
+		if camera.is_position_behind(world_point):
+			continue
+		var screen_point := camera.unproject_position(world_point)
+		min_point.x = minf(min_point.x, screen_point.x)
+		min_point.y = minf(min_point.y, screen_point.y)
+		max_point.x = maxf(max_point.x, screen_point.x)
+		max_point.y = maxf(max_point.y, screen_point.y)
+	if min_point.x == INF:
+		var center := camera.unproject_position(visual_3d.global_position)
+		return Rect2(center - Vector2(65.0, 90.0), Vector2(130.0, 180.0))
+	var rect := Rect2(min_point, max_point - min_point).abs()
+	var min_size := Vector2(130.0, 180.0)
+	if rect.size.x < min_size.x or rect.size.y < min_size.y:
+		var center := rect.position + rect.size * 0.5
+		rect = Rect2(center - min_size * 0.5, min_size)
+	return rect.grow(10.0)
+
+
+func find_card_inspect_panel() -> CardInspectPanel:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	return find_card_inspect_panel_recursive(scene)
+
+
+func find_card_inspect_panel_recursive(node: Node) -> CardInspectPanel:
+	if node is CardInspectPanel:
+		return node as CardInspectPanel
+	for child in node.get_children():
+		var found := find_card_inspect_panel_recursive(child)
+		if found != null:
+			return found
+	return null
+
+
+func _is_modal_blocked() -> bool:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return false
+	var depth: Variant = scene.get("blurred_modal_input_depth")
+	return depth != null and int(depth) > 0
