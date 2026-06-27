@@ -14,7 +14,7 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	var hud := _find_bottom_hud()
+	var hud: Node = _find_bottom_hud()
 	if hud != null:
 		_patch_inspect_button_clickboxes(hud)
 
@@ -23,7 +23,7 @@ func _input(event: InputEvent) -> void:
 	if not event is InputEventMouse:
 		return
 
-	var hud := _find_bottom_hud()
+	var hud: Node = _find_bottom_hud()
 	if hud == null or not bool(hud.get("plans_open")):
 		_clear_cursor_if_owned()
 		return
@@ -31,7 +31,7 @@ func _input(event: InputEvent) -> void:
 	_patch_inspect_button_clickboxes(hud)
 
 	var mouse_event := event as InputEventMouse
-	var hovered_target := _get_inspect_button_under_mouse(hud, mouse_event.position)
+	var hovered_target: String = _get_inspect_button_under_mouse(hud, mouse_event.position)
 
 	if event is InputEventMouseMotion:
 		if hovered_target != "":
@@ -96,23 +96,23 @@ func _get_inspect_button_under_mouse(hud: Node, screen_position: Vector2) -> Str
 
 
 func _mouse_hits_button(camera: Camera3D, screen_position: Vector2, button_root: Node3D) -> bool:
-	var ray_origin := camera.project_ray_origin(screen_position)
-	var ray_direction := camera.project_ray_normal(screen_position)
-	var plane_normal := button_root.global_transform.basis.z.normalized()
-	var denominator := plane_normal.dot(ray_direction)
+	var ray_origin: Vector3 = camera.project_ray_origin(screen_position)
+	var ray_direction: Vector3 = camera.project_ray_normal(screen_position)
+	var plane_normal: Vector3 = button_root.global_transform.basis.z.normalized()
+	var denominator: float = plane_normal.dot(ray_direction)
 	if absf(denominator) < 0.0001:
 		return false
 
-	var distance := plane_normal.dot(button_root.global_position - ray_origin) / denominator
+	var distance: float = plane_normal.dot(button_root.global_position - ray_origin) / denominator
 	if distance < 0.0:
 		return false
 
-	var local_hit := button_root.to_local(ray_origin + ray_direction * distance)
+	var local_hit: Vector3 = button_root.to_local(ray_origin + ray_direction * distance)
 	return absf(local_hit.x) <= MANUAL_HIT_HALF_EXTENTS.x and absf(local_hit.y) <= MANUAL_HIT_HALF_EXTENTS.y
 
 
 func _find_bottom_hud() -> Node:
-	var scene := get_tree().current_scene
+	var scene: Node = get_tree().current_scene
 	if scene == null:
 		return null
 	return _find_bottom_hud_recursive(scene)
@@ -122,12 +122,12 @@ func _find_bottom_hud_recursive(node: Node) -> Node:
 	if node == null:
 		return null
 
-	var script := node.get_script()
-	if script is Script and String((script as Script).resource_path).ends_with("battlefield/BattlefieldBottomHud3D.gd"):
+	var script: Script = node.get_script() as Script
+	if script != null and String(script.resource_path).ends_with("battlefield/BattlefieldBottomHud3D.gd"):
 		return node
 
 	for child in node.get_children():
-		var found := _find_bottom_hud_recursive(child)
+		var found: Node = _find_bottom_hud_recursive(child)
 		if found != null:
 			return found
 
