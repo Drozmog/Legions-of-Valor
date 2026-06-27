@@ -556,9 +556,15 @@ func build_overlay_ui() -> void:
 	command_row.add_theme_constant_override("separation", 8)
 	library_rows.add_child(command_row)
 
-	var back_button := make_button("", Vector2(88, 41))
-	back_button.icon = preload("res://ui/combat_buttons/pass_button.png")
-	back_button.expand_icon = true
+	var back_button := TextureButton.new()
+	back_button.texture_normal = preload("res://ui/combat_buttons/pass_button.png")
+	back_button.texture_hover = preload("res://ui/combat_buttons/pass_button.png")
+	back_button.texture_pressed = preload("res://ui/combat_buttons/pass_button.png")
+	back_button.ignore_texture_size = true
+	back_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	back_button.custom_minimum_size = Vector2(58, 26)
+	back_button.focus_mode = Control.FOCUS_NONE
+	back_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	back_button.pressed.connect(request_scene_change.bind(MENU_SCENE_PATH))
 	command_row.add_child(back_button)
 
