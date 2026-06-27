@@ -18,6 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 Cursors="*uid://bjefee7p7wum0"
+BattleplanHandLimitRules="*res://battle/BattleplanHandLimitRules.gd"
 
 [display]
 
