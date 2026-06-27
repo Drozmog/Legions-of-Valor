@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="CardData" format=3 uid="uid://cnjuf4qit1emd"]
+
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_ro84u"]
+[ext_resource type="Resource" uid="uid://cgun1q6a2ntam" path="res://abilities/definitions/mobility/flank_swap.tres" id="2_ro84u"]
+[ext_resource type="Texture2D" uid="uid://cx15ycc24bxst" path="res://cards/images/gambit/free_taxi_service.png" id="3_ngrdu"]
+[ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_oje5k"]
+
+[resource]
+script = ExtResource("4_oje5k")
+card_id = "free_taxi_service"
+card_name = "Free Taxi Service"
+race = "neutral"
+card_type = "gambit"
+rarity = "normal"
+tribute_cost = 6
+dp = 4
+abilities = Array[ExtResource("1_ro84u")]([ExtResource("2_ro84u")])
+lore_text = "Fat fucking cat."
+card_art = ExtResource("3_ngrdu")
+metadata/_custom_type_script = "uid://20ngslec6o41"

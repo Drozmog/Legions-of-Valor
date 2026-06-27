@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AbilityData" format=3 uid="uid://cgun1q6a2ntam"]
+
+[ext_resource type="Texture2D" uid="uid://cibnqwmrcdvtt" path="res://ui/ability_icons/mobility.png" id="1_uc6qd"]
+[ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="2_41ci5"]
+
+[resource]
+script = ExtResource("2_41ci5")
+ability_id = &"flank_swap"
+ability_name = "Flank Swap"
+category = "mobility"
+point_cost = 10.0
+trigger = "active"
+rules_text = "Swap any two whole lanes with eachother."
+icon = ExtResource("1_uc6qd")
+handler_id = &"flank_swap"

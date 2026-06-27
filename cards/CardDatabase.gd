@@ -103,7 +103,7 @@ const VAELORI_LONGBOW: CardData = preload("res://cards/definitions/equipment/vae
 
 const BLACKMAIL: CardData = preload("res://cards/definitions/gambit/blackmail.tres")
 const CONSORTIUM_AID: CardData = preload("res://cards/definitions/gambit/consortium_aid.tres")
-const ELYNDELL_ARROW_VOLLEY: CardData = preload("res://cards/definitions/gambit/elyndell_arrow_volley.tres")
+const ELYNDELL_ARROW_VOLLEY: CardData = preload("res://cards/definitions/gambit/liorvynn_arrow_volley.tres")
 const FOG_OF_WAR: CardData = preload("res://cards/definitions/gambit/fog_of_war.tres")
 const GRIDLOCK: CardData = preload("res://cards/definitions/gambit/gridlock.tres")
 const PICKPOCKET: CardData = preload("res://cards/definitions/gambit/pickpocket.tres")
