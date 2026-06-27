@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 Cursors="*uid://bjefee7p7wum0"
 BattleplanHandLimitRules="*res://battle/BattleplanHandLimitRules.gd"
 BattleplanHudInspectInputFix="*res://battlefield/BattleplanHudInspectInputFix.gd"
+DeckBuilderBackButtonCleaner="*res://ui/DeckBuilderBackButtonCleaner.gd"
 
 [display]
 
