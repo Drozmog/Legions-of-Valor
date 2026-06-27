@@ -88,11 +88,11 @@ const ZARKHAN_THE_PRIMEVAL: CardData = preload("res://cards/definitions/unit/orc
 # EQUIPMENT
 # =========================
 
-const BANNER_OF_EXPEDITION: CardData = preload("res://cards/definitions/equipment/banner_of_expansion.tres")
+const BANNER_OF_EXPANSION: CardData = preload("res://cards/definitions/equipment/banner_of_expansion.tres")
 const BRACERS_OF_THE_DEPTH: CardData = preload("res://cards/definitions/equipment/bracers_of_the_depth.tres")
 const CLOAK_OF_SECRECY: CardData = preload("res://cards/definitions/equipment/cloak_of_secrecy.tres")
 const DALMIRS_TOME: CardData = preload("res://cards/definitions/equipment/dalmirs_tome.tres")
-const ELYNDELLS_LEATHER_CUIRASS: CardData = preload("res://cards/definitions/equipment/liorvynns_leather_cuirass.tres")
+const LIORVYNNS_LEATHER_CUIRASS: CardData = preload("res://cards/definitions/equipment/liorvynns_leather_cuirass.tres")
 const GRAVE_CROSSERS_PACK: CardData = preload("res://cards/definitions/equipment/grave_crossers_pack.tres")
 const VAELORI_LONGBOW: CardData = preload("res://cards/definitions/equipment/vaelori_longbow.tres")
 
@@ -271,11 +271,11 @@ static func _register_preloaded_cards() -> void:
 		VARK_THE_MANGLER,
 		ZARKHAN_THE_PRIMEVAL,
 
-		BANNER_OF_EXPEDITION,
+		BANNER_OF_EXPANSION,
 		BRACERS_OF_THE_DEPTH,
 		CLOAK_OF_SECRECY,
 		DALMIRS_TOME,
-		ELYNDELLS_LEATHER_CUIRASS,
+		LIORVYNNS_LEATHER_CUIRASS,
 		GRAVE_CROSSERS_PACK,
 		VAELORI_LONGBOW,
 
