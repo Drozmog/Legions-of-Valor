@@ -10,7 +10,9 @@ const CARD_PICK_LAYER := 1 << 12
 const BUTTON_PICK_LAYER := 1 << 13
 const ACTION_BUTTON_SIZE := Vector2(0.3, 0.14)
 const ACTION_BUTTON_OFFSET := 0.21
-const DEFAULT_DISPLAY_SCALE := 4.0
+const DEFAULT_DISPLAY_SCALE := 1.35
+const MIN_DISPLAY_SCALE := 0.85
+const MAX_DISPLAY_SCALE := 1.55
 const BACK_BUTTON_CENTER_X := 18.0
 const BACK_MOUSE_BUTTON_INDEX := 2
 
@@ -186,7 +188,7 @@ func present(cards: Array[CardData], config: Dictionary) -> void:
 	var source: Vector3 = options.get("source_position", Vector3(0.0, 0.8, 0.0))
 	var face_down := bool(options.get("face_down", false))
 	var count := cards.size()
-	var display_scale := maxf(float(options.get("display_scale", DEFAULT_DISPLAY_SCALE)), DEFAULT_DISPLAY_SCALE)
+	var display_scale := clampf(float(options.get("display_scale", DEFAULT_DISPLAY_SCALE)), MIN_DISPLAY_SCALE, MAX_DISPLAY_SCALE)
 	if count > 5:
 		display_scale = minf(display_scale, 0.92)
 	var spacing := minf(1.62 * display_scale, 7.6 / maxf(float(count), 1.0))
