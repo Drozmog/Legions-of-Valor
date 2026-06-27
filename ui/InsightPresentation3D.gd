@@ -10,6 +10,9 @@ const CARD_PICK_LAYER := 1 << 12
 const BUTTON_PICK_LAYER := 1 << 13
 const ACTION_BUTTON_SIZE := Vector2(0.3, 0.14)
 const ACTION_BUTTON_OFFSET := 0.21
+const DEFAULT_DISPLAY_SCALE := 4.0
+const BACK_BUTTON_CENTER_X := 18.0
+const BACK_MOUSE_BUTTON_INDEX := 2
 
 var battlefield: Node
 var inspect_panel: CardInspectPanel
@@ -36,6 +39,7 @@ var main_camera_old_layer := true
 var camera_layer_overridden := false
 var inspect_panel_old_z := 100
 var modal_input_locked := false
+var back_return_in_progress := false
 
 
 func setup(owner_battlefield: Node, panel: CardInspectPanel) -> void:
@@ -122,8 +126,8 @@ void fragment() {
 	back_button.text = "BACK"
 	back_button.custom_minimum_size = Vector2(124.0, 40.0)
 	back_button.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	back_button.offset_left = -90.0
-	back_button.offset_right = 90.0
+	back_button.offset_left = BACK_BUTTON_CENTER_X - 90.0
+	back_button.offset_right = BACK_BUTTON_CENTER_X + 90.0
 	back_button.offset_top = -92.0
 	back_button.offset_bottom = -34.0
 	back_button.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -167,6 +171,7 @@ func present(cards: Array[CardData], config: Dictionary) -> void:
 	input_ready = false
 	inspected_index = -1
 	inspector_returns_to_cards = false
+	back_return_in_progress = false
 	options = config.duplicate(true)
 	ability_title_label.text = String(options.get("ability_name", "Insight"))
 	ability_title.visible = true
@@ -181,7 +186,7 @@ func present(cards: Array[CardData], config: Dictionary) -> void:
 	var source: Vector3 = options.get("source_position", Vector3(0.0, 0.8, 0.0))
 	var face_down := bool(options.get("face_down", false))
 	var count := cards.size()
-	var display_scale := float(options.get("display_scale", 4))
+	var display_scale := maxf(float(options.get("display_scale", DEFAULT_DISPLAY_SCALE)), DEFAULT_DISPLAY_SCALE)
 	if count > 5:
 		display_scale = minf(display_scale, 0.92)
 	var spacing := minf(1.62 * display_scale, 7.6 / maxf(float(count), 1.0))
@@ -197,6 +202,17 @@ func present(cards: Array[CardData], config: Dictionary) -> void:
 	if String(options.get("mode", "reveal")) == "reveal":
 		back_button.visible = true
 	input_ready = true
+
+
+func _input(event: InputEvent) -> void:
+	if not active or not event is InputEventMouseButton:
+		return
+	var mouse := event as InputEventMouseButton
+	if mouse.button_index != BACK_MOUSE_BUTTON_INDEX or not mouse.pressed:
+		return
+	if inspect_panel != null and inspect_panel.visible:
+		_on_back_pressed()
+		get_viewport().set_input_as_handled()
 
 
 func _prepare_sharp_viewport() -> void:
@@ -395,6 +411,7 @@ func _show_inspector(index: int, completes_on_back: bool) -> void:
 	inspected_index = index if completes_on_back else -1
 	inspector_returns_to_cards = not completes_on_back
 	input_ready = false
+	back_return_in_progress = false
 	for entry in card_entries:
 		(entry["root"] as Node3D).visible = false
 	ability_title.visible = false
@@ -409,6 +426,9 @@ func _show_inspector(index: int, completes_on_back: bool) -> void:
 
 
 func _on_back_pressed() -> void:
+	if back_return_in_progress:
+		return
+	back_return_in_progress = true
 	if inspect_panel != null and inspect_panel.visible:
 		inspect_panel.hide_card()
 		await inspect_panel.inspection_closed
@@ -422,19 +442,23 @@ func _on_back_pressed() -> void:
 			(entry["root"] as Node3D).visible = true
 		back_button.visible = String(options.get("mode", "reveal")) == "reveal"
 		input_ready = true
+		back_return_in_progress = false
 		return
 	if inspected_index >= 0:
 		await _return_all_cards_to_source()
 		await _finish({"index": inspected_index, "card": card_entries[inspected_index]["card"]})
+		back_return_in_progress = false
 		return
 	if String(options.get("mode", "reveal")) == "reveal":
 		await _return_all_cards_to_source()
 		await _finish({"index": -1})
+		back_return_in_progress = false
 		return
 	for entry in card_entries:
 		(entry["root"] as Node3D).visible = true
 	back_button.visible = false
 	input_ready = true
+	back_return_in_progress = false
 
 
 func _resolve_choice(index: int) -> void:
@@ -522,6 +546,7 @@ func _cleanup() -> void:
 	_set_modal_input_lock(false)
 	active = false
 	input_ready = false
+	back_return_in_progress = false
 	ability_title.visible = false
 	inspector_blur_layer.visible = false
 	_use_cursor(&"use_normal")
