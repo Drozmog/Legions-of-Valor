@@ -677,10 +677,13 @@ func create_phase_ui() -> void:
 func create_center_screen_overlays() -> void:
 	phase_blur_backdrop = ColorRect.new()
 	phase_blur_backdrop.name = "PhaseBlurBackdrop"
-	phase_blur_backdrop.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	phase_blur_backdrop.offset_left = -310.0
+	phase_blur_backdrop.anchor_left = 0.0
+	phase_blur_backdrop.anchor_right = 1.0
+	phase_blur_backdrop.anchor_top = 0.5
+	phase_blur_backdrop.anchor_bottom = 0.5
+	phase_blur_backdrop.offset_left = 0.0
 	phase_blur_backdrop.offset_top = -62.0
-	phase_blur_backdrop.offset_right = 310.0
+	phase_blur_backdrop.offset_right = 0.0
 	phase_blur_backdrop.offset_bottom = 62.0
 	phase_blur_backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	phase_blur_backdrop.color = Color.WHITE
@@ -696,9 +699,8 @@ uniform float blur_lod : hint_range(0.0, 5.0) = 0.0;
 
 void fragment() {
 	vec4 blurred = textureLod(screen_texture, SCREEN_UV, blur_lod);
-	float edge_x = smoothstep(0.0, 0.13, UV.x) * smoothstep(0.0, 0.13, 1.0 - UV.x);
 	float edge_y = smoothstep(0.0, 0.28, UV.y) * smoothstep(0.0, 0.28, 1.0 - UV.y);
-	float soft_mask = edge_x * edge_y;
+	float soft_mask = edge_y;
 	COLOR = vec4(blurred.rgb * 0.82, soft_mask);
 }
 """
@@ -5470,6 +5472,11 @@ func inspect_board_slot(slot: Node) -> void:
 	if inspect_panel == null:
 		log_msg("CardInspectPanel is missing.")
 		return
+	if slot.has_method("set_inspected_faded"):
+		slot.call("set_inspected_faded", true)
+		var clear_fade := Callable(slot, "_clear_inspection_fade")
+		if not inspect_panel.inspection_closed.is_connected(clear_fade):
+			inspect_panel.inspection_closed.connect(clear_fade)
 
 	var source_position: Vector2 = get_viewport().get_mouse_position()
 	inspect_panel.last_source_rect = Rect2(source_position, Vector2(130.0, 180.0))

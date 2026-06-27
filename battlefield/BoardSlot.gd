@@ -120,19 +120,7 @@ func _on_click_area_input_event(
 			slot_clicked.emit(self)
 
 		if event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-			set_inspected_faded(true)
 			slot_right_clicked.emit(self)
-			call_deferred("_watch_inspection_close")
-
-
-func _watch_inspection_close() -> void:
-	var panel := _find_card_inspect_panel(get_tree().current_scene)
-	if panel == null or not panel.visible:
-		set_inspected_faded(false)
-		return
-	var clear := Callable(self, "_clear_inspection_fade")
-	if not panel.inspection_closed.is_connected(clear):
-		panel.inspection_closed.connect(clear)
 
 
 func _clear_inspection_fade() -> void:
@@ -164,19 +152,42 @@ func _set_visual_fade_recursive(node: Node, active: bool) -> void:
 			var material := mesh_instance.material_override as StandardMaterial3D
 			var next_material := material.duplicate() as StandardMaterial3D
 			var color := next_material.albedo_color
-			color.a = INSPECT_FADE_ALPHA if active else 1.0
-			next_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if active else BaseMaterial3D.TRANSPARENCY_DISABLED
+			if active:
+				if not mesh_instance.has_meta("inspect_original_alpha"):
+					mesh_instance.set_meta("inspect_original_alpha", color.a)
+				color.a = INSPECT_FADE_ALPHA
+				next_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			else:
+				color.a = float(mesh_instance.get_meta("inspect_original_alpha", 1.0))
+				if color.a >= 0.999:
+					next_material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+				if mesh_instance.has_meta("inspect_original_alpha"):
+					mesh_instance.remove_meta("inspect_original_alpha")
 			next_material.albedo_color = color
 			mesh_instance.material_override = next_material
 	elif node is Sprite3D:
 		var sprite := node as Sprite3D
 		var color := sprite.modulate
-		color.a = INSPECT_FADE_ALPHA if active else 1.0
+		if active:
+			if not sprite.has_meta("inspect_original_alpha"):
+				sprite.set_meta("inspect_original_alpha", color.a)
+			color.a = INSPECT_FADE_ALPHA
+		else:
+			color.a = float(sprite.get_meta("inspect_original_alpha", 1.0))
+			if sprite.has_meta("inspect_original_alpha"):
+				sprite.remove_meta("inspect_original_alpha")
 		sprite.modulate = color
 	elif node is Label3D:
 		var label := node as Label3D
 		var color := label.modulate
-		color.a = INSPECT_FADE_ALPHA if active else 1.0
+		if active:
+			if not label.has_meta("inspect_original_alpha"):
+				label.set_meta("inspect_original_alpha", color.a)
+			color.a = INSPECT_FADE_ALPHA
+		else:
+			color.a = float(label.get_meta("inspect_original_alpha", 1.0))
+			if label.has_meta("inspect_original_alpha"):
+				label.remove_meta("inspect_original_alpha")
 		label.modulate = color
 	for child in node.get_children():
 		_set_visual_fade_recursive(child, active)
