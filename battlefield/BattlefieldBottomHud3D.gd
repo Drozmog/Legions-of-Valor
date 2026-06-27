@@ -50,6 +50,7 @@ var plans_open := false
 var last_info_signature := ""
 var last_plan_signature := ""
 var card_drag_active := false
+var modal_blocked := false
 var log_open_position := Vector3.ZERO
 var log_closed_position := Vector3.ZERO
 var plan_open_position := Vector3.ZERO
@@ -316,7 +317,7 @@ func update_info(phase_text: String, turn_text: String, score_text: String, inst
 	instruction_label.text = instruction.replace("\n", "  •  ")
 	phase_button.text = action_text
 	phase_button.visible = not action_text.is_empty()
-	phase_button.disabled = disabled
+	phase_button.disabled = disabled or modal_blocked
 	var style_name := "normal"
 	phase_button.add_theme_stylebox_override(style_name, button_style(Color(0.48, 0.29, 0.045, 0.98), Color(1.0, 0.82, 0.24, 1.0), 3, 12) if ready else button_style(Color(0.13, 0.07, 0.025, 0.96), Color(0.54, 0.38, 0.12, 0.9), 2, 0))
 
@@ -337,6 +338,8 @@ func set_battleplans(player_plan: Dictionary, enemy_plan: Dictionary) -> void:
 
 
 func toggle_log() -> void:
+	if modal_blocked:
+		return
 	log_open = not log_open
 	animate_foldout(log_surface, log_open, log_open_position, log_closed_position, true)
 	if log_open:
@@ -345,6 +348,8 @@ func toggle_log() -> void:
 
 
 func toggle_plans() -> void:
+	if modal_blocked:
+		return
 	plans_open = not plans_open
 	animate_foldout(plan_surface, plans_open, plan_open_position, plan_closed_position, false)
 	if plans_open:
@@ -374,6 +379,27 @@ func animate_foldout(surface: MeshInstance3D, opening: bool, open_position: Vect
 
 func set_card_drag_active(active: bool) -> void:
 	card_drag_active = active
+
+
+func set_modal_blocked(blocked: bool) -> void:
+	modal_blocked = blocked
+	last_info_signature = ""
+	if phase_button != null:
+		phase_button.disabled = blocked or phase_button.disabled
+	for entry in surfaces:
+		var viewport := entry.get("viewport") as SubViewport
+		if viewport != null:
+			viewport.gui_disable_input = blocked
+	if blocked:
+		if log_open:
+			log_open = false
+			animate_foldout(log_surface, false, log_open_position, log_closed_position, true)
+		if plans_open:
+			plans_open = false
+			animate_foldout(plan_surface, false, plan_open_position, plan_closed_position, false)
+		if hud_cursor_active:
+			hud_cursor_active = false
+			Cursors.use_normal()
 
 
 func create_battleplan_card_mesh(card_name: String) -> MeshInstance3D:
@@ -457,7 +483,7 @@ func _on_battleplan_inspect_input_event(
 	_shape_index: int,
 	is_player_plan: bool
 ) -> void:
-	if card_drag_active or not plans_open:
+	if modal_blocked or card_drag_active or not plans_open:
 		return
 	if not event is InputEventMouseButton:
 		return
@@ -676,7 +702,7 @@ func add_battleplan_card_corner(points: Array[Vector2], center: Vector2, radius:
 
 
 func _input(event: InputEvent) -> void:
-	if card_drag_active or not event is InputEventMouse or camera_3d == null:
+	if modal_blocked or card_drag_active or not event is InputEventMouse or camera_3d == null:
 		return
 	var mouse_event := event as InputEventMouse
 	for entry in surfaces:

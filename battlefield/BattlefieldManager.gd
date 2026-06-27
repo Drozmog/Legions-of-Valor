@@ -64,6 +64,8 @@ var has_selected_card: bool = false
 
 var game_has_started: bool = false
 
+var opening_hand_deal_active := false
+
 var waiting_for_battle_plan: bool = true
 
 var deck_selection_complete: bool = false
@@ -106,6 +108,8 @@ var phase_blur_material: ShaderMaterial = null
 
 var phase_title_tween: Tween = null
 
+var phase_title_interaction_locked := false
+
 var discard_warning_overlay: Label = null
 
 var turn_label: Label = null
@@ -143,6 +147,10 @@ var ability_prompt_panel: AbilityPromptPanel = null
 var insight_presenter: InsightPresentation3D = null
 
 var insight_presentation_active := false
+
+var blurred_modal_input_depth := 0
+
+var blurred_modal_hand_filters: Array[Dictionary] = []
 
 var insight_gambit_selection_active := false
 
@@ -378,13 +386,13 @@ func open_battle_plan_selection() -> void:
 
 	if battle_plan_manager == null:
 		log_msg("BattlePlanManager is missing.")
-		begin_game_after_battle_plan_selection()
+		await begin_game_after_battle_plan_selection()
 		set_phase(BattlePhase.TRIBUTE)
 		return
 
 	if battle_plan_selection_screen == null:
 		log_msg("BattlePlanSelectionScreen is missing.")
-		begin_game_after_battle_plan_selection()
+		await begin_game_after_battle_plan_selection()
 		set_phase(BattlePhase.TRIBUTE)
 		return
 
@@ -441,7 +449,7 @@ func _on_battle_plan_selected(plan: Dictionary) -> void:
 		log_msg("Opponent Battle Plan: " + str(opponent_battle_plan.get("name", "Unknown Battle Plan")))
 
 	if not game_has_started:
-		begin_game_after_battle_plan_selection()
+		await begin_game_after_battle_plan_selection()
 
 	draw_battleplan_cards(plan)
 
@@ -567,7 +575,7 @@ func begin_game_after_battle_plan_selection() -> void:
 	ai_has_starting_hand = true
 
 	update_tribute_counter()
-	deal_starting_hand()
+	await deal_starting_hand()
 
 	if tribute_manager != null:
 		log_msg("Starting Tribute: " + tribute_manager.get_status_text())
@@ -740,6 +748,9 @@ func show_phase_title(title: String) -> void:
 		return
 	if phase_title_tween != null and phase_title_tween.is_valid():
 		phase_title_tween.kill()
+	if not phase_title_interaction_locked:
+		phase_title_interaction_locked = true
+		set_blurred_modal_input_blocked(true)
 	phase_title_overlay.text = title
 	phase_title_overlay.add_theme_font_size_override("font_size", 32 if title.length() > 24 else 44)
 	phase_title_overlay.modulate.a = 0.0
@@ -755,6 +766,14 @@ func show_phase_title(title: String) -> void:
 	phase_title_tween.tween_property(phase_blur_backdrop, "modulate:a", 0.0, 0.54)
 	phase_title_tween.parallel().tween_property(phase_title_overlay, "modulate:a", 0.0, 0.54)
 	phase_title_tween.parallel().tween_method(set_phase_blur_amount, 2.5, 0.0, 0.54)
+	phase_title_tween.tween_callback(_finish_phase_title_interaction_lock)
+
+
+func _finish_phase_title_interaction_lock() -> void:
+	if not phase_title_interaction_locked:
+		return
+	phase_title_interaction_locked = false
+	set_blurred_modal_input_blocked(false)
 
 
 func set_phase_blur_amount(amount: float) -> void:
@@ -851,6 +870,36 @@ func create_insight_presenter() -> void:
 	insight_presenter.name = "InsightPresentation3D"
 	$UI.add_child(insight_presenter)
 	insight_presenter.setup(self, get_card_inspect_panel())
+
+
+func set_blurred_modal_input_blocked(blocked: bool) -> void:
+	blurred_modal_input_depth = maxi(blurred_modal_input_depth + (1 if blocked else -1), 0)
+	var should_block := blurred_modal_input_depth > 0
+	if blocked and blurred_modal_input_depth == 1:
+		blurred_modal_hand_filters.clear()
+		_set_control_tree_mouse_blocked(hand, true)
+	elif not should_block:
+		for state in blurred_modal_hand_filters:
+			var control := state.get("control") as Control
+			if control != null and is_instance_valid(control):
+				control.mouse_filter = int(state.get("mouse_filter", Control.MOUSE_FILTER_STOP))
+		blurred_modal_hand_filters.clear()
+	if bottom_hud_3d != null and bottom_hud_3d.has_method("set_modal_blocked"):
+		bottom_hud_3d.call("set_modal_blocked", should_block)
+	var exit_button := get_node_or_null("UI/ExitBattleButton") as Button
+	if exit_button != null:
+		exit_button.mouse_filter = Control.MOUSE_FILTER_IGNORE if should_block else Control.MOUSE_FILTER_STOP
+
+
+func _set_control_tree_mouse_blocked(node: Node, blocked: bool) -> void:
+	if node == null or not blocked:
+		return
+	if node is Control:
+		var control := node as Control
+		blurred_modal_hand_filters.append({"control": control, "mouse_filter": control.mouse_filter})
+		control.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for child in node.get_children():
+		_set_control_tree_mouse_blocked(child, true)
 
 
 func _on_ability_choice_made(use_ability: bool, card_data: CardData, ability_text: String) -> void:
@@ -1022,6 +1071,8 @@ func is_prebattle_modal_open() -> bool:
 		or (battle_plan_selection_screen != null and battle_plan_selection_screen.visible)
 		or waiting_for_battle_plan
 		or insight_presentation_active
+		or opening_hand_deal_active
+		or phase_title_interaction_locked
 	)
 
 
@@ -1678,18 +1729,31 @@ func deal_starting_hand() -> void:
 	if hand == null or player_deck == null:
 		log_msg("Hand or PlayerDeck is missing.")
 		return
+	opening_hand_deal_active = true
+	var hand_origin := get_node_or_null("CardAnimationManager/PlayerHandOrigin") as Node3D
 	for i in range(3):
 		var drawn_card: CardData = player_deck.draw_top_card()
 		if drawn_card == null:
-			return
+			break
+		if card_animation_manager != null and draw_pile != null and hand_origin != null:
+			await card_animation_manager.animate_card_from_position_to_node(
+				drawn_card,
+				draw_pile.global_position + Vector3(0.0, 0.12, 0.0),
+				hand_origin,
+				false
+			)
 		hand.add_card_to_hand(drawn_card, false)
+		if draw_pile != null:
+			draw_pile.set_card_count(player_deck.cards_remaining())
+		await get_tree().create_timer(0.08).timeout
+	opening_hand_deal_active = false
 	if draw_pile != null:
 		draw_pile.set_card_count(player_deck.cards_remaining())
 	log_msg("Starting hand of 3 cards dealt. Deck remaining: " + str(player_deck.cards_remaining()))
 
 
 func _on_draw_pile_drag_started(screen_position: Vector2) -> void:
-	if waiting_for_battle_plan:
+	if is_prebattle_modal_open():
 		return
 	var is_awarded_draw := current_phase == BattlePhase.BATTLEPLAN and pending_battleplan_draws > 0
 	if current_phase == BattlePhase.BATTLEPLAN and not is_awarded_draw:
@@ -1800,7 +1864,7 @@ func _on_slot_right_clicked(slot: Node) -> void:
 
 
 func _on_tribute_pile_clicked() -> void:
-	if waiting_for_battle_plan:
+	if is_prebattle_modal_open():
 		return
 	if current_phase != BattlePhase.TRIBUTE:
 		log_msg("Tribute pile is only active during the Tribute Phase.")
@@ -2291,9 +2355,9 @@ func resolve_insight_with_presentation(ability: AbilityData, extra_context: Dict
 		&"secrecy":
 			return await present_secrecy()
 		&"seer":
-			return await present_ai_deck_choice()
+			return await present_ai_deck_choice("Seer")
 		&"vantage":
-			return await present_ai_deck_choice()
+			return await present_ai_deck_choice("Vantage")
 		&"vision":
 			return await present_vision()
 		&"intuition", &"true_sight":
@@ -2316,6 +2380,19 @@ func pop_ai_deck_top_cards(count: int) -> Array[CardData]:
 	var cards: Array[CardData] = []
 	for i in range(mini(count, ai_deck.size())):
 		cards.append(ai_deck.pop_back() as CardData)
+	return cards
+
+
+func pop_player_deck_top_cards(count: int) -> Array[CardData]:
+	var cards: Array[CardData] = []
+	if player_deck == null:
+		return cards
+	for i in range(mini(count, player_deck.deck.size())):
+		var card := player_deck.draw_top_card()
+		if card != null:
+			cards.append(card)
+	if draw_pile != null:
+		draw_pile.set_card_count(player_deck.cards_remaining())
 	return cards
 
 
@@ -2350,17 +2427,18 @@ func get_insight_world_position(source_name: String) -> Vector3:
 
 
 func present_intel() -> Dictionary:
-	var cards := pop_ai_deck_top_cards(3)
+	var cards := pop_player_deck_top_cards(3)
 	if cards.is_empty():
 		show_phase_title("NO CARDS TO REVEAL")
-		return {"success": false, "reason": "opponent_deck_empty"}
-	update_ai_visuals()
+		return {"success": false, "reason": "player_deck_empty"}
 	var result := await present_insight_cards(cards, {
 		"mode": "choose",
-		"source_position": get_insight_world_position("enemy_deck"),
+		"ability_name": "Intel",
+		"display_scale": 1.80,
+		"source_position": get_insight_world_position("player_deck"),
 		"chosen_destination": get_insight_world_position("player_hand"),
-		"other_destination": get_insight_world_position("enemy_deck") + Vector3(0.0, -0.04, 0.0),
-		"lift_return_pile": opponent_visuals.deck_root if opponent_visuals != null else null,
+		"other_destination": get_insight_world_position("player_deck") + Vector3(0.0, -0.04, 0.0),
+		"lift_return_pile": draw_pile,
 	})
 	var chosen_index := clampi(int(result.get("index", 0)), 0, cards.size() - 1)
 	var chosen := cards[chosen_index]
@@ -2372,12 +2450,14 @@ func present_intel() -> Dictionary:
 		hand.max_hand_size = old_limit
 	for index in range(cards.size()):
 		if index != chosen_index:
-			ai_deck.insert(0, cards[index])
-	update_ai_visuals()
+			player_deck.deck.insert(0, cards[index])
+	if draw_pile != null:
+		draw_pile.set_card_count(player_deck.cards_remaining())
+	player_deck.deck_changed.emit(player_deck.cards_remaining())
 	return {"success": true, "cards_seen": cards, "card_taken": chosen}
 
 
-func present_ai_deck_choice() -> Dictionary:
+func present_ai_deck_choice(ability_name: String) -> Dictionary:
 	var cards := pop_ai_deck_top_cards(3)
 	if cards.is_empty():
 		show_phase_title("NO CARDS TO REVEAL")
@@ -2385,6 +2465,8 @@ func present_ai_deck_choice() -> Dictionary:
 	update_ai_visuals()
 	var result := await present_insight_cards(cards, {
 		"mode": "choose",
+		"ability_name": ability_name,
+		"display_scale": 1.42,
 		"source_position": get_insight_world_position("enemy_deck"),
 		"chosen_destination": get_insight_world_position("enemy_discard"),
 		"other_destination": get_insight_world_position("enemy_deck"),
@@ -2414,6 +2496,7 @@ func present_intelligence() -> Dictionary:
 			opponent_visuals.set_hand_card_action_hidden(index, true)
 	var result := await present_insight_cards(cards, {
 		"mode": "hidden_pick",
+		"ability_name": "Intelligence",
 		"face_down": true,
 		"shuffle": true,
 		"source_position": get_insight_world_position("enemy_hand"),
@@ -2440,7 +2523,10 @@ func present_secrecy() -> Dictionary:
 			opponent_visuals.set_hand_card_action_hidden(int(index), true)
 	await present_insight_cards(cards, {
 		"mode": "reveal",
+		"ability_name": "Secrecy",
+		"display_scale": 1.56,
 		"source_position": get_insight_world_position("enemy_hand"),
+		"return_destination": get_insight_world_position("enemy_hand"),
 	})
 	if opponent_visuals != null:
 		for index in indexes.slice(0, cards.size()):
@@ -2455,7 +2541,10 @@ func present_vision() -> Dictionary:
 		return {"success": false, "reason": "player_deck_empty"}
 	await present_insight_cards(cards, {
 		"mode": "reveal",
+		"ability_name": "Vision",
+		"display_scale": 1.42,
 		"source_position": get_insight_world_position("player_deck"),
+		"return_destination": get_insight_world_position("player_deck"),
 	})
 	return {"success": true, "cards_seen": cards}
 
@@ -2494,7 +2583,10 @@ func present_hidden_enemy_gambit_choice(ability: AbilityData) -> Dictionary:
 			var revealed_cards: Array[CardData] = [card_data]
 			await present_insight_cards(revealed_cards, {
 				"mode": "reveal",
+				"ability_name": ability.ability_name,
+				"display_scale": 1.5,
 				"source_position": (chosen_slot as Node3D).global_position,
+				"return_destination": (chosen_slot as Node3D).global_position,
 			})
 		remaining_slots.erase(chosen_slot)
 		if not reveal_all:

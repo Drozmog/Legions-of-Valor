@@ -556,7 +556,9 @@ func build_overlay_ui() -> void:
 	command_row.add_theme_constant_override("separation", 8)
 	library_rows.add_child(command_row)
 
-	var back_button := make_button("<  MENU", Vector2(88, 32))
+	var back_button := make_button("", Vector2(88, 41))
+	back_button.icon = preload("res://ui/combat_buttons/pass_button.png")
+	back_button.expand_icon = true
 	back_button.pressed.connect(request_scene_change.bind(MENU_SCENE_PATH))
 	command_row.add_child(back_button)
 

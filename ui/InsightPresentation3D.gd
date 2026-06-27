@@ -8,17 +8,23 @@ const RENDER_LAYER_NUMBER := 19
 const RENDER_LAYER_MASK := 1 << (RENDER_LAYER_NUMBER - 1)
 const CARD_PICK_LAYER := 1 << 12
 const BUTTON_PICK_LAYER := 1 << 13
+const ACTION_BUTTON_SIZE := Vector2(0.3, 0.14)
+const ACTION_BUTTON_OFFSET := 0.21
 
 var battlefield: Node
 var inspect_panel: CardInspectPanel
 var blur_layer: ColorRect
 var blur_material: ShaderMaterial
+var inspector_blur_layer: ColorRect
+var inspector_blur_material: ShaderMaterial
 var sharp_viewport: SubViewport
 var sharp_camera: Camera3D
 var sharp_display: TextureRect
 var presentation_root: Node3D
 var card_entries: Array[Dictionary] = []
 var back_button: Button
+var ability_title: HBoxContainer
+var ability_title_label: Label
 var options: Dictionary = {}
 var active := false
 var input_ready := false
@@ -29,6 +35,7 @@ var blur_tween: Tween
 var main_camera_old_layer := true
 var camera_layer_overridden := false
 var inspect_panel_old_z := 100
+var modal_input_locked := false
 
 
 func setup(owner_battlefield: Node, panel: CardInspectPanel) -> void:
@@ -61,6 +68,18 @@ void fragment() {
 	blur_material.shader = shader
 	blur_layer.material = blur_material
 	add_child(blur_layer)
+	inspector_blur_layer = ColorRect.new()
+	inspector_blur_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	inspector_blur_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inspector_blur_layer.color = Color.WHITE
+	inspector_blur_layer.z_index = 200
+	inspector_blur_material = ShaderMaterial.new()
+	inspector_blur_material.shader = shader
+	inspector_blur_material.set_shader_parameter("blur_lod", 2.8)
+	inspector_blur_material.set_shader_parameter("opacity", 0.78)
+	inspector_blur_layer.material = inspector_blur_material
+	inspector_blur_layer.visible = false
+	add_child(inspector_blur_layer)
 
 	sharp_viewport = SubViewport.new()
 	sharp_viewport.transparent_bg = true
@@ -75,9 +94,33 @@ void fragment() {
 	sharp_display.z_index = 1
 	add_child(sharp_display)
 
+	ability_title = HBoxContainer.new()
+	ability_title.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	ability_title.offset_left = -220.0
+	ability_title.offset_right = 220.0
+	ability_title.offset_top = 180.0
+	ability_title.offset_bottom = 116.0
+	ability_title.alignment = BoxContainer.ALIGNMENT_CENTER
+	ability_title.add_theme_constant_override("separation", 12)
+	ability_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ability_title.z_index = 300
+	var title_icon := TextureRect.new()
+	title_icon.custom_minimum_size = Vector2(80.0, 80.0)
+	title_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	title_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	title_icon.texture = load("res://ui/ability_icons/insight.png") as Texture2D
+	ability_title.add_child(title_icon)
+	ability_title_label = Label.new()
+	ability_title_label.add_theme_font_size_override("font_size", 60)
+	ability_title_label.add_theme_color_override("font_color", Color.WHITE)
+	ability_title_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.85))
+	ability_title_label.add_theme_constant_override("shadow_outline_size", 5)
+	ability_title.add_child(ability_title_label)
+	add_child(ability_title)
+
 	back_button = Button.new()
 	back_button.text = "BACK"
-	back_button.custom_minimum_size = Vector2(180.0, 58.0)
+	back_button.custom_minimum_size = Vector2(124.0, 40.0)
 	back_button.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	back_button.offset_left = -90.0
 	back_button.offset_right = 90.0
@@ -86,11 +129,19 @@ void fragment() {
 	back_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	back_button.focus_mode = Control.FOCUS_NONE
 	back_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	back_button.z_index = 300
+	back_button.z_index = 800
 	back_button.pressed.connect(_on_back_pressed)
+	var back_texture: Texture2D = load("res://ui/combat_buttons/pass_button.png") as Texture2D
+	if battlefield != null:
+		var battleplan_screen := battlefield.get_node_or_null("UI/BattlePlanSelectionScreen") as BattlePlanSelectionScreen
+		if battleplan_screen != null and battleplan_screen.back_button_texture != null:
+			back_texture = battleplan_screen.back_button_texture
+	back_button.text = "" if back_texture != null else "BACK"
+	back_button.icon = back_texture
+	back_button.expand_icon = true
 	var back_style := StyleBoxFlat.new()
-	back_style.bg_color = Color(0.055, 0.045, 0.035, 0.96)
-	back_style.border_color = Color(0.82, 0.68, 0.38, 0.95)
+	back_style.bg_color = Color.TRANSPARENT if back_texture != null else Color(0.055, 0.045, 0.035, 0.96)
+	back_style.border_color = Color.TRANSPARENT if back_texture != null else Color(0.82, 0.68, 0.38, 0.95)
 	back_style.set_border_width_all(2)
 	back_style.set_corner_radius_all(5)
 	back_button.add_theme_stylebox_override("normal", back_style)
@@ -103,10 +154,13 @@ func present(cards: Array[CardData], config: Dictionary) -> void:
 		completed.emit({"cancelled": cards.is_empty(), "index": -1})
 		return
 	active = true
+	_set_modal_input_lock(true)
 	input_ready = false
 	inspected_index = -1
 	inspector_returns_to_cards = false
 	options = config.duplicate(true)
+	ability_title_label.text = String(options.get("ability_name", "Insight"))
+	ability_title.visible = true
 	show()
 	move_to_front()
 	_prepare_sharp_viewport()
@@ -118,11 +172,14 @@ func present(cards: Array[CardData], config: Dictionary) -> void:
 	var source: Vector3 = options.get("source_position", Vector3(0.0, 0.8, 0.0))
 	var face_down := bool(options.get("face_down", false))
 	var count := cards.size()
-	var spacing := minf(1.48, 7.2 / maxf(float(count), 1.0))
+	var display_scale := float(options.get("display_scale", 4))
+	if count > 5:
+		display_scale = minf(display_scale, 0.92)
+	var spacing := minf(1.62 * display_scale, 7.6 / maxf(float(count), 1.0))
 	var start_x := -spacing * float(count - 1) * 0.5
 	for index in range(count):
 		var target := Vector3(start_x + spacing * index, 0.78 + index * 0.006, 0.72)
-		var entry := _create_card_entry(cards[index], index, source, target, face_down)
+		var entry := _create_card_entry(cards[index], index, source, target, face_down, display_scale)
 		card_entries.append(entry)
 
 	if bool(options.get("shuffle", false)):
@@ -164,11 +221,11 @@ func _create_world_root() -> void:
 	get_tree().current_scene.add_child(presentation_root)
 
 
-func _create_card_entry(card: CardData, index: int, source: Vector3, target: Vector3, face_down: bool) -> Dictionary:
+func _create_card_entry(card: CardData, index: int, source: Vector3, target: Vector3, face_down: bool, display_scale: float) -> Dictionary:
 	var root := Node3D.new()
 	root.name = "InsightCard%d" % index
 	root.global_position = source
-	root.scale = Vector3.ONE * 0.18
+	root.scale = Vector3.ONE
 	presentation_root.add_child(root)
 	var visual := CARD_SCENE.instantiate() as Node3D
 	visual.call("assign_card_data", card, face_down)
@@ -189,10 +246,17 @@ func _create_card_entry(card: CardData, index: int, source: Vector3, target: Vec
 	area.mouse_entered.connect(_use_cursor.bind(&"use_pointing"))
 	area.mouse_exited.connect(_use_cursor.bind(&"use_normal"))
 
-	var entry := {"root": root, "visual": visual, "card": card, "target": target, "area": area}
+	var entry := {
+		"root": root,
+		"visual": visual,
+		"card": card,
+		"target": target,
+		"area": area,
+		"display_scale": display_scale,
+	}
 	if String(options.get("mode", "reveal")) == "choose":
-		_create_action_button(entry, index, "SELECT", -0.29)
-		_create_action_button(entry, index, "INSPECT", 0.29)
+		_create_action_button(entry, index, "SELECT", -ACTION_BUTTON_OFFSET)
+		_create_action_button(entry, index, "INSPECT", ACTION_BUTTON_OFFSET)
 	return entry
 
 
@@ -203,7 +267,7 @@ func _create_action_button(entry: Dictionary, index: int, action: String, x_offs
 	var surface := MeshInstance3D.new()
 	surface.layers = RENDER_LAYER_MASK
 	var mesh := PlaneMesh.new()
-	mesh.size = Vector2(0.52, 0.24)
+	mesh.size = ACTION_BUTTON_SIZE
 	surface.mesh = mesh
 	var material := StandardMaterial3D.new()
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -242,7 +306,7 @@ func _create_action_button(entry: Dictionary, index: int, action: String, x_offs
 	button.add_child(area)
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(0.52, 0.13, 0.24)
+	shape.size = Vector3(ACTION_BUTTON_SIZE.x, 0.13, ACTION_BUTTON_SIZE.y)
 	collision.shape = shape
 	area.add_child(collision)
 	area.input_event.connect(_on_action_input.bind(index, action))
@@ -255,8 +319,21 @@ func _animate_cards_in() -> void:
 	for index in range(card_entries.size()):
 		var entry := card_entries[index]
 		var root := entry["root"] as Node3D
-		tween.parallel().tween_property(root, "global_position", entry["target"], 0.46).set_delay(index * 0.055)
-		tween.parallel().tween_property(root, "scale", Vector3.ONE * 1.08, 0.46).set_delay(index * 0.055)
+		var start := root.global_position
+		var target: Vector3 = entry["target"]
+		var control := (start + target) * 0.5 + Vector3(0.0, 0.38, 0.0)
+		tween.parallel().tween_method(
+			Callable(self, "_set_card_arc_position").bind(root, start, control, target),
+			0.0,
+			1.0,
+			0.52
+		).set_delay(index * 0.06)
+		tween.parallel().tween_property(
+			root,
+			"scale",
+			Vector3.ONE * float(entry["display_scale"]),
+			0.52
+		).set_delay(index * 0.06)
 	await tween.finished
 
 
@@ -311,11 +388,13 @@ func _show_inspector(index: int, completes_on_back: bool) -> void:
 	input_ready = false
 	for entry in card_entries:
 		(entry["root"] as Node3D).visible = false
+	ability_title.visible = false
+	inspector_blur_layer.visible = true
 	var entry := card_entries[index]
 	var card := entry["card"] as CardData
 	var rect := _card_screen_rect(entry["root"] as Node3D)
 	inspect_panel_old_z = inspect_panel.z_index
-	inspect_panel.z_index = 260
+	inspect_panel.z_index = 900
 	inspect_panel.show_texture(card.card_art, rect, false)
 	back_button.visible = true
 
@@ -323,19 +402,24 @@ func _show_inspector(index: int, completes_on_back: bool) -> void:
 func _on_back_pressed() -> void:
 	if inspect_panel != null and inspect_panel.visible:
 		inspect_panel.hide_card()
+		await inspect_panel.inspection_closed
 	if inspect_panel != null:
 		inspect_panel.z_index = inspect_panel_old_z
+	inspector_blur_layer.visible = false
 	if inspector_returns_to_cards:
 		inspector_returns_to_cards = false
+		ability_title.visible = true
 		for entry in card_entries:
 			(entry["root"] as Node3D).visible = true
 		back_button.visible = String(options.get("mode", "reveal")) == "reveal"
 		input_ready = true
 		return
 	if inspected_index >= 0:
+		await _return_all_cards_to_source()
 		await _finish({"index": inspected_index, "card": card_entries[inspected_index]["card"]})
 		return
 	if String(options.get("mode", "reveal")) == "reveal":
+		await _return_all_cards_to_source()
 		await _finish({"index": -1})
 		return
 	for entry in card_entries:
@@ -359,14 +443,48 @@ func _resolve_choice(index: int) -> void:
 	for entry_index in range(card_entries.size()):
 		var root := card_entries[entry_index]["root"] as Node3D
 		var destination := chosen_destination if entry_index == index else other_destination
-		tween.parallel().tween_property(root, "global_position", destination, 0.48).set_delay(entry_index * 0.035)
-		tween.parallel().tween_property(root, "scale", Vector3.ONE * 0.18, 0.48).set_delay(entry_index * 0.035)
+		var start := root.global_position
+		var control := (start + destination) * 0.5 + Vector3(0.0, 0.32, 0.0)
+		tween.parallel().tween_method(
+			Callable(self, "_set_card_arc_position").bind(root, start, control, destination),
+			0.0,
+			1.0,
+			0.54
+		).set_delay(entry_index * 0.045)
+		tween.parallel().tween_property(root, "scale", Vector3.ONE, 0.54).set_delay(entry_index * 0.045)
 	await tween.finished
 	if return_pile != null:
 		var lower_tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		lower_tween.tween_property(return_pile, "position", return_pile_position, 0.24)
 		await lower_tween.finished
 	await _finish({"index": index, "card": card_entries[index]["card"]})
+
+
+func _return_all_cards_to_source() -> void:
+	var destination: Vector3 = options.get("return_destination", options.get("source_position", Vector3.ZERO))
+	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	for index in range(card_entries.size()):
+		var root := card_entries[index]["root"] as Node3D
+		root.visible = true
+		var start := root.global_position
+		var finish := destination + Vector3(index * 0.018, index * 0.008, index * 0.012)
+		var control := (start + finish) * 0.5 + Vector3(0.0, 0.34, 0.0)
+		tween.parallel().tween_method(
+			Callable(self, "_set_card_arc_position").bind(root, start, control, finish),
+			0.0,
+			1.0,
+			0.5
+		).set_delay(index * 0.055)
+		tween.parallel().tween_property(root, "scale", Vector3.ONE, 0.5).set_delay(index * 0.055)
+	await tween.finished
+
+
+func _set_card_arc_position(t: float, root: Node3D, start: Vector3, control: Vector3, finish: Vector3) -> void:
+	if root == null or not is_instance_valid(root):
+		return
+	var a := start.lerp(control, t)
+	var b := control.lerp(finish, t)
+	root.global_position = a.lerp(b, t)
 
 
 func _finish(result: Dictionary) -> void:
@@ -392,10 +510,21 @@ func _cleanup() -> void:
 		if camera != null:
 			camera.set_cull_mask_value(RENDER_LAYER_NUMBER, main_camera_old_layer)
 	camera_layer_overridden = false
+	_set_modal_input_lock(false)
 	active = false
 	input_ready = false
+	ability_title.visible = false
+	inspector_blur_layer.visible = false
 	_use_cursor(&"use_normal")
 	hide()
+
+
+func _set_modal_input_lock(locked: bool) -> void:
+	if modal_input_locked == locked:
+		return
+	modal_input_locked = locked
+	if battlefield != null and battlefield.has_method("set_blurred_modal_input_blocked"):
+		battlefield.call("set_blurred_modal_input_blocked", locked)
 
 
 func _set_blur_progress(progress: float) -> void:

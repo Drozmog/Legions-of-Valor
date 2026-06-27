@@ -6,7 +6,7 @@ signal battle_plan_selected(plan: Dictionary)
 @export var battleplan_back_texture: Texture2D = preload("res://cards/card_back.png")
 @export var select_button_texture: Texture2D
 @export var inspect_button_texture: Texture2D
-@export var back_button_texture: Texture2D
+@export var back_button_texture: Texture2D = preload("res://ui/combat_buttons/pass_button.png")
 
 const CARD_PICK_LAYER := 16
 const BUTTON_PICK_LAYER := 32
@@ -40,6 +40,8 @@ var selection_root: Node3D
 var blur_overlay_material: ShaderMaterial
 var blur_overlay_tween: Tween
 var blur_overlay_progress := 0.0
+var inspector_blur_layer: ColorRect
+var inspector_blur_material: ShaderMaterial
 var battleplan_viewport: SubViewport
 var battleplan_viewport_camera: Camera3D
 var battleplan_viewport_display: TextureRect
@@ -53,9 +55,11 @@ var selection_ready := false
 var actions_ready := false
 var inspected_index := -1
 var shared_inspector: CardInspectPanel
+var shared_inspector_old_z := 100
 var inspector_actions: HBoxContainer
 var animation_generation := 0
 var ui_built := false
+var modal_input_locked := false
 
 
 func _ready() -> void:
@@ -118,6 +122,19 @@ void fragment() {
 	battleplan_viewport_display.texture = battleplan_viewport.get_texture()
 	battleplan_viewport_display.z_index = 1
 	add_child(battleplan_viewport_display)
+	inspector_blur_layer = ColorRect.new()
+	inspector_blur_layer.name = "BattlePlanInspectorBlur"
+	inspector_blur_layer.color = Color.WHITE
+	inspector_blur_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	inspector_blur_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inspector_blur_layer.z_index = 200
+	inspector_blur_material = ShaderMaterial.new()
+	inspector_blur_material.shader = blur_shader
+	inspector_blur_material.set_shader_parameter("blur_lod", 2.8)
+	inspector_blur_material.set_shader_parameter("opacity", 0.80)
+	inspector_blur_layer.material = inspector_blur_material
+	inspector_blur_layer.visible = false
+	add_child(inspector_blur_layer)
 
 
 func show_selection(plans: Array[Dictionary]) -> void:
@@ -133,6 +150,7 @@ func show_selection(plans: Array[Dictionary]) -> void:
 	action_groups.clear()
 	show()
 	move_to_front()
+	_set_modal_input_lock(true)
 	_create_selection_world(plans)
 	if card_entries.size() <= 3:
 		_show_remaining_plans_directly()
@@ -149,8 +167,18 @@ func hide_selection() -> void:
 	if shared_inspector != null and shared_inspector.visible:
 		shared_inspector.hide_card()
 	_cleanup_selection_world()
+	_set_modal_input_lock(false)
 	_use_cursor("use_normal")
 	hide()
+
+
+func _set_modal_input_lock(locked: bool) -> void:
+	if modal_input_locked == locked:
+		return
+	modal_input_locked = locked
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("set_blurred_modal_input_blocked"):
+		scene.call("set_blurred_modal_input_blocked", locked)
 
 
 func _create_selection_world(plans: Array[Dictionary]) -> void:
@@ -845,6 +873,7 @@ func _select_plan(card_index: int) -> void:
 	_cleanup_inspector_actions()
 	if shared_inspector != null and shared_inspector.visible:
 		shared_inspector.hide_card()
+	_set_inspection_layer(false)
 	await _fade_out_blur_overlay()
 	battle_plan_selected.emit(plan)
 	hide_selection()
@@ -861,7 +890,7 @@ func _toggle_inspect(card_index: int) -> void:
 
 	inspected_index = card_index
 	for entry in card_entries:
-		(entry["root"] as Node3D).visible = true
+		(entry["root"] as Node3D).visible = false
 		_set_card_pickable(entry, false)
 	for group in action_groups.values():
 		(group as Node3D).visible = false
@@ -871,6 +900,7 @@ func _toggle_inspect(card_index: int) -> void:
 	var texture: Texture2D = null
 	if front != null and front.material_override is StandardMaterial3D:
 		texture = (front.material_override as StandardMaterial3D).albedo_texture
+	_set_inspection_layer(true)
 	shared_inspector.show_texture(texture, _get_battleplan_source_rect(selected_entry), true)
 	_build_inspector_actions(card_index)
 
@@ -896,9 +926,9 @@ func _build_inspector_actions(card_index: int) -> void:
 	inspector_actions.offset_top = 326.0
 	inspector_actions.offset_bottom = 421.0
 	inspector_actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	inspector_actions.add_theme_constant_override("separation", 18)
+	inspector_actions.add_theme_constant_override("separation", 8)
 	inspector_actions.mouse_filter = Control.MOUSE_FILTER_PASS
-	inspector_actions.z_index = 300
+	inspector_actions.z_index = 1000
 	add_child(inspector_actions)
 
 	var select_button := _make_inspector_button("SELECT", select_button_texture)
@@ -978,6 +1008,7 @@ func _make_inspector_button(caption: String, texture: Texture2D = null) -> Butto
 func _close_battleplan_inspector() -> void:
 	if shared_inspector != null and shared_inspector.visible:
 		shared_inspector.hide_card()
+		return
 	_restore_selection_after_inspector()
 
 
@@ -988,6 +1019,7 @@ func _on_shared_inspector_closed() -> void:
 
 func _restore_selection_after_inspector() -> void:
 	_cleanup_inspector_actions()
+	_set_inspection_layer(false)
 	inspected_index = -1
 	for entry in card_entries:
 		(entry["root"] as Node3D).visible = true
@@ -995,6 +1027,18 @@ func _restore_selection_after_inspector() -> void:
 		_set_card_pickable(entry, state == "available" or state == "revealed")
 	for group in action_groups.values():
 		(group as Node3D).visible = true
+
+
+func _set_inspection_layer(active: bool) -> void:
+	if inspector_blur_layer != null:
+		inspector_blur_layer.visible = active
+	if shared_inspector == null:
+		return
+	if active:
+		shared_inspector_old_z = shared_inspector.z_index
+		shared_inspector.z_index = 900
+	else:
+		shared_inspector.z_index = shared_inspector_old_z
 
 
 func _cleanup_inspector_actions() -> void:
@@ -1111,6 +1155,7 @@ func _use_cursor(method_name: StringName) -> void:
 
 
 func _cleanup_selection_world() -> void:
+	_set_inspection_layer(false)
 	_restore_main_camera_render_layer()
 	if blur_overlay_tween != null and blur_overlay_tween.is_valid():
 		blur_overlay_tween.kill()
