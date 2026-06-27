@@ -19,13 +19,13 @@ const BOTTOM_CARD_Z := 2.20
 const TOP_CARD_Z := -1.12
 const CARD_SURFACE_Y := 0.58
 const TOP_SLOT_X := [-3.35, 0.0, 3.35]
-const SHUFFLE_STEP_TIME := 0.065
+const SHUFFLE_STEP_TIME := 0.105
 const CARD_MOVE_TIME := 0.26
 const INTRO_DEAL_IN_TIME := 0.34
 const INTRO_PREVIEW_TIME := 0.10
 const INTRO_FLIP_TIME := 0.24
 const INTRO_FLIP_STAGGER := 0.035
-const INTRO_SHUFFLE_STEPS := 12
+const INTRO_SHUFFLE_STEPS := 8
 const INTRO_STACK_TIME := 0.30
 const INTRO_DEAL_OUT_TIME := 0.38
 const INTRO_DEAL_STAGGER := 0.055
@@ -222,7 +222,7 @@ func _shuffle_center() -> Vector3:
 
 
 func _stack_position() -> Vector3:
-	return Vector3(-2.75, CARD_SURFACE_Y + 0.10, 1.36)
+	return Vector3(0.0, CARD_SURFACE_Y + 0.10, 1.36)
 
 
 func _stack_card_position(card_index: int) -> Vector3:
@@ -447,7 +447,7 @@ func _run_intro_sequence(generation: int) -> void:
 		for card_index in range(card_count):
 			var entry: Dictionary = card_entries[card_index]
 			var root := entry["root"] as Node3D
-			var angle := TAU * (float(card_index) / maxf(1.0, float(card_count)) + float(whirl_step) * 0.185)
+			var angle := TAU * (float(card_index) / maxf(1.0, float(card_count)) + float(whirl_step) * 0.14)
 			var radius_x := lerpf(2.25, 3.05, sin(step_weight * PI))
 			var radius_z := lerpf(0.72, 1.10, sin(step_weight * PI))
 			var center := _shuffle_center()
