@@ -15,7 +15,7 @@ const BATTLEPLAN_CARD_SURFACE_Z := 0.26
 const BATTLEPLAN_LABEL_Z := 0.31
 const BATTLEPLAN_SURFACE_RENDER_PRIORITY := 80
 const BATTLEPLAN_CARD_RENDER_PRIORITY := 127
-const BATTLEPLAN_INSPECT_BUTTON_SIZE := Vector2(0.86, 0.40) # same 280x130-ish ratio, larger click target
+const BATTLEPLAN_INSPECT_BUTTON_SIZE := Vector2(0.5375, 0.25) # same 280x130-ish ratio, larger click target
 
 var camera_3d: Camera3D
 var surfaces: Array[Dictionary] = []
@@ -220,8 +220,8 @@ func build_log_foldout() -> void:
 
 
 func build_plan_foldout() -> void:
-	plan_open_position = Vector3(-0.3, 0.118, 2.42)
-	plan_closed_position = Vector3(-0.3, 0.118, 3.56)
+	plan_open_position = Vector3(0, 0.118, 2.42)
+	plan_closed_position = Vector3(0, 0.118, 3.56)
 	# Keep the dark panel close to the card width, while giving it more vertical
 	# room at the bottom for the lower margins. Position constants below are the
 	# main manual tuning points for this Battleplans popup.
@@ -241,30 +241,32 @@ func build_plan_foldout() -> void:
 	plan_surface.add_child(plan_card_root)
 
 	player_plan_card_3d = create_battleplan_card_mesh("PlayerBattleplanCard3D")
-	player_plan_card_3d.position = Vector3(-1.74, -0.22, BATTLEPLAN_CARD_SURFACE_Z)
+	player_plan_card_3d.position = Vector3(-1.74, -0.11, BATTLEPLAN_CARD_SURFACE_Z)
 	plan_card_root.add_child(player_plan_card_3d)
 
 	opponent_plan_card_3d = create_battleplan_card_mesh("OpponentBattleplanCard3D")
-	opponent_plan_card_3d.position = Vector3(1.74, -0.22, BATTLEPLAN_CARD_SURFACE_Z)
+	opponent_plan_card_3d.position = Vector3(1.74, -0.11, BATTLEPLAN_CARD_SURFACE_Z)
 	plan_card_root.add_child(opponent_plan_card_3d)
 
 	player_plan_label_3d = create_battleplan_3d_label("YOUR BATTLEPLAN")
-	player_plan_label_3d.position = Vector3(-1.86, 1.19, BATTLEPLAN_LABEL_Z)
+	player_plan_label_3d.position = Vector3(-2.24, 0.875, BATTLEPLAN_LABEL_Z)
 	plan_card_root.add_child(player_plan_label_3d)
 
 	opponent_plan_label_3d = create_battleplan_3d_label("OPPONENT BATTLEPLAN")
-	opponent_plan_label_3d.position = Vector3(1.70, 1.19, BATTLEPLAN_LABEL_Z)
+	opponent_plan_label_3d.position = Vector3(1.40, 0.875, BATTLEPLAN_LABEL_Z)
 	plan_card_root.add_child(opponent_plan_label_3d)
 
 	player_plan_inspect_button_3d = create_battleplan_inspect_button(true)
-	player_plan_inspect_button_3d.position = Vector3(-0.48, 1.19, BATTLEPLAN_LABEL_Z + 0.035)
+	player_plan_inspect_button_3d.position = Vector3(-0.63, 0.875, BATTLEPLAN_LABEL_Z + 0.035)
+	player_plan_inspect_button_3d.rotation_degrees = Vector3(87, 0.0, 0.0)
 	plan_card_root.add_child(player_plan_inspect_button_3d)
 
 	opponent_plan_inspect_button_3d = create_battleplan_inspect_button(false)
-	opponent_plan_inspect_button_3d.position = Vector3(3.02, 1.19, BATTLEPLAN_LABEL_Z + 0.035)
+	opponent_plan_inspect_button_3d.position = Vector3(2.8, 0.875, BATTLEPLAN_LABEL_Z + 0.035)
+	opponent_plan_inspect_button_3d.rotation_degrees = Vector3(87, 0.0, 0.0)
 	plan_card_root.add_child(opponent_plan_inspect_button_3d)
 
-	plan_surface.scale = Vector3(1.0, 0.02, 1.0)
+	plan_surface.scale = Vector3(0.88, 0.02, 0.88)
 	plan_surface.visible = false
 
 
