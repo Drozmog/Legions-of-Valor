@@ -5,55 +5,18 @@ const OPPONENT_BUTTON_NAME := "OpponentBattleplanInspectButton"
 const INSPECT_COLLISION_SIZE := Vector3(1.65, 0.95, 0.90)
 const MANUAL_HIT_HALF_EXTENTS := Vector2(0.82, 0.48)
 
-# The normal battlefield scene still uses BattlefieldManager.gd directly.
-# This autoload is always active, so it upgrades any loaded battlefield manager
-# to the consolidated rule/UI patch no matter which scene tab the user runs.
-const BASE_BATTLEFIELD_MANAGER_SCRIPT_PATH := "res://battlefield/BattlefieldManager.gd"
-const ACTIVE_BATTLEFIELD_MANAGER_SCRIPT: Script = preload("res://battlefield/BattlefieldManagerIconPatch.gd")
-
 var cursor_owned := false
 
 
 func _ready() -> void:
 	set_process(true)
 	set_process_input(true)
-	get_tree().node_added.connect(_on_node_added)
-	call_deferred("_patch_current_battlefield_manager")
 
 
 func _process(_delta: float) -> void:
-	_patch_current_battlefield_manager()
 	var hud: Node = _find_bottom_hud()
 	if hud != null:
 		_patch_inspect_button_clickboxes(hud)
-
-
-func _on_node_added(node: Node) -> void:
-	_apply_battlefield_manager_patch(node)
-
-
-func _patch_current_battlefield_manager() -> void:
-	var scene: Node = get_tree().current_scene
-	if scene == null:
-		return
-	_apply_battlefield_manager_patch_recursive(scene)
-
-
-func _apply_battlefield_manager_patch_recursive(node: Node) -> void:
-	_apply_battlefield_manager_patch(node)
-	for child in node.get_children():
-		_apply_battlefield_manager_patch_recursive(child)
-
-
-func _apply_battlefield_manager_patch(node: Node) -> void:
-	if node == null:
-		return
-	var script := node.get_script() as Script
-	if script == null:
-		return
-	if script.resource_path != BASE_BATTLEFIELD_MANAGER_SCRIPT_PATH:
-		return
-	node.set_script(ACTIVE_BATTLEFIELD_MANAGER_SCRIPT)
 
 
 func _input(event: InputEvent) -> void:
