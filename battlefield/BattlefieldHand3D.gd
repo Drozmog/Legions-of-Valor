@@ -3,6 +3,7 @@ extends Node3D
 
 const CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
 const CARD_PICK_LAYER: int = 8
+const HAND_CARD_WIDTH_MULTIPLIER := 1.1
 
 @export var hand_plane_y: float = 0.58
 @export var layout_lerp_speed: float = 9.5
@@ -241,7 +242,11 @@ func get_proxy_target_scale(proxy: CardUI) -> Vector3:
 	var right_screen := camera_3d.unproject_position(center + Vector3(0.51, 0.0, 0.0))
 	var base_pixel_width := maxf(left_screen.distance_to(right_screen), 1.0)
 	var scale_factor := target_pixel_width / base_pixel_width
-	return Vector3.ONE * scale_factor
+	return Vector3(
+		scale_factor * HAND_CARD_WIDTH_MULTIPLIER,
+		scale_factor,
+		scale_factor
+	)
 
 
 func screen_to_plane(screen_position: Vector2, plane_y: float) -> Vector3:

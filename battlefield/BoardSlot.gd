@@ -2,6 +2,7 @@ extends MeshInstance3D
 
 signal slot_clicked(slot)
 signal slot_right_clicked(slot)
+signal equipment_inspect_requested(slot, equipment_card: CardData)
 
 @onready var click_area: Area3D = $ClickArea
 @onready var card_point: Marker3D = $CardPoint
@@ -268,6 +269,42 @@ func can_attach_equipment() -> bool:
 		return false
 
 	return equipment_cards.size() < MAX_EQUIPMENT_PER_UNIT
+	
+
+func add_equipment_click_area(equipment_node: Node3D, equipment_card: CardData) -> void:
+	if equipment_node == null or equipment_card == null:
+		return
+
+	var area := Area3D.new()
+	area.name = "EquipmentInspectArea"
+	area.collision_layer = 8
+	area.collision_mask = 0
+	area.input_ray_pickable = true
+
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = Vector3(1.02, 0.18, 1.34)
+	collision.shape = shape
+	collision.position.y = 0.08
+
+	area.add_child(collision)
+	equipment_node.add_child(area)
+
+	area.input_event.connect(_on_equipment_input_event.bind(equipment_card))
+	
+	
+func _on_equipment_input_event(
+	_camera: Node,
+	event: InputEvent,
+	_event_position: Vector3,
+	_normal: Vector3,
+	_shape_idx: int,
+	equipment_card: CardData
+) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			equipment_inspect_requested.emit(self, equipment_card)
+			get_viewport().set_input_as_handled()
 
 
 func attach_equipment(card_scene: PackedScene, card_data: CardData, force: bool = false) -> bool:
@@ -288,6 +325,8 @@ func attach_equipment(card_scene: PackedScene, card_data: CardData, force: bool 
 
 	if equipment_node.has_method("assign_card_data"):
 		equipment_node.assign_card_data(card_data, false)
+
+	add_equipment_click_area(equipment_node, card_data)
 
 	return true
 

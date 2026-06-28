@@ -12,15 +12,16 @@ const CARD_PICK_LAYER := 16
 const BUTTON_PICK_LAYER := 32
 const BATTLEPLAN_RENDER_LAYER_NUMBER := 20
 const BATTLEPLAN_RENDER_LAYER_MASK := 1 << (BATTLEPLAN_RENDER_LAYER_NUMBER - 1)
-const CARD_BACK_SIZE := Vector2(1.48, 2.07) # 2.5 x 3.5 portrait back.
-const BATTLEPLAN_SIZE := Vector2(3.08, 2.20) # Exact 3.5 x 2.5 landscape ratio.
+const CARD_BACK_SIZE := Vector2(1.68, 2.07) # 2.5 x 3.5 portrait back.
+const BATTLEPLAN_SIZE := Vector2(3.08, 2.00) # Exact 3.5 x 2.5 landscape ratio.
 # Matches Card3DTest's 0.065 radius on a 1.02-wide card.
 const CARD_CORNER_RADIUS_RATIO := 0.064
 const CARD_CORNER_SEGMENTS := 8
 const BOTTOM_CARD_Z := 2.20
 const TOP_CARD_Z := -1.12
 const CARD_SURFACE_Y := 0.58
-const TOP_SLOT_X := [-3.35, 0.0, 3.35]
+const CARD_FACE_X_ROTATION := -90.0
+const TOP_SLOT_X := [-3.85, 0.0, 3.85]
 const SHUFFLE_STEP_TIME := 0.105
 const CARD_MOVE_TIME := 0.52
 const INTRO_DEAL_IN_TIME := 0.34
@@ -275,7 +276,7 @@ func _fade_out_blur_overlay() -> void:
 func _create_card_entry(plan: Dictionary, card_index: int, card_count: int) -> Dictionary:
 	var card_root := Node3D.new()
 	card_root.name = "BattlePlanCard%d" % (card_index + 1)
-	card_root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	card_root.rotation_degrees = Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0)
 	card_root.position = _intro_spawn_position(card_index, card_count)
 	card_root.scale = Vector3(0.82, 0.82, 0.82)
 	selection_root.add_child(card_root)
@@ -366,9 +367,8 @@ func _show_remaining_plans_directly() -> void:
 	for card_index in range(card_count):
 		var entry: Dictionary = card_entries[card_index]
 		var root := entry["root"] as Node3D
-		var centered_index := float(card_index) - float(card_count - 1) * 0.5
-		root.position = Vector3(centered_index * 3.35, CARD_SURFACE_Y + 0.07, TOP_CARD_Z)
-		root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+		root.position = Vector3(float(TOP_SLOT_X[card_index]), CARD_SURFACE_Y + 0.07, TOP_CARD_Z)
+		root.rotation_degrees = Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0)
 		root.scale = Vector3.ONE
 		entry["state"] = "revealed"
 		entry["slot_index"] = card_index
@@ -554,7 +554,7 @@ func _run_intro_sequence(generation: int) -> void:
 		if visual != null:
 			visual.rotation_degrees = Vector3.ZERO
 		root.position = _intro_spawn_position(card_index, card_count)
-		root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+		root.rotation_degrees = Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0)
 		root.scale = Vector3(0.76, 0.76, 0.76)
 		_set_card_glow(entry, false)
 
@@ -583,7 +583,7 @@ func _run_intro_sequence(generation: int) -> void:
 			var whirl := create_tween()
 			whirl.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 			whirl.tween_property(root, "position", target, SHUFFLE_STEP_TIME)
-			whirl.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 0.0), SHUFFLE_STEP_TIME)
+			whirl.parallel().tween_property(root, "rotation_degrees", Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0), SHUFFLE_STEP_TIME)
 			whirl.parallel().tween_property(root, "scale", Vector3(0.92, 0.92, 0.92), SHUFFLE_STEP_TIME)
 		await get_tree().create_timer(SHUFFLE_STEP_TIME).timeout
 		if not _intro_is_current(generation):
@@ -596,7 +596,7 @@ func _run_intro_sequence(generation: int) -> void:
 		stack.tween_interval(float(card_index) * 0.018)
 		stack.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
 		stack.tween_property(root, "position", _stack_card_position(card_index), INTRO_STACK_TIME)
-		stack.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 0.0), INTRO_STACK_TIME)
+		stack.parallel().tween_property(root, "rotation_degrees", Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0), INTRO_STACK_TIME)
 		stack.parallel().tween_property(root, "scale", Vector3(0.90, 0.90, 0.90), INTRO_STACK_TIME)
 	await get_tree().create_timer(INTRO_STACK_TIME + float(card_count) * 0.018 + 0.10).timeout
 	if not _intro_is_current(generation):
@@ -609,7 +609,7 @@ func _run_intro_sequence(generation: int) -> void:
 		deal_out.tween_interval(float(card_index) * INTRO_DEAL_STAGGER)
 		deal_out.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		deal_out.tween_property(root, "position", _available_card_position(card_index, card_count), INTRO_DEAL_OUT_TIME)
-		deal_out.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 0.0), INTRO_DEAL_OUT_TIME)
+		deal_out.parallel().tween_property(root, "rotation_degrees", Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0), INTRO_DEAL_OUT_TIME)
 		deal_out.parallel().tween_property(root, "scale", Vector3.ONE, INTRO_DEAL_OUT_TIME)
 	await get_tree().create_timer(INTRO_DEAL_OUT_TIME + float(card_count) * INTRO_DEAL_STAGGER + 0.05).timeout
 	if not _intro_is_current(generation):
@@ -620,7 +620,7 @@ func _run_intro_sequence(generation: int) -> void:
 		var root := entry["root"] as Node3D
 		var visual := entry["visual"] as Node3D
 		root.position = _available_card_position(card_index, card_count)
-		root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+		root.rotation_degrees = Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0)
 		root.scale = Vector3.ONE
 		if visual != null:
 			visual.rotation_degrees = Vector3.ZERO
@@ -700,7 +700,7 @@ func _animate_card_to_slot(card_index: int, slot_index: int) -> void:
 	var lift := create_tween()
 	lift.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN_OUT)
 	lift.tween_property(root, "position", midpoint, CARD_MOVE_TIME * 0.46)
-	lift.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 2.5), CARD_MOVE_TIME * 0.46)
+	lift.parallel().tween_property(root, "rotation_degrees", Vector3(CARD_FACE_X_ROTATION, 0.0, 2.5), CARD_MOVE_TIME * 0.46)
 	lift.parallel().tween_property(root, "scale", Vector3.ONE * 1.025, CARD_MOVE_TIME * 0.46)
 	lift.parallel().tween_property(visual, "rotation_degrees:y", 88.0, CARD_MOVE_TIME * 0.46)
 	await lift.finished
@@ -712,14 +712,14 @@ func _animate_card_to_slot(card_index: int, slot_index: int) -> void:
 	var land := create_tween()
 	land.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
 	land.tween_property(root, "position", target, CARD_MOVE_TIME * 0.54)
-	land.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 0.0), CARD_MOVE_TIME * 0.54)
+	land.parallel().tween_property(root, "rotation_degrees", Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0), CARD_MOVE_TIME * 0.54)
 	land.parallel().tween_property(root, "scale", Vector3.ONE, CARD_MOVE_TIME * 0.54)
 	land.parallel().tween_property(visual, "rotation_degrees:y", 0.0, CARD_MOVE_TIME * 0.54)
 	await land.finished
 	if not visible or root == null or not is_instance_valid(root):
 		return
 	root.position = target
-	root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	root.rotation_degrees = Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0)
 	root.scale = Vector3.ONE
 	visual.rotation_degrees = Vector3.ZERO
 	entry["state"] = "revealed"
@@ -824,7 +824,7 @@ func _create_action_button(
 	label.layers = BATTLEPLAN_RENDER_LAYER_MASK
 	label.text = caption
 	label.position = Vector3(0.0, 0.03, 0.0)
-	label.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	label.rotation_degrees = Vector3(CARD_FACE_X_ROTATION, 0.0, 0.0)
 	label.pixel_size = 0.0025
 	label.font_size = 31
 	label.modulate = Color(1.0, 0.88, 0.53, 1.0)

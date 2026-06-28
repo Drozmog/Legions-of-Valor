@@ -1585,6 +1585,8 @@ func connect_all_slots() -> void:
 			slot.slot_clicked.connect(_on_slot_clicked)
 		if slot.has_signal("slot_right_clicked"):
 			slot.slot_right_clicked.connect(_on_slot_right_clicked)
+		if slot.has_signal("equipment_inspect_requested"):
+			slot.equipment_inspect_requested.connect(_on_equipment_inspect_requested)
 
 
 func _on_hand_card_drag_started(card: CardUI) -> void:
@@ -2016,6 +2018,33 @@ func _on_draw_pile_drag_released(screen_position: Vector2) -> void:
 	else:
 		if player_hand_3d != null:
 			player_hand_3d.cancel_draw_preview(true)
+
+
+func _on_equipment_inspect_requested(slot: Node, equipment_card: CardData) -> void:
+	if is_prebattle_modal_open() or game_over:
+		return
+
+	if equipment_card == null:
+		return
+
+	var slot_owner := String(slot.get_meta("owner", ""))
+	var slot_face_down := bool(slot.get_meta("face_down", false))
+
+	if slot_owner == "enemy" and slot_face_down:
+		log_msg("Enemy face-down equipment remains hidden.")
+		return
+
+	var inspect_panel: CardInspectPanel = get_card_inspect_panel()
+
+	if inspect_panel == null:
+		log_msg("CardInspectPanel is missing.")
+		return
+
+	var source_position := get_viewport().get_mouse_position()
+	inspect_panel.last_source_rect = Rect2(source_position, Vector2(90.0, 120.0))
+	inspect_panel.show_card(null, equipment_card)
+
+	log_msg("Inspecting equipment: " + equipment_card.card_name)
 
 
 func _on_slot_clicked(slot: Node) -> void:
