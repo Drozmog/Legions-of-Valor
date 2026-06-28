@@ -1,7 +1,7 @@
 class_name PrototypeMenu
 extends Control
 
-const BATTLE_SCENE_PATH := "res://battlefield/battlefield_3d.tscn"
+const BATTLE_SCENE_PATH := "res://battlefield/battlefield_3d_mobility_scene.tscn"
 const DECK_BUILDER_SCENE_PATH := "res://ui/deck_builder.tscn"
 
 # Main-menu composition controls. These are the values to edit when repositioning
