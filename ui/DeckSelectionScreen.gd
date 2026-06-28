@@ -25,7 +25,7 @@ func _ready() -> void:
 func build_ui() -> void:
 	var dim := ColorRect.new()
 	dim.name = "DeckSelectionDim"
-	dim.color = Color(0.0, 0.0, 0.0, 0.34)
+	dim.color = Color(0.0, 0.0, 0.0, 0.26)
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(dim)
@@ -49,26 +49,26 @@ func build_ui() -> void:
 	margin.name = "ContentMargin"
 	margin.add_theme_constant_override("margin_left", 28)
 	margin.add_theme_constant_override("margin_right", 28)
-	margin.add_theme_constant_override("margin_top", 24)
-	margin.add_theme_constant_override("margin_bottom", 24)
+	margin.add_theme_constant_override("margin_top", 22)
+	margin.add_theme_constant_override("margin_bottom", 22)
 	selection_panel.add_child(margin)
 
 	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 16)
+	rows.add_theme_constant_override("separation", 14)
 	margin.add_child(rows)
 
 	var title := Label.new()
 	title.text = "CHOOSE YOUR WAR DECK"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 30)
-	title.add_theme_color_override("font_color", Color(1.0, 0.84, 0.42, 1.0))
+	title.add_theme_color_override("font_color", Color.WHITE)
 	rows.add_child(title)
 
 	var subtitle := Label.new()
 	subtitle.text = "Select the saved deck you will bring into this battle."
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.add_theme_font_size_override("font_size", 16)
-	subtitle.add_theme_color_override("font_color", Color.WHITE)
+	subtitle.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.82))
 	rows.add_child(subtitle)
 
 	options_grid = GridContainer.new()
@@ -82,12 +82,11 @@ func build_ui() -> void:
 	
 func make_selection_panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.11, 0.075, 0.040, 0.46)
-	style.border_color = Color(1.0, 0.72, 0.22, 0.88)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(12)
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.24)
-	style.shadow_size = 8
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.border_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.set_border_width_all(0)
+	style.set_corner_radius_all(18)
+	style.shadow_size = 0
 	return style
 
 
@@ -98,18 +97,27 @@ shader_type canvas_item;
 
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
 uniform float blur_lod = 3.8;
-uniform vec4 glass_tint = vec4(0.10, 0.065, 0.035, 0.38);
+uniform vec4 glass_tint = vec4(0.03, 0.035, 0.045, 0.48);
 
 void fragment() {
+	vec2 panel_size = vec2(920.0, 352.0);
+	float radius = 20.0;
+
+	vec2 p = (UV - vec2(0.5)) * panel_size;
+	vec2 q = abs(p) - (panel_size * 0.5 - vec2(radius));
+	float d = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
+	float mask = 1.0 - smoothstep(-2.0, 2.0, d);
+
 	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
 	vec3 tinted = mix(blurred_world, glass_tint.rgb, glass_tint.a);
-	COLOR = vec4(tinted, 0.82);
+
+	COLOR = vec4(tinted, 0.86 * mask);
 }
 """
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	material.set_shader_parameter("blur_lod", 3.8)
-	material.set_shader_parameter("glass_tint", Color(0.10, 0.065, 0.035, 0.38))
+	material.set_shader_parameter("glass_tint", Color(0.03, 0.035, 0.045, 0.48))
 	return material
 
 
@@ -123,38 +131,37 @@ func make_deck_slot_button_style(bg: Color, border: Color, border_width: int = 1
 	style.content_margin_right = 10.0
 	style.content_margin_top = 8.0
 	style.content_margin_bottom = 8.0
-	style.shadow_color = Color(0.0, 0.0, 0.0, 0.18)
-	style.shadow_size = 3
+	style.shadow_size = 0
 	return style
 
 
 func style_deck_slot_button(button: Button, valid: bool) -> void:
-	var normal_bg := Color(0.045, 0.035, 0.028, 0.74) if valid else Color(0.025, 0.022, 0.020, 0.42)
-	var hover_bg := Color(0.14, 0.10, 0.060, 0.82)
-	var pressed_bg := Color(0.18, 0.12, 0.065, 0.90)
-	var disabled_bg := Color(0.020, 0.018, 0.016, 0.42)
+	var normal_bg := Color(0.025, 0.025, 0.028, 0.74) if valid else Color(0.012, 0.012, 0.014, 0.36)
+	var hover_bg := Color(0.10, 0.10, 0.11, 0.82)
+	var pressed_bg := Color(0.15, 0.15, 0.16, 0.90)
+	var disabled_bg := Color(0.012, 0.012, 0.014, 0.34)
 
 	button.add_theme_stylebox_override(
 		"normal",
-		make_deck_slot_button_style(normal_bg, Color(1.0, 1.0, 1.0, 0.10), 1)
+		make_deck_slot_button_style(normal_bg, Color(1.0, 1.0, 1.0, 0.12), 1)
 	)
 	button.add_theme_stylebox_override(
 		"hover",
-		make_deck_slot_button_style(hover_bg, Color(1.0, 0.78, 0.32, 0.72), 2)
+		make_deck_slot_button_style(hover_bg, Color(1.0, 1.0, 1.0, 0.62), 1)
 	)
 	button.add_theme_stylebox_override(
 		"pressed",
-		make_deck_slot_button_style(pressed_bg, Color(1.0, 0.84, 0.42, 0.90), 2)
+		make_deck_slot_button_style(pressed_bg, Color(1.0, 1.0, 1.0, 0.82), 1)
 	)
 	button.add_theme_stylebox_override(
 		"disabled",
-		make_deck_slot_button_style(disabled_bg, Color(1.0, 1.0, 1.0, 0.06), 1)
+		make_deck_slot_button_style(disabled_bg, Color(1.0, 1.0, 1.0, 0.05), 1)
 	)
 
 	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_disabled_color", Color(1.0, 1.0, 1.0, 0.34))
+	button.add_theme_color_override("font_disabled_color", Color(1.0, 1.0, 1.0, 0.28))
 	button.add_theme_font_size_override("font_size", 16)
 
 
@@ -164,7 +171,7 @@ func _layout_to_viewport() -> void:
 	size = viewport_size
 	if selection_panel == null:
 		return
-	var panel_size := Vector2(980.0, 430.0)
+	var panel_size := Vector2(920.0, 352.0)
 	selection_panel.position = (viewport_size - panel_size) * 0.5
 	selection_panel.size = panel_size
 

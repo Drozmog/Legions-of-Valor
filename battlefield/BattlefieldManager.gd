@@ -350,12 +350,22 @@ func create_phase_tip_panel() -> void:
 func update_phase_tip(delta: float) -> void:
 	if phase_tip_panel == null or game_over or phase_transition_busy:
 		return
+
+	# Do not start the help timer while the deck picker or battleplan picker is open.
+	if not deck_selection_complete or waiting_for_battle_plan:
+		phase_tip_elapsed = 0.0
+		phase_tip_shown = false
+		phase_tip_panel.hide_tip(true)
+		return
+
 	if phase_tip_shown:
 		phase_tip_panel.update_tip(get_contextual_phase_tip())
 		return
+
 	phase_tip_elapsed += delta
 	if phase_tip_elapsed < PHASE_TIP_DELAY:
 		return
+
 	phase_tip_shown = true
 	phase_tip_panel.show_tip(get_contextual_phase_tip())
 
