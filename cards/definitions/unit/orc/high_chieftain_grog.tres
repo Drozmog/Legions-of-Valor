@@ -12,7 +12,6 @@ card_id = "high_chieftain_grog"
 card_name = "High Chieftain, Grog"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 6
 ap = 8
 dp = 2

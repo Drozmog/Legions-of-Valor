@@ -11,7 +11,6 @@ card_id = "war_paint"
 card_name = "War Paint"
 race = "neutral"
 card_type = "gambit"
-rarity = "normal"
 tribute_cost = 2
 dp = 1
 abilities = Array[ExtResource("1_kdck4")]([ExtResource("2_kdck4")])

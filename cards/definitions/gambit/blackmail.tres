@@ -11,7 +11,6 @@ card_id = "blackmail"
 card_name = "Blackmail"
 race = "neutral"
 card_type = "gambit"
-rarity = "normal"
 tribute_cost = 3
 dp = 3
 abilities = Array[ExtResource("1_degnq")]([ExtResource("2_dru8g")])

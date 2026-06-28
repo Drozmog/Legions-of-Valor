@@ -11,7 +11,6 @@ card_id = "liorvynns_leather_cuirass"
 card_name = "Liorvynn's Leather Cuirass"
 race = "neutral"
 card_type = "equipment"
-rarity = "normal"
 tribute_cost = 1
 dp = 1
 abilities = Array[ExtResource("1_6wjfd")]([ExtResource("2_342se")])

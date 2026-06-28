@@ -11,7 +11,6 @@ card_id = "neril_veilmother_huntress"
 card_name = "Ner'il Veilmother Huntress"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 3
 ap = 4
 abilities = Array[ExtResource("1_4e41u")]([ExtResource("2_oycud")])

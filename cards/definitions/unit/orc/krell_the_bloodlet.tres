@@ -10,7 +10,6 @@ card_id = "krell_the_bloodlet"
 card_name = "Krell, the Blood-Let"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 1
 ap = 4
 lore_text = "\"Aurion is not a god to worship just endure it until your hide grows hard.\""

@@ -12,7 +12,6 @@ card_id = "sylvren_sapling"
 card_name = "Sylvren Sapling"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 2
 ap = 4
 dp = 1

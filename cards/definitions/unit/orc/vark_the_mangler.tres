@@ -12,7 +12,6 @@ card_id = "vark_the_mangler"
 card_name = "Vark the Mangler"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 2
 ap = 3
 abilities = Array[ExtResource("1_7jvpv")]([ExtResource("2_2nn7k"), ExtResource("3_a6817")])

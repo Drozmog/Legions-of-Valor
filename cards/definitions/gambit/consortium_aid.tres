@@ -11,7 +11,6 @@ card_id = "consortium_aid"
 card_name = "Consortium Aid"
 race = "neutral"
 card_type = "gambit"
-rarity = "normal"
 tribute_cost = 2
 dp = 2
 abilities = Array[ExtResource("1_t8ltm")]([ExtResource("2_t8ltm")])

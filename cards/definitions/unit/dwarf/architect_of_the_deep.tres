@@ -11,7 +11,6 @@ card_id = "architect_of_the_deep"
 card_name = "Architect of the Deep"
 race = "dwarf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 5
 ap = 7
 dp = 3

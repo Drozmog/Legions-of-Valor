@@ -11,7 +11,6 @@ card_id = "canopy_archer"
 card_name = "Canopy Archer"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 2
 ap = 4
 abilities = Array[ExtResource("1_fyo78")]([ExtResource("2_k41a1")])

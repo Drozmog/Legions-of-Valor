@@ -10,7 +10,6 @@ card_id = "cave_crawl_grunt"
 card_name = "Cave-Crawl Grunt"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 1
 ap = 3
 dp = 1

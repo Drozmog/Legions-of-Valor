@@ -12,7 +12,6 @@ card_id = "urmog_brugos_chosen"
 card_name = "Urmog, Brugo’s Chosen"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 5
 ap = 6
 dp = 1

@@ -12,7 +12,6 @@ card_id = "gershaw_shatter_shield"
 card_name = "Gershaw Shatter-Shield "
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 5
 ap = 7
 abilities = Array[ExtResource("1_4bsur")]([ExtResource("2_n1kcy"), ExtResource("3_wgj1l")])

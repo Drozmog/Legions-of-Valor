@@ -11,7 +11,6 @@ card_id = "liorvynn_arrow_volley"
 card_name = "Liorvynn Arrow Volley"
 race = "neutral"
 card_type = "gambit"
-rarity = "normal"
 tribute_cost = 2
 dp = 1
 abilities = Array[ExtResource("1_4ex4p")]([ExtResource("2_4ex4p")])

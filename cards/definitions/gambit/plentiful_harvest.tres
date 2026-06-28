@@ -11,7 +11,6 @@ card_id = "plentiful_harvest"
 card_name = "Plentiful Harvest"
 race = "neutral"
 card_type = "gambit"
-rarity = "normal"
 tribute_cost = 5
 dp = 3
 abilities = Array[ExtResource("1_h0bju")]([ExtResource("2_h0bju")])

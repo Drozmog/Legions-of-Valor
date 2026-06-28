@@ -10,7 +10,6 @@ card_id = "slaughter_veteran_vigo"
 card_name = "Slaughter Veteran, Vigo"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 3
 ap = 5
 dp = 2

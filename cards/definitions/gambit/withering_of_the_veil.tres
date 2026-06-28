@@ -11,7 +11,6 @@ card_id = "withering_of_the_veil"
 card_name = "Withering of the Veil"
 race = "neutral"
 card_type = "gambit"
-rarity = "normal"
 tribute_cost = 2
 dp = 2
 abilities = Array[ExtResource("1_ry1b4")]([ExtResource("2_ry1b4")])

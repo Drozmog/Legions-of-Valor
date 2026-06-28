@@ -11,7 +11,6 @@ card_id = "wind_singer_hunwe"
 card_name = "Wind-Singer, Hunwe"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 4
 ap = 6
 dp = 3

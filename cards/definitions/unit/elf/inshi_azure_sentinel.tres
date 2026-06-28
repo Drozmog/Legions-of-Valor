@@ -11,7 +11,6 @@ card_id = "inshi_azure_sentinel"
 card_name = "Inshi, Azure Sentinel"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 4
 ap = 6
 dp = 2

@@ -43,6 +43,7 @@ const ABILITY_HOVER_BOX_SIZE := Vector3(0.34, 0.22, 0.34)
 const ABILITY_TOOLTIP_OFFSET := Vector2(-370.0, -122.0)
 const ABILITY_TOOLTIP_SCREEN_MARGIN := 12.0
 const MOBILITY_PROMPT_ICON_PATH := "res://ui/ability_icons/mobility.png"
+const MOBILITY_PROMPT_CENTER_Y: float = 0.385
 const MOBILITY_CHOICE_PANEL_WIDTH := 360.0
 const MOBILITY_CHOICE_PANEL_HEIGHT := 58.0
 const MOBILITY_CHOICE_PANEL_Y_OFFSET := 92.0
@@ -858,6 +859,8 @@ func show_mobility_prompt(text: String) -> void:
 		set_blurred_modal_input_blocked(true)
 	phase_title_overlay.text = ""
 	phase_title_overlay.modulate.a = 0.0
+	phase_blur_backdrop.anchor_top = MOBILITY_PROMPT_CENTER_Y
+	phase_blur_backdrop.anchor_bottom = MOBILITY_PROMPT_CENTER_Y
 	phase_blur_backdrop.modulate.a = 0.0
 	phase_blur_material.set_shader_parameter("blur_lod", 0.0)
 	var row_root := get_or_create_mobility_prompt_row()
@@ -882,6 +885,8 @@ func hide_mobility_prompt() -> void:
 	await phase_title_tween.finished
 	if row_root != null:
 		row_root.visible = false
+	phase_blur_backdrop.anchor_top = 0.5
+	phase_blur_backdrop.anchor_bottom = 0.5
 	_finish_phase_title_interaction_lock()
 
 func set_phase_blur_amount(amount: float) -> void:
@@ -3387,12 +3392,7 @@ func promote_slot_unit_preserving_equipment(slot: Node, new_unit: CardData, slot
 			equipment_cards.append(equipment_card as CardData)
 
 	if old_unit != null:
-		play_card_to_discard_animation(old_unit, slot, slot_owner)
-
-		if slot_owner == "enemy":
-			ai_discard.append(old_unit)
-		elif discard_pile != null:
-			discard_pile.add_card(old_unit)
+		discard_cards_with_animation([old_unit], slot, slot_owner)
 
 	if slot.has_method("clear_slot"):
 		slot.clear_slot()
@@ -3428,14 +3428,10 @@ func send_slot_card_to_discard(slot: Node) -> void:
 
 	var slot_owner: String = String(slot.get_meta("owner", ""))
 	var card_data: CardData = get_slot_card_data(slot)
+	var cards_to_discard: Array[CardData] = []
 
 	if card_data != null:
-		play_card_to_discard_animation(card_data, slot, slot_owner)
-
-		if slot_owner == "enemy":
-			ai_discard.append(card_data)
-		elif discard_pile != null:
-			discard_pile.add_card(card_data)
+		cards_to_discard.append(card_data)
 
 	if slot.has_method("get_equipment_cards"):
 		var equipment_cards: Array = slot.get_equipment_cards()
@@ -3444,28 +3440,20 @@ func send_slot_card_to_discard(slot: Node) -> void:
 			if equipment_card == null:
 				continue
 
-			play_card_to_discard_animation(equipment_card, slot, slot_owner)
-
-			if slot_owner == "enemy":
-				ai_discard.append(equipment_card)
-			elif discard_pile != null:
-				discard_pile.add_card(equipment_card)
+			cards_to_discard.append(equipment_card as CardData)
 
 	if slot.has_method("get_stacked_unit_cards"):
 		var stacked_cards: Array = slot.call("get_stacked_unit_cards")
 		for stacked_card in stacked_cards:
 			if stacked_card == null:
 				continue
-			play_card_to_discard_animation(stacked_card, slot, slot_owner)
-			if slot_owner == "enemy":
-				ai_discard.append(stacked_card)
-			elif discard_pile != null:
-				discard_pile.add_card(stacked_card)
+			cards_to_discard.append(stacked_card as CardData)
+
+	if not cards_to_discard.is_empty():
+		discard_cards_with_animation(cards_to_discard, slot, slot_owner)
 
 	if slot.has_method("clear_slot"):
 		slot.clear_slot()
-
-	update_ai_visuals()
 
 
 func get_3d_node_under_screen_position(screen_position: Vector2) -> Node:
@@ -3702,12 +3690,36 @@ func play_card_to_discard_animation(card_data: CardData, source_node: Node, slot
 	if slot_owner == "enemy":
 		target_node = get_enemy_visual_target("EnemyDiscardPileVisual")
 
-	card_animation_manager.animate_card_between_nodes(
+	await card_animation_manager.animate_card_between_nodes(
 		card_data,
 		source_node,
 		target_node,
 		false
 	)
+
+
+func discard_cards_with_animation(cards: Array, source_node: Node, slot_owner: String) -> void:
+	for card_value in cards:
+		var card_data := card_value as CardData
+		if card_data == null:
+			continue
+		if slot_owner == "enemy":
+			ai_discard.append(card_data)
+		elif discard_pile != null:
+			discard_pile.add_card(card_data, false)
+	animate_cards_to_discard_and_reveal(cards, source_node, slot_owner)
+
+
+func animate_cards_to_discard_and_reveal(cards: Array, source_node: Node, slot_owner: String) -> void:
+	for card_value in cards:
+		var card_data := card_value as CardData
+		if card_data == null:
+			continue
+		await play_card_to_discard_animation(card_data, source_node, slot_owner)
+	if slot_owner == "enemy":
+		update_ai_visuals()
+	elif discard_pile != null:
+		discard_pile.build_stack()
 
 
 func get_enemy_visual_target(node_name: String) -> Node:
@@ -5634,12 +5646,7 @@ func discard_slot_card_for_cleanup(slot: Node, card_data: CardData, slot_owner: 
 	if card_data == null or slot == null:
 		return
 
-	play_card_to_discard_animation(card_data, slot, slot_owner)
-
-	if slot_owner == "enemy":
-		ai_discard.append(card_data)
-	elif discard_pile != null:
-		discard_pile.add_card(card_data)
+	discard_cards_with_animation([card_data], slot, slot_owner)
 
 	if slot.has_method("clear_slot"):
 		slot.clear_slot()
@@ -5982,8 +5989,8 @@ func activate_mobility_ability_from_slot(slot: Node, ability: AbilityData) -> vo
 	refresh_player_usable_ability_icons()
 
 func resolve_lane_shift(source_slot: Node, ability: AbilityData) -> bool:
-	var candidates := get_empty_player_front_slots_excluding(source_slot)
-	var target := await choose_mobility_slot(candidates, ability.ability_name + "  -  Choose an empty lane")
+	var candidates := get_empty_adjacent_player_front_slots(source_slot)
+	var target := await choose_mobility_slot(candidates, ability.ability_name + "  -  Choose an adjacent empty lane")
 	if target == null:
 		return false
 	await move_slot_contents(source_slot, target)
@@ -6999,12 +7006,13 @@ func can_activate_lane_shift_to_empty(slot: Node, ability: AbilityData) -> bool:
 	var used_turns: Dictionary = slot.get_meta("used_mobility_turns", {})
 	if int(used_turns.get(String(ability.ability_id), -1)) == turn_number:
 		return false
-	return not get_empty_player_front_slots_excluding(slot).is_empty()
+	return not get_empty_adjacent_player_front_slots(slot).is_empty()
 
-func get_empty_player_front_slots_excluding(source_slot: Node) -> Array[Node]:
+func get_empty_adjacent_player_front_slots(source_slot: Node) -> Array[Node]:
 	var result: Array[Node] = []
-	for candidate in get_player_front_slots():
-		if candidate == null or candidate == source_slot:
+	for lane in get_adjacent_lanes(get_slot_lane(source_slot)):
+		var candidate := find_slot_by_owner_row_lane("player", "front", lane)
+		if candidate == null:
 			continue
 		if get_slot_card_data(candidate) == null:
 			result.append(candidate)
@@ -7214,7 +7222,12 @@ func get_or_create_mobility_prompt_row() -> Control:
 	$UI.add_child(root)
 	var center_row := HBoxContainer.new()
 	center_row.name = "CenterRow"
-	center_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center_row.anchor_left = 0.0
+	center_row.anchor_right = 1.0
+	center_row.anchor_top = MOBILITY_PROMPT_CENTER_Y
+	center_row.anchor_bottom = MOBILITY_PROMPT_CENTER_Y
+	center_row.offset_top = -62.0
+	center_row.offset_bottom = 62.0
 	center_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	center_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	center_row.add_theme_constant_override("separation", 18)

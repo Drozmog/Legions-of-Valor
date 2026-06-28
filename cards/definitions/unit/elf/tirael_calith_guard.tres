@@ -10,7 +10,6 @@ card_id = "tirael_calith_guard"
 card_name = "Ti’rael Calith Guard"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 4
 ap = 8
 dp = 3

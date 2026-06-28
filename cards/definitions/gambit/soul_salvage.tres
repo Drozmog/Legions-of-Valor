@@ -11,7 +11,6 @@ card_id = "soul_salvage"
 card_name = "Soul Salvage"
 race = "neutral"
 card_type = "gambit"
-rarity = "normal"
 tribute_cost = 2
 dp = 1
 abilities = Array[ExtResource("1_s3g82")]([ExtResource("2_s3g82")])

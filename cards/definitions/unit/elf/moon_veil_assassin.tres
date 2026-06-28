@@ -12,7 +12,6 @@ card_id = "moon_veil_assassin"
 card_name = "Moon-Veil Assassin"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 5
 ap = 5
 dp = 1

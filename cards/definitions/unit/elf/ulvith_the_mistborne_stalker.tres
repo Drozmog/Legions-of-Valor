@@ -11,7 +11,6 @@ card_id = "ulvith_the_mistborne_stalker"
 card_name = "Ulvith, The Mistborne Stalker"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 2
 ap = 3
 dp = 1

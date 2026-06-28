@@ -11,7 +11,6 @@ card_id = "dalmirs_tome"
 card_name = "Dalmir's Tome"
 race = "neutral"
 card_type = "equipment"
-rarity = "normal"
 tribute_cost = 1
 abilities = Array[ExtResource("1_2xcmf")]([ExtResource("2_2xcmf")])
 ability_text = "Shielded → Gain +2AP if Defending (only)."

@@ -12,7 +12,6 @@ card_id = "banner_of_expansion"
 card_name = "Banner of Expansion"
 race = "neutral"
 card_type = "equipment"
-rarity = "normal"
 tribute_cost = 3
 dp = 1
 abilities = Array[ExtResource("1_wghog")]([ExtResource("2_2n0w8"), ExtResource("3_l74i7")])

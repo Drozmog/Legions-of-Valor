@@ -11,7 +11,6 @@ card_id = "orcish_militia"
 card_name = "Orcish Militia"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 1
 ap = 2
 abilities = Array[ExtResource("1_13pod")]([ExtResource("2_ji8dn")])

@@ -11,7 +11,6 @@ card_id = "lunareth_seer_florin"
 card_name = "Lunareth Seer Flo'rin"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 3
 ap = 4
 abilities = Array[ExtResource("1_nn01h")]([ExtResource("2_qo2iq")])

@@ -12,7 +12,6 @@ card_id = "variels_chosen_risak"
 card_name = "Variel’s Chosen, Risa'k"
 race = "elf"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 5
 ap = 6
 dp = 1

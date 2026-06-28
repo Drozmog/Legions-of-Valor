@@ -71,12 +71,13 @@ func update_counter_label() -> void:
 	counter_label.text = "Discard: " + str(discarded_cards.size())
 
 
-func add_card(card_data: CardData) -> void:
+func add_card(card_data: CardData, rebuild_visual: bool = true) -> void:
 	if card_data == null:
 		return
 
 	discarded_cards.append(card_data)
-	build_stack()
+	if rebuild_visual:
+		build_stack()
 
 
 func peek_top_card() -> CardData:

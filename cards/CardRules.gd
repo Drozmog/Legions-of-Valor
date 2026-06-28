@@ -36,7 +36,7 @@ static func is_equipment_card(card_data: CardData) -> bool:
 
 
 static func is_elite_card(card_data: CardData) -> bool:
-	return card_data != null and card_data.rarity.to_lower().strip_edges() == "elite"
+	return card_data != null and card_data.is_crown_rarity()
 
 
 static func get_deck_copy_limit(card_data: CardData) -> int:

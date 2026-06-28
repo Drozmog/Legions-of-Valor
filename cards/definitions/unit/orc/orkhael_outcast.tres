@@ -12,7 +12,6 @@ card_id = "orkhael_outcast"
 card_name = "Orkhael Outcast"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 2
 ap = 5
 dp = 1

@@ -6,7 +6,15 @@ class_name CardData
 
 @export var race: String = ""
 @export var card_type: String = "" # unit, ruse, trap, spell, equipment
-@export var rarity: String = "" # common, rare, elite
+@export_enum(
+	"◈",
+	"◈◈",
+	"◈◈◈",
+	"✩",
+	"✩✩",
+	"✩✩✩",
+	"♔"
+) var rarity: String = "◈"
 
 @export var tribute_cost: int = 0
 @export var ap: int = 0
@@ -69,6 +77,33 @@ func has_ability(ability_id: StringName) -> bool:
 	# Compatibility while legacy cards are migrated to AbilityData resources.
 	var legacy_name := String(ability_id).replace("_", " ").to_lower()
 	return get_ability_text().to_lower().contains(legacy_name)
+
+
+func get_rarity_rank() -> int:
+	match rarity.to_lower().strip_edges():
+		"◈", "1 diamond ◈", "normal", "common", "":
+			return 0
+		"◈◈", "2 diamond ◈◈":
+			return 1
+		"◈◈◈", "3 diamond ◈◈◈":
+			return 2
+		"✩", "1 star ✩", "rare":
+			return 3
+		"✩✩", "2 star ✩✩":
+			return 4
+		"✩✩✩", "3 star ✩✩✩", "legendary":
+			return 5
+		"♔", "crown ♔", "elite":
+			return 6
+	return 0
+
+
+func is_premium_rarity() -> bool:
+	return get_rarity_rank() >= 3
+
+
+func is_crown_rarity() -> bool:
+	return get_rarity_rank() == 6
 
 
 func is_valid() -> bool:

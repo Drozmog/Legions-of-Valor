@@ -11,7 +11,6 @@ card_id = "raging_orkhael_vlara"
 card_name = "Raging Orkhael"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 4
 ap = 5
 dp = 1

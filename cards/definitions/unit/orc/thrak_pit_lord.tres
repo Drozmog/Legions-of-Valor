@@ -12,7 +12,6 @@ card_id = "thrak_pit_lord"
 card_name = "Thrak, Pit-Lord"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 4
 ap = 7
 dp = 1

@@ -11,7 +11,6 @@ card_id = "imperial_archive_master"
 card_name = "Imperial Archive-Master"
 race = "human"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 2
 ap = 4
 abilities = Array[ExtResource("1_ibvd5")]([ExtResource("2_dolal")])

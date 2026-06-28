@@ -11,7 +11,6 @@ card_id = "the_die_is_cast"
 card_name = "The Die is Cast"
 race = "neutral"
 card_type = "gambit"
-rarity = "normal"
 tribute_cost = 3
 dp = 2
 abilities = Array[ExtResource("1_oej6t")]([ExtResource("2_oej6t")])

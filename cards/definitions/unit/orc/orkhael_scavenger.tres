@@ -11,7 +11,6 @@ card_id = "orkhael_scavenger"
 card_name = "Orkhael Scavenger"
 race = "orc"
 card_type = "unit"
-rarity = "normal"
 tribute_cost = 2
 ap = 3
 abilities = Array[ExtResource("1_it4tj")]([ExtResource("2_h10t2")])

@@ -11,7 +11,6 @@ card_id = "gridlock"
 card_name = "Gridlock"
 race = "neutral"
 card_type = "gambit"
-rarity = "normal"
 tribute_cost = 3
 dp = 4
 abilities = Array[ExtResource("1_ng5vn")]([ExtResource("2_ng5vn")])
