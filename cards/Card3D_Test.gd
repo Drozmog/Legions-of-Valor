@@ -23,6 +23,13 @@ const ABILITY_ICON_PATHS := {
 
 static var mipmapped_texture_cache: Dictionary = {}
 
+
+# BEGIN CARD UI CLEANUP CONSTANTS
+const UI_ABILITY_ICON_PIXEL_SIZE := 0.0038
+const UI_ABILITY_GLOW_PIXEL_SIZE := 0.0062
+const UI_ABILITY_HITBOX_SIZE := Vector3(0.34, 0.22, 0.34)
+# END CARD UI CLEANUP CONSTANTS
+
 @onready var card_body: MeshInstance3D = get_node_or_null("CardBody") as MeshInstance3D
 
 var assigned_card_data: CardData = null
@@ -291,7 +298,7 @@ func create_ability_icon_3d(ability: AbilityData) -> Node3D:
 		var glow := Sprite3D.new()
 		glow.name = "Glow"
 		glow.texture = load(icon_path) as Texture2D
-		glow.pixel_size = ability_icon_pixel_size * 1.65
+		glow.pixel_size = UI_ABILITY_GLOW_PIXEL_SIZE
 		glow.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		glow.no_depth_test = true
 		glow.modulate = Color(1.0, 0.78, 0.22, 0.0)
@@ -301,7 +308,7 @@ func create_ability_icon_3d(ability: AbilityData) -> Node3D:
 		var sprite := Sprite3D.new()
 		sprite.name = "Icon"
 		sprite.texture = load(icon_path) as Texture2D
-		sprite.pixel_size = ability_icon_pixel_size
+		sprite.pixel_size = UI_ABILITY_ICON_PIXEL_SIZE
 		sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		sprite.no_depth_test = true
 		sprite.modulate = Color(1.0, 1.0, 1.0, 0.36)
@@ -310,7 +317,7 @@ func create_ability_icon_3d(ability: AbilityData) -> Node3D:
 		var label := Label3D.new()
 		label.name = "IconFallback"
 		label.text = ability_type.substr(0, 1).to_upper()
-		label.pixel_size = 0.004
+		label.pixel_size = 0.0048
 		label.font_size = 34
 		label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		label.no_depth_test = true
@@ -319,20 +326,6 @@ func create_ability_icon_3d(ability: AbilityData) -> Node3D:
 		label.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
 		root.add_child(label)
 
-	var tooltip := Label3D.new()
-	tooltip.name = "Tooltip"
-	tooltip.text = ability.get_display_text() if ability != null else ability_type.capitalize()
-	tooltip.position = Vector3(0.0, 0.045, -0.16)
-	tooltip.pixel_size = 0.0022
-	tooltip.font_size = 24
-	tooltip.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	tooltip.no_depth_test = true
-	tooltip.modulate = Color(1.0, 0.91, 0.62, 1.0)
-	tooltip.outline_size = 8
-	tooltip.outline_modulate = Color(0.025, 0.012, 0.0, 1.0)
-	tooltip.visible = false
-	root.add_child(tooltip)
-
 	var area := Area3D.new()
 	area.name = "ClickArea"
 	area.collision_layer = 8
@@ -340,7 +333,7 @@ func create_ability_icon_3d(ability: AbilityData) -> Node3D:
 	area.input_ray_pickable = false
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
-	shape.size = Vector3(0.18, 0.12, 0.18)
+	shape.size = UI_ABILITY_HITBOX_SIZE
 	collision.shape = shape
 	area.add_child(collision)
 	area.input_event.connect(_on_ability_icon_input_event.bind(root))
@@ -349,7 +342,6 @@ func create_ability_icon_3d(ability: AbilityData) -> Node3D:
 	root.add_child(area)
 
 	return root
-	
 
 func set_ability_icons_visible(show_icons: bool, instant: bool = false) -> void:
 	manual_ability_icons_visible = show_icons
@@ -471,25 +463,18 @@ func _on_ability_icon_input_event(
 
 
 func _on_ability_icon_mouse_entered(icon_root: Node3D) -> void:
-	var tooltip := icon_root.get_node_or_null("Tooltip") as Label3D
-	if tooltip != null:
-		tooltip.visible = true
+	# Do not show the old yellow Label3D tooltip. The battlefield manager shows the proper black panel.
 	var ability := icon_root.get_meta("ability", null) as AbilityData
 	if ability != null:
 		ability_icon_hovered.emit(self, ability)
 	Cursors.use_pointing()
 
-
 func _on_ability_icon_mouse_exited(icon_root: Node3D) -> void:
-	var tooltip := icon_root.get_node_or_null("Tooltip") as Label3D
-	if tooltip != null:
-		tooltip.visible = false
 	var ability := icon_root.get_meta("ability", null) as AbilityData
 	if ability != null:
 		ability_icon_unhovered.emit(self, ability)
 	Cursors.use_normal()
-		
-		
+
 func set_ability_icon_root_alpha(alpha: float) -> void:
 	if ability_icon_root == null:
 		return
