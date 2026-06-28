@@ -11,6 +11,7 @@ card_id = "free_taxi_service"
 card_name = "Free Taxi Service"
 race = "neutral"
 card_type = "gambit"
+rarity = "✩"
 tribute_cost = 6
 dp = 4
 abilities = Array[ExtResource("1_ro84u")]([ExtResource("2_ro84u")])

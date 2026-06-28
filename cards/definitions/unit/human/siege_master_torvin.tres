@@ -12,7 +12,6 @@ card_id = "siege_master_torvin"
 card_name = "Siege-Master Torvin"
 race = "human"
 card_type = "unit"
-rarity = "◈"
 tribute_cost = 6
 ap = 7
 dp = 3

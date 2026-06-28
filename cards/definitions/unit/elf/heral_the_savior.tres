@@ -12,7 +12,6 @@ card_id = "heral_the_savior"
 card_name = "Hera'l The Savior"
 race = "elf"
 card_type = "unit"
-rarity = "♔"
 tribute_cost = 6
 ap = 9
 dp = 2

@@ -2700,12 +2700,20 @@ func animate_gambit_activation(slot: Node, card_data: CardData, return_to_hand: 
 	rise.parallel().tween_property(visual, "scale", base_scale * 1.42, 0.48)
 	rise.parallel().tween_property(light, "light_energy", 4.2, 0.48)
 	await rise.finished
-	var pulse := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	pulse.tween_property(light, "light_energy", 7.0, 0.18)
-	pulse.parallel().tween_property(visual, "scale", base_scale * 1.49, 0.18)
-	pulse.tween_property(light, "light_energy", 3.0, 0.22)
-	pulse.parallel().tween_property(visual, "scale", base_scale * 1.42, 0.22)
-	await pulse.finished
+	if card_animation_manager != null:
+		var activation_profile := (
+			CardAnimationManager.RARE_ACTION_3D_GOLDEN_DISCARD
+			if card_data.is_premium_rarity()
+			else CardAnimationManager.COMMON_ACTION_3D_FLASH_DISCARD
+		)
+		await card_animation_manager.play_card_showcase_flash_3d(visual, activation_profile)
+	else:
+		var pulse := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		pulse.tween_property(light, "light_energy", 7.0, 0.18)
+		pulse.parallel().tween_property(visual, "scale", base_scale * 1.49, 0.18)
+		pulse.tween_property(light, "light_energy", 3.0, 0.22)
+		pulse.parallel().tween_property(visual, "scale", base_scale * 1.42, 0.22)
+		await pulse.finished
 	if return_to_hand:
 		var hand_target: Node3D = get_node_or_null("CardAnimationManager/PlayerHandOrigin") as Node3D
 		if owner_name == "enemy":
@@ -2717,12 +2725,20 @@ func animate_gambit_activation(slot: Node, card_data: CardData, return_to_hand: 
 			return_tween.parallel().tween_property(light, "light_energy", 0.0, 0.46)
 			await return_tween.finished
 	else:
-		var disperse := create_tween().set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
-		disperse.tween_property(visual, "scale", base_scale * 0.03, 0.38)
-		disperse.parallel().tween_property(visual, "rotation_degrees:y", visual.rotation_degrees.y + 110.0, 0.38)
-		disperse.parallel().tween_property(light, "light_energy", 0.0, 0.38)
-		await disperse.finished
-	visual.queue_free()
+		var discard_target: Node = discard_pile if owner_name == "player" else get_enemy_visual_target("EnemyDiscardPileVisual")
+		var premium := card_data.is_premium_rarity()
+		light.light_energy = 0.0
+		if card_animation_manager != null and discard_target != null:
+			var destination := Transform3D(
+				Basis.from_euler(card_animation_manager.get_exact_landing_rotation(discard_target)),
+				card_animation_manager.get_exact_landing_position(discard_target)
+			)
+			await card_animation_manager.vaporize_card_to_destination_3d(visual, destination, premium)
+		else:
+			var disperse := create_tween().set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN)
+			disperse.tween_property(visual, "scale", base_scale * 0.03, 0.30)
+			await disperse.finished
+	visual.free()
 	if slot.has_method("clear_slot"):
 		slot.call("clear_slot")
 	if return_to_hand:
@@ -2735,10 +2751,6 @@ func animate_gambit_activation(slot: Node, card_data: CardData, return_to_hand: 
 			ai_discard.append(card_data)
 		else:
 			discard_pile.add_card(card_data)
-		var bottom := screen_to_battle_plane(Vector2(get_viewport().get_visible_rect().size.x * 0.5, get_viewport().get_visible_rect().size.y + 160.0), (slot as Node3D).global_position.y + 0.2)
-		var discard_target: Node = discard_pile if owner_name == "player" else get_enemy_visual_target("EnemyDiscardPileVisual")
-		if card_animation_manager != null and discard_target != null:
-			await card_animation_manager.animate_card_from_position_to_node(card_data, bottom, discard_target, false)
 	update_ai_visuals()
 
 
@@ -6215,10 +6227,6 @@ func get_player_attackers_for_lane(target_lane: String) -> Array[Node]:
 	var direct := find_slot_by_owner_row_lane("player", "front", target_lane)
 	if is_unit_card(get_slot_card_data(direct)):
 		attackers.append(direct)
-	for source_lane in get_adjacent_lanes(target_lane):
-		var diagonal := find_slot_by_owner_row_lane("player", "front", source_lane)
-		if is_unit_card(get_slot_card_data(diagonal)) and slot_has_mobility_ability(diagonal, &"volley") != null:
-			attackers.append(diagonal)
 	return attackers
 
 func can_player_check_lane_from_menu(lane: String) -> bool:
@@ -6439,8 +6447,6 @@ func resolve_player_attack_lane_with_visuals(lane: String) -> void:
 	var player_front_slot: Node = null
 	if attacker_candidates.size() == 1:
 		player_front_slot = attacker_candidates[0]
-	elif attacker_candidates.size() > 1:
-		player_front_slot = await choose_mobility_slot(attacker_candidates, "VOLLEY  -  Choose the attacking unit")
 	var enemy_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
 	var enemy_back_slot: Node = find_slot_by_owner_row_lane("enemy", "back", lane)
 

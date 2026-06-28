@@ -12,7 +12,6 @@ card_id = "grandmaster_lewin"
 card_name = "Grandmaster Lewin"
 race = "human"
 card_type = "unit"
-rarity = "◈"
 tribute_cost = 5
 ap = 7
 dp = 3

@@ -12,7 +12,6 @@ card_id = "captain_rodry"
 card_name = "Captain Rodry"
 race = "human"
 card_type = "unit"
-rarity = "◈"
 tribute_cost = 6
 ap = 8
 dp = 3

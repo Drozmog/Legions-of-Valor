@@ -80,6 +80,11 @@ func add_card(card_data: CardData, rebuild_visual: bool = true) -> void:
 		build_stack()
 
 
+func get_animation_landing_position() -> Vector3:
+	var visible_height := 0.045 + float(stacked_cards.size()) * (card_thickness + stack_gap)
+	return global_position + global_basis.y.normalized() * visible_height
+
+
 func peek_top_card() -> CardData:
 	if discarded_cards.is_empty():
 		return null

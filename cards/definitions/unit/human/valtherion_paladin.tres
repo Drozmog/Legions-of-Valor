@@ -12,7 +12,6 @@ card_id = "valtherion_paladin"
 card_name = "Valtherion Paladin"
 race = "human"
 card_type = "unit"
-rarity = "◈"
 tribute_cost = 5
 ap = 6
 dp = 1
