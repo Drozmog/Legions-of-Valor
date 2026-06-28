@@ -79,10 +79,10 @@ void fragment() {
 
 func _apply_white_text(label: Label, alpha: float) -> void:
 	label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, alpha))
-	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.82))
-	label.add_theme_constant_override("shadow_offset_x", 2)
-	label.add_theme_constant_override("shadow_offset_y", 2)
-	label.add_theme_constant_override("shadow_outline_size", 3)
+	label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.42))
+	label.add_theme_constant_override("shadow_offset_x", 1)
+	label.add_theme_constant_override("shadow_offset_y", 1)
+	label.add_theme_constant_override("shadow_outline_size", 1)
 
 
 func show_tip(message: String) -> void:
@@ -102,7 +102,7 @@ func show_tip(message: String) -> void:
 func _rest_y() -> float:
 	# The prominent battlefield crack sits at roughly 60% of the view height.
 	# Rest the panel's lower edge on it across window sizes.
-	return maxf(24.0, get_viewport_rect().size.y * 0.60 - PANEL_HEIGHT)
+	return maxf(24.0, get_viewport_rect().size.y * 0.50 - PANEL_HEIGHT)
 
 
 func update_tip(message: String) -> void:

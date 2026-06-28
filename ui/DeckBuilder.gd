@@ -525,8 +525,8 @@ func build_overlay_ui() -> void:
 	tabletop_ui_surfaces.push_front(ability_surface_entry)
 
 	var plaque_style := make_panel_style(
-		Color(0.055, 0.065, 0.085, 0.72),
-		Color(1.0, 1.0, 1.0, 0.30),
+		Color(0.055, 0.065, 0.085, 0.90),
+		Color(1.0, 1.0, 1.0, 0.34),
 		1
 	)
 
@@ -751,8 +751,11 @@ uniform float blur_lod = 2.8;
 void fragment() {
 	vec4 ui = texture(ui_texture, UV);
 	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
-	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.72, 0.0, 1.0));
-	ALPHA = ui.a;
+
+	float ui_weight = clamp(ui.a, 0.0, 1.0);
+
+	ALBEDO = mix(blurred_world, ui.rgb, ui_weight);
+	ALPHA = clamp(ui.a * 1.12, 0.0, 1.0);
 }
 """
 	var material := ShaderMaterial.new()
@@ -1339,7 +1342,7 @@ func create_ability_filter_panel(parent: Control) -> void:
 	ability_filter_panel.z_index = 20
 	ability_filter_panel.add_theme_stylebox_override(
 		"panel",
-		make_panel_style(Color(0.055, 0.065, 0.085, 0.78), Color(1.0, 1.0, 1.0, 0.32), 1)
+		make_panel_style(Color(0.055, 0.065, 0.085, 0.90), Color(1.0, 1.0, 1.0, 0.36), 1)
 	)
 	parent.add_child(ability_filter_panel)
 

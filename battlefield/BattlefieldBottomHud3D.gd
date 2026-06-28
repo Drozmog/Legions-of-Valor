@@ -7,7 +7,7 @@ const INSPECT_BUTTON_TEXTURE: Texture2D = preload("res://ui/combat_buttons/inspe
 
 const GOLD := Color(1.0, 1.0, 1.0, 0.92)
 const PALE_GOLD := Color(1.0, 1.0, 1.0, 1.0)
-const PANEL_BG := Color(0.055, 0.065, 0.085, 0.72)
+const PANEL_BG := Color(0.055, 0.065, 0.085, 0.90)
 const BATTLEPLAN_CARD_SIZE := Vector2(2.80, 1.70) # exact 3.5:2.5 landscape ratio
 const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
 const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
@@ -304,14 +304,19 @@ func create_glass_surface_material(ui_texture: Texture2D, priority: int) -> Shad
 	shader.code = """
 shader_type spatial;
 render_mode unshaded, cull_disabled, blend_mix, depth_draw_never, depth_test_disabled;
+
 uniform sampler2D ui_texture : source_color, repeat_disable, filter_linear_mipmap_anisotropic;
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
 uniform float blur_lod = 2.8;
+
 void fragment() {
 	vec4 ui = texture(ui_texture, UV);
 	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
-	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.72, 0.0, 1.0));
-	ALPHA = ui.a;
+
+	float ui_weight = clamp(ui.a, 0.0, 1.0);
+
+	ALBEDO = mix(blurred_world, ui.rgb, ui_weight);
+	ALPHA = clamp(ui.a * 1.12, 0.0, 1.0);
 }
 """
 	var material := ShaderMaterial.new()
@@ -665,7 +670,7 @@ func make_battleplan_card_material(texture: Texture2D) -> StandardMaterial3D:
 	material.albedo_color = Color.WHITE
 	material.albedo_texture = texture
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	material.no_depth_test = true
