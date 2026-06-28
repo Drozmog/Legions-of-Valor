@@ -22,7 +22,7 @@ const TOP_CARD_Z := -1.12
 const CARD_SURFACE_Y := 0.58
 const TOP_SLOT_X := [-3.35, 0.0, 3.35]
 const SHUFFLE_STEP_TIME := 0.105
-const CARD_MOVE_TIME := 0.26
+const CARD_MOVE_TIME := 0.52
 const INTRO_DEAL_IN_TIME := 0.34
 const INTRO_PREVIEW_TIME := 0.10
 const INTRO_FLIP_TIME := 0.24
@@ -694,27 +694,34 @@ func _animate_card_to_slot(card_index: int, slot_index: int) -> void:
 	var root := entry["root"] as Node3D
 	var visual := entry["visual"] as Node3D
 	var target := Vector3(float(TOP_SLOT_X[slot_index]), CARD_SURFACE_Y + 0.07, TOP_CARD_Z)
-	var midpoint := (root.position + target) * 0.5 + Vector3(0.0, 0.72, -0.15)
+	var start := root.position
+	var midpoint := start.lerp(target, 0.56) + Vector3(0.0, 0.34, -0.10)
 
 	var lift := create_tween()
-	lift.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	lift.tween_property(root, "position", midpoint, CARD_MOVE_TIME)
-	lift.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 180.0), CARD_MOVE_TIME)
-	lift.parallel().tween_property(visual, "rotation_degrees", Vector3(0.0, 90.0, 0.0), CARD_MOVE_TIME)
+	lift.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_IN_OUT)
+	lift.tween_property(root, "position", midpoint, CARD_MOVE_TIME * 0.46)
+	lift.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 2.5), CARD_MOVE_TIME * 0.46)
+	lift.parallel().tween_property(root, "scale", Vector3.ONE * 1.025, CARD_MOVE_TIME * 0.46)
+	lift.parallel().tween_property(visual, "rotation_degrees:y", 88.0, CARD_MOVE_TIME * 0.46)
 	await lift.finished
 	if not visible or root == null or not is_instance_valid(root):
 		return
 	_show_card_front(card_index)
+	visual.rotation_degrees.y = -88.0
 
 	var land := create_tween()
-	land.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	land.tween_property(root, "position", target, CARD_MOVE_TIME + 0.10)
-	land.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 360.0), CARD_MOVE_TIME + 0.10)
-	land.parallel().tween_property(visual, "rotation_degrees", Vector3.ZERO, CARD_MOVE_TIME + 0.10)
+	land.set_trans(Tween.TRANS_QUINT).set_ease(Tween.EASE_OUT)
+	land.tween_property(root, "position", target, CARD_MOVE_TIME * 0.54)
+	land.parallel().tween_property(root, "rotation_degrees", Vector3(-90.0, 0.0, 0.0), CARD_MOVE_TIME * 0.54)
+	land.parallel().tween_property(root, "scale", Vector3.ONE, CARD_MOVE_TIME * 0.54)
+	land.parallel().tween_property(visual, "rotation_degrees:y", 0.0, CARD_MOVE_TIME * 0.54)
 	await land.finished
 	if not visible or root == null or not is_instance_valid(root):
 		return
+	root.position = target
 	root.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+	root.scale = Vector3.ONE
+	visual.rotation_degrees = Vector3.ZERO
 	entry["state"] = "revealed"
 	_set_card_pickable(entry, true)
 	if revealed_indices.size() == 3 and _all_selected_cards_revealed():

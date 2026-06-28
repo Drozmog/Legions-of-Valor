@@ -76,6 +76,8 @@ static func _ensure_default_handlers() -> void:
 	register_handler(&"true_sight", _resolve_true_sight)
 	register_handler(&"vantage", _resolve_vantage)
 	register_handler(&"vision", _resolve_vision)
+	for protection_id in [&"aegis", &"deflect", &"equalizer", &"infiltrator", &"last_stand", &"plated", &"shielded", &"shield_burst", &"solidarity", &"solidify", &"spell_shield", &"spiked"]:
+		register_handler(protection_id, _resolve_protection_flag)
 
 
 static func _resolve_volley(ability: AbilityData, context: Dictionary) -> Dictionary:
@@ -91,6 +93,13 @@ static func _resolve_volley(ability: AbilityData, context: Dictionary) -> Dictio
 static func _resolve_mobility_flag(ability: AbilityData, context: Dictionary, effect: String) -> Dictionary:
 	return _ability_success(ability, {
 		"effect": effect,
+		"context": context,
+	})
+
+
+static func _resolve_protection_flag(ability: AbilityData, context: Dictionary) -> Dictionary:
+	return _ability_success(ability, {
+		"effect": String(ability.get_handler_id()),
 		"context": context,
 	})
 

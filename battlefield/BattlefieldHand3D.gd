@@ -5,7 +5,7 @@ const CARD_SCENE: PackedScene = preload("res://cards/Card3D_Test.tscn")
 const CARD_PICK_LAYER: int = 8
 
 @export var hand_plane_y: float = 0.58
-@export var layout_lerp_speed: float = 13.0
+@export var layout_lerp_speed: float = 9.5
 @export var hover_height: float = 0.075
 @export var hover_neighbor_spread: float = 0.21
 @export var hover_return_clearance_time: float = 0.20
@@ -23,6 +23,7 @@ var pressed_screen_position := Vector2.ZERO
 var press_became_drag := false
 var next_spawn_position := Vector3.ZERO
 var has_next_spawn_position := false
+var deal_animation_states: Dictionary = {}
 var draw_preview: Node3D
 var draw_preview_target_position := Vector3.ZERO
 var draw_preview_target_rotation := Vector3.ZERO
@@ -78,6 +79,7 @@ func sync_card_visuals() -> void:
 			old_visual.queue_free()
 		card_visuals.erase(card_id)
 		hidden_card_ids.erase(card_id)
+		deal_animation_states.erase(card_id)
 
 
 func create_card_visual(proxy: CardUI) -> Node3D:
@@ -106,6 +108,13 @@ func create_card_visual(proxy: CardUI) -> Node3D:
 	if has_next_spawn_position:
 		visual.global_position = next_spawn_position
 		has_next_spawn_position = false
+		deal_animation_states[proxy.get_instance_id()] = {
+			"start": visual.global_position,
+			"destination": Vector3.INF,
+			"elapsed": 0.0,
+			"duration": 0.78,
+			"arc_height": 0.42,
+		}
 	else:
 		visual.global_position = get_proxy_target_position(proxy)
 	visual.scale = get_proxy_target_scale(proxy) * 0.92
@@ -144,13 +153,18 @@ func update_card_layout(delta: float) -> void:
 				target_position.x += spread_direction * hover_neighbor_spread * spread_weight
 		if not blocked and card_id == hovered_card_id:
 			target_position.y += hover_height
-		var weight := clampf(delta * layout_lerp_speed, 0.0, 1.0)
+		# Exponential smoothing remains consistent across frame rates and gives
+		# dealt cards a gentle deceleration instead of a stepped linear chase.
+		var weight := 1.0 - exp(-layout_lerp_speed * delta)
 		visual.global_position = visual.global_position.lerp(target_position, weight)
 		var target_rotation := Vector3(0.0, deg_to_rad(-proxy.rotation_degrees), 0.0)
 		visual.global_rotation = visual.global_rotation.lerp(target_rotation, weight)
 		var target_scale := get_proxy_target_scale(proxy)
 		if not blocked and card_id == hovered_card_id:
 			target_scale *= 1.025
+		if deal_animation_states.has(card_id):
+			_update_deal_animation(card_id, visual, target_position, target_rotation, target_scale, delta)
+			continue
 		visual.scale = visual.scale.lerp(target_scale, weight)
 		if visual.has_method("set_ability_icons_visible"):
 			visual.set_ability_icons_visible(hand_ui.showing_ability_icons and not blocked)
@@ -159,6 +173,47 @@ func update_card_layout(delta: float) -> void:
 		hover_return_time_left = maxf(hover_return_time_left - delta, 0.0)
 		if hover_return_time_left <= 0.0:
 			returning_card_id = 0
+
+
+func _update_deal_animation(
+	card_id: int,
+	visual: Node3D,
+	target_position: Vector3,
+	target_rotation: Vector3,
+	target_scale: Vector3,
+	delta: float
+) -> void:
+	var state: Dictionary = deal_animation_states[card_id]
+	state["elapsed"] = float(state["elapsed"]) + delta
+	var duration := maxf(float(state["duration"]), 0.01)
+	var t := clampf(float(state["elapsed"]) / duration, 0.0, 1.0)
+	# Quintic smoothstep gives zero velocity and acceleration at both ends.
+	# The sine lift creates a shallow ballistic arc without an artificial bounce.
+	var travel := t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
+	var start := state["start"] as Vector3
+	var destination := state["destination"] as Vector3
+	if not destination.is_finite():
+		destination = target_position
+	else:
+		# New cards re-center the fan. Ease that changing landing point so a card
+		# already in flight bends naturally instead of being yanked sideways.
+		var destination_weight := 1.0 - exp(-8.0 * delta)
+		destination = destination.lerp(target_position, destination_weight)
+	state["destination"] = destination
+	var position := start.lerp(destination, travel)
+	position.y += sin(t * PI) * float(state["arc_height"])
+	visual.global_position = position
+	var bank := sin(t * PI) * deg_to_rad(-7.0 if destination.x < start.x else 7.0)
+	visual.global_rotation = target_rotation + Vector3(0.0, 0.0, bank)
+	var scale_weight := 0.90 + 0.10 * travel
+	visual.scale = target_scale * scale_weight
+	deal_animation_states[card_id] = state
+	if t < 1.0:
+		return
+	visual.global_position = target_position
+	visual.global_rotation = target_rotation
+	visual.scale = target_scale
+	deal_animation_states.erase(card_id)
 
 
 func get_card_index_from_id(card_id: int) -> int:

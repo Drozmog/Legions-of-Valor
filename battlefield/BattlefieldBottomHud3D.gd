@@ -5,9 +5,9 @@ signal phase_action_pressed
 
 const INSPECT_BUTTON_TEXTURE: Texture2D = preload("res://ui/combat_buttons/inspect_button.png")
 
-const GOLD := Color(0.94, 0.68, 0.19, 1.0)
-const PALE_GOLD := Color(1.0, 0.91, 0.66, 1.0)
-const PANEL_BG := Color(0.055, 0.023, 0.010, 0.94)
+const GOLD := Color(1.0, 1.0, 1.0, 0.92)
+const PALE_GOLD := Color(1.0, 1.0, 1.0, 1.0)
+const PANEL_BG := Color(0.055, 0.065, 0.085, 0.72)
 const BATTLEPLAN_CARD_SIZE := Vector2(2.80, 1.70) # exact 3.5:2.5 landscape ratio
 const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
 const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
@@ -102,7 +102,7 @@ func build_main_bar() -> void:
 	var role := Label.new()
 	role.text = "Grand Marshal"
 	role.add_theme_font_size_override("font_size", 30)
-	role.add_theme_color_override("font_color", Color(0.72, 0.57, 0.34, 1.0))
+	role.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.62))
 	identity.add_child(role)
 	add_hud_cell(left_row, identity, 0.05)
 
@@ -125,7 +125,7 @@ func build_main_bar() -> void:
 	instruction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	instruction_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	instruction_label.add_theme_font_size_override("font_size", 30)
-	instruction_label.add_theme_color_override("font_color", Color(0.84, 0.75, 0.61, 1.0))
+	instruction_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.78))
 	instruction_label.visible = false
 	phase_info.add_child(instruction_label)
 
@@ -214,7 +214,7 @@ func build_log_foldout() -> void:
 	log_text.fit_content = false
 	log_text.mouse_filter = Control.MOUSE_FILTER_STOP
 	log_text.add_theme_font_size_override("normal_font_size", 17)
-	log_text.add_theme_color_override("default_color", Color(0.92, 0.84, 0.68, 1.0))
+	log_text.add_theme_color_override("default_color", Color(1.0, 1.0, 1.0, 0.88))
 	margin.add_child(log_text)
 	log_surface.scale = Vector3(1.0, 0.02, 1.0)
 	log_surface.visible = false
@@ -291,19 +291,35 @@ func create_surface(surface_name: String, viewport_size: Vector2i, world_positio
 	surface.position = world_position
 	surface.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	var material := StandardMaterial3D.new()
-	material.albedo_texture = viewport.get_texture()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	material.no_depth_test = true
-	material.render_priority = 127
+	var material := create_glass_surface_material(viewport.get_texture(), 127)
 	surface.material_override = material
 	add_child(surface)
 	var entry := {"viewport": viewport, "control": control, "surface": surface, "viewport_size": viewport_size, "world_size": world_size, "interactive": interactive}
 	surfaces.append(entry)
 	return entry
+
+
+func create_glass_surface_material(ui_texture: Texture2D, priority: int) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, blend_mix, depth_draw_never, depth_test_disabled;
+uniform sampler2D ui_texture : source_color, repeat_disable, filter_linear_mipmap_anisotropic;
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
+uniform float blur_lod = 2.8;
+void fragment() {
+	vec4 ui = texture(ui_texture, UV);
+	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
+	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.72, 0.0, 1.0));
+	ALPHA = ui.a;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("ui_texture", ui_texture)
+	material.set_shader_parameter("blur_lod", 2.8)
+	material.render_priority = priority
+	return material
 
 
 func update_info(phase_text: String, turn_text: String, score_text: String, instruction: String, action_text: String, disabled: bool, ready: bool) -> void:
@@ -319,7 +335,7 @@ func update_info(phase_text: String, turn_text: String, score_text: String, inst
 	phase_button.visible = not action_text.is_empty()
 	phase_button.disabled = disabled or modal_blocked
 	var style_name := "normal"
-	phase_button.add_theme_stylebox_override(style_name, button_style(Color(0.48, 0.29, 0.045, 0.98), Color(1.0, 0.82, 0.24, 1.0), 3, 12) if ready else button_style(Color(0.13, 0.07, 0.025, 0.96), Color(0.54, 0.38, 0.12, 0.9), 2, 0))
+	phase_button.add_theme_stylebox_override(style_name, button_style(Color(0.16, 0.18, 0.22, 0.82), Color(1.0, 1.0, 1.0, 0.72), 2, 0) if ready else button_style(Color(0.07, 0.08, 0.10, 0.62), Color(1.0, 1.0, 1.0, 0.26), 1, 0))
 
 
 func set_log_output(value: String) -> void:
@@ -470,7 +486,7 @@ func make_inspect_button_material() -> StandardMaterial3D:
 	material.no_depth_test = true
 	material.render_priority = BATTLEPLAN_CARD_RENDER_PRIORITY
 	material.emission_enabled = true
-	material.emission = Color(0.95, 0.67, 0.18, 1.0)
+	material.emission = Color.WHITE
 	material.emission_energy_multiplier = 0.95
 	return material
 
@@ -574,12 +590,12 @@ func create_battleplan_face_texture(plan: Dictionary, caption: String) -> Textur
 	var panel := PanelContainer.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.10, 0.045, 0.018, 1.0)
-	panel_style.border_color = GOLD
-	panel_style.set_border_width_all(12)
+	panel_style.bg_color = Color(0.055, 0.065, 0.085, 0.90)
+	panel_style.border_color = Color(1.0, 1.0, 1.0, 0.42)
+	panel_style.set_border_width_all(6)
 	panel_style.set_corner_radius_all(34)
-	panel_style.shadow_color = Color(1.0, 0.55, 0.06, 0.48)
-	panel_style.shadow_size = 18
+	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
+	panel_style.shadow_size = 12
 	panel.add_theme_stylebox_override("panel", panel_style)
 	viewport.add_child(panel)
 
@@ -622,7 +638,7 @@ func create_battleplan_face_texture(plan: Dictionary, caption: String) -> Textur
 	objective.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	objective.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	objective.add_theme_font_size_override("font_size", 27)
-	objective.add_theme_color_override("font_color", Color(0.86, 0.78, 0.64, 1.0))
+	objective.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.82))
 	rows.add_child(objective)
 	return viewport.get_texture()
 
@@ -655,7 +671,7 @@ func make_battleplan_card_material(texture: Texture2D) -> StandardMaterial3D:
 	material.no_depth_test = true
 	material.render_priority = BATTLEPLAN_CARD_RENDER_PRIORITY
 	material.emission_enabled = true
-	material.emission = Color(0.14, 0.075, 0.018, 1.0)
+	material.emission = Color(0.08, 0.09, 0.12, 1.0)
 	material.emission_energy_multiplier = 0.35
 	return material
 
@@ -754,13 +770,14 @@ func make_button(text_value: String, minimum: Vector2, primary: bool = false) ->
 	button.custom_minimum_size = minimum
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var bg := Color(0.30, 0.17, 0.045, 0.98) if primary else Color(0.13, 0.07, 0.025, 0.96)
-	button.add_theme_stylebox_override("normal", button_style(bg, Color(0.64, 0.44, 0.12, 1.0), 2, 0))
-	button.add_theme_stylebox_override("hover", button_style(bg.lightened(0.12), GOLD, 2, 5))
-	button.add_theme_stylebox_override("pressed", button_style(Color(0.42, 0.26, 0.06, 1.0), PALE_GOLD, 2, 0))
-	button.add_theme_stylebox_override("disabled", button_style(Color(0.055, 0.03, 0.015, 0.78), Color(0.28, 0.20, 0.08, 0.55), 1, 0))
+	var bg := Color(0.14, 0.16, 0.20, 0.76) if primary else Color(0.07, 0.08, 0.10, 0.64)
+	button.add_theme_stylebox_override("normal", button_style(bg, Color(1.0, 1.0, 1.0, 0.28), 1, 0))
+	button.add_theme_stylebox_override("hover", button_style(Color(0.22, 0.24, 0.28, 0.86), Color.WHITE, 2, 7))
+	button.add_theme_stylebox_override("pressed", button_style(Color(0.28, 0.30, 0.34, 0.92), Color.WHITE, 2, 2))
+	button.add_theme_stylebox_override("disabled", button_style(Color(0.04, 0.05, 0.06, 0.48), Color(1.0, 1.0, 1.0, 0.12), 1, 0))
 	button.add_theme_color_override("font_color", PALE_GOLD)
-	button.add_theme_color_override("font_disabled_color", Color(0.42, 0.36, 0.28, 0.75))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color(1.0, 1.0, 1.0, 0.34))
 	button.add_theme_font_size_override("font_size", 50)
 	return button
 
@@ -769,7 +786,8 @@ func panel_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = PANEL_BG
 	style.border_color = GOLD
-	style.set_border_width_all(0)
+	style.border_color = Color(1.0, 1.0, 1.0, 0.28)
+	style.set_border_width_all(1)
 	style.set_corner_radius_all(11)
 	# A flat tabletop plaque avoids the square shadow corner produced by
 	# StyleBoxFlat shadows around rounded panels.
@@ -778,7 +796,7 @@ func panel_style() -> StyleBoxFlat:
 
 
 func portrait_style() -> StyleBoxFlat:
-	var style := button_style(Color(0.20, 0.095, 0.025, 1.0), GOLD, 3, 4)
+	var style := button_style(Color(0.10, 0.11, 0.14, 0.82), Color(1.0, 1.0, 1.0, 0.45), 2, 3)
 	style.set_corner_radius_all(23)
 	return style
 
@@ -794,6 +812,6 @@ func button_style(bg: Color, border: Color, width: int, shadow: int) -> StyleBox
 	style.content_margin_top = 10.0
 	style.content_margin_bottom = 10.0
 	if shadow > 0:
-		style.shadow_color = Color(1.0, 0.55, 0.06, 0.55)
+		style.shadow_color = Color(1.0, 1.0, 1.0, 0.32)
 		style.shadow_size = shadow
 	return style

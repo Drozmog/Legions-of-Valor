@@ -14,7 +14,7 @@ signal draw_drag_released(screen_position: Vector2)
 
 @export var counter_side_offset: float = 0.0
 @export var counter_height: float = 0.16
-@export var counter_forward_offset: float = 0.92
+@export var counter_forward_offset: float = -0.92
 @export var counter_pixel_size: float = 0.006
 
 @onready var click_area: Area3D = get_node_or_null("ClickArea") as Area3D

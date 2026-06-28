@@ -525,9 +525,9 @@ func build_overlay_ui() -> void:
 	tabletop_ui_surfaces.push_front(ability_surface_entry)
 
 	var plaque_style := make_panel_style(
-		Color(0.105, 0.045, 0.014, 0.80),
-		Color(0.72, 0.49, 0.13, 0.96),
-		2
+		Color(0.055, 0.065, 0.085, 0.72),
+		Color(1.0, 1.0, 1.0, 0.30),
+		1
 	)
 
 	# A floating wooden plaque over the lower-left table, not a screen-wide bar.
@@ -572,7 +572,7 @@ func build_overlay_ui() -> void:
 	title_label.text = "DECK BUILDER"
 	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 16)
-	title_label.add_theme_color_override("font_color", Color(0.96, 0.78, 0.31, 1.0))
+	title_label.add_theme_color_override("font_color", Color.WHITE)
 	command_row.add_child(title_label)
 
 	search_box = LineEdit.new()
@@ -597,13 +597,15 @@ func build_overlay_ui() -> void:
 	ability_filter_button.pressed.connect(_on_ability_filter_toggle_pressed)
 	filter_row.add_child(ability_filter_button)
 
+	library_sort_button = make_library_sort_button()
+	filter_row.add_child(library_sort_button)
+
+	# Keep free viewport space to the right so the embedded popup can open
+	# beside this button instead of being forced above it.
 	var filter_spacer := Control.new()
 	filter_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	filter_spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	filter_row.add_child(filter_spacer)
-
-	library_sort_button = make_library_sort_button()
-	filter_row.add_child(library_sort_button)
 	create_ability_filter_panel(ability_popup_root)
 
 	# A separate deck ledger over the lower-right table leaves open space between.
@@ -637,7 +639,7 @@ func build_overlay_ui() -> void:
 	ledger_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ledger_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	ledger_label.add_theme_font_size_override("font_size", 14)
-	ledger_label.add_theme_color_override("font_color", Color(0.96, 0.78, 0.31, 1.0))
+	ledger_label.add_theme_color_override("font_color", Color.WHITE)
 	ledger_header.add_child(ledger_label)
 
 	deck_count_label = Label.new()
@@ -645,7 +647,7 @@ func build_overlay_ui() -> void:
 	deck_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	deck_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	deck_count_label.add_theme_font_size_override("font_size", 13)
-	deck_count_label.add_theme_color_override("font_color", Color(1.0, 0.82, 0.30, 1.0))
+	deck_count_label.add_theme_color_override("font_color", Color.WHITE)
 	ledger_header.add_child(deck_count_label)
 
 	var slots_button := make_button("SLOTS", Vector2(58, 28))
@@ -722,12 +724,7 @@ func create_tabletop_ui_surface(
 	surface.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
-	var material := StandardMaterial3D.new()
-	material.albedo_texture = viewport.get_texture()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	var material := create_tabletop_glass_material(viewport.get_texture())
 	surface.material_override = material
 	add_child(surface)
 
@@ -741,6 +738,29 @@ func create_tabletop_ui_surface(
 	}
 	tabletop_ui_surfaces.append(entry)
 	return entry
+
+
+func create_tabletop_glass_material(ui_texture: Texture2D) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, blend_mix, depth_draw_never;
+uniform sampler2D ui_texture : source_color, repeat_disable, filter_linear_mipmap;
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
+uniform float blur_lod = 2.8;
+void fragment() {
+	vec4 ui = texture(ui_texture, UV);
+	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
+	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.72, 0.0, 1.0));
+	ALPHA = ui.a;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("ui_texture", ui_texture)
+	material.set_shader_parameter("blur_lod", 2.8)
+	material.render_priority = 120
+	return material
 
 
 func initialize_deck_slots() -> void:
@@ -1174,47 +1194,55 @@ func make_button(text: String, min_size: Vector2, primary: bool = false) -> Butt
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
-	var bg_normal := Color(0.10, 0.065, 0.032, 0.94) if not primary else Color(0.38, 0.24, 0.06, 0.96)
-	var border_normal := Color(0.48, 0.34, 0.10, 0.85) if not primary else Color(0.85, 0.64, 0.18, 1.0)
+	var bg_normal := Color(0.06, 0.07, 0.09, 0.66) if not primary else Color(0.14, 0.16, 0.20, 0.80)
+	var border_normal := Color(1.0, 1.0, 1.0, 0.25) if not primary else Color(1.0, 1.0, 1.0, 0.48)
 
 	var s_normal := _make_btn_style(bg_normal, border_normal)
 	var s_hover := _make_btn_style(
-		bg_normal.lightened(0.12),
-		border_normal.lightened(0.20)
+		Color(0.22, 0.24, 0.28, 0.88),
+		Color.WHITE
 	)
-	var s_pressed := _make_btn_style(Color(0.52, 0.36, 0.09, 1.0), Color(0.95, 0.74, 0.24, 1.0))
-	var s_disabled := _make_btn_style(Color(0.06, 0.04, 0.02, 0.60), Color(0.28, 0.20, 0.08, 0.50))
+	var s_pressed := _make_btn_style(Color(0.28, 0.30, 0.34, 0.92), Color.WHITE)
+	var s_disabled := _make_btn_style(Color(0.04, 0.05, 0.06, 0.46), Color(1.0, 1.0, 1.0, 0.12))
 
 	button.add_theme_stylebox_override("normal", s_normal)
 	button.add_theme_stylebox_override("hover", s_hover)
 	button.add_theme_stylebox_override("pressed", s_pressed)
 	button.add_theme_stylebox_override("disabled", s_disabled)
-	button.add_theme_color_override("font_color", Color(0.92, 0.84, 0.62, 1.0))
-	button.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.72, 1.0))
-	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.97, 0.85, 1.0))
-	button.add_theme_color_override("font_disabled_color", Color(0.45, 0.38, 0.28, 0.70))
+	button.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.90))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color(1.0, 1.0, 1.0, 0.32))
 	button.add_theme_font_size_override("font_size", 13)
 	return button
 
 
 func make_library_sort_button() -> MenuButton:
 	var button := MenuButton.new()
+	button.name = "LibrarySortButton"
 	button.text = "SORT ↕"
 	button.custom_minimum_size = Vector2(76, 28)
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 
-	var bg_normal := Color(0.10, 0.065, 0.032, 0.94)
-	var border_normal := Color(0.48, 0.34, 0.10, 0.85)
+	var bg_normal := Color(0.06, 0.07, 0.09, 0.66)
+	var border_normal := Color(1.0, 1.0, 1.0, 0.25)
 	button.add_theme_stylebox_override("normal", _make_btn_style(bg_normal, border_normal))
-	button.add_theme_stylebox_override("hover", _make_btn_style(bg_normal.lightened(0.12), border_normal.lightened(0.20)))
-	button.add_theme_stylebox_override("pressed", _make_btn_style(Color(0.52, 0.36, 0.09, 1.0), Color(0.95, 0.74, 0.24, 1.0)))
-	button.add_theme_color_override("font_color", Color(0.92, 0.84, 0.62, 1.0))
-	button.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.72, 1.0))
-	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.97, 0.85, 1.0))
+	button.add_theme_stylebox_override("hover", _make_btn_style(Color(0.22, 0.24, 0.28, 0.88), Color.WHITE))
+	button.add_theme_stylebox_override("pressed", _make_btn_style(Color(0.28, 0.30, 0.34, 0.92), Color.WHITE))
+	button.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.90))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	button.add_theme_font_size_override("font_size", 13)
 
 	var popup := button.get_popup()
+	popup.transparent_bg = true
+	popup.add_theme_stylebox_override("panel", make_panel_style(Color(0.055, 0.065, 0.085, 0.92), Color(1.0, 1.0, 1.0, 0.30), 1))
+	popup.add_theme_stylebox_override("hover", _make_btn_style(Color(0.22, 0.24, 0.28, 0.90), Color.WHITE))
+	popup.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.88))
+	popup.add_theme_color_override("font_hover_color", Color.WHITE)
+	popup.add_theme_color_override("font_accelerator_color", Color(1.0, 1.0, 1.0, 0.55))
+	popup.add_theme_font_size_override("font_size", 13)
 	popup.add_item("Name", LibrarySortMode.NAME)
 	popup.add_item("TP", LibrarySortMode.TP)
 	popup.add_item("AP", LibrarySortMode.AP)
@@ -1222,8 +1250,27 @@ func make_library_sort_button() -> MenuButton:
 	for item_index in range(popup.item_count):
 		popup.set_item_as_radio_checkable(item_index, true)
 	popup.id_pressed.connect(_on_library_sort_selected)
+	popup.about_to_popup.connect(_queue_library_sort_popup_position.bind(button, popup))
 	update_library_sort_button()
 	return button
+
+
+func _queue_library_sort_popup_position(button: MenuButton, popup: PopupMenu) -> void:
+	call_deferred("_position_library_sort_popup", button, popup)
+
+
+func _position_library_sort_popup(button: MenuButton, popup: PopupMenu) -> void:
+	if button == null or popup == null or not is_instance_valid(button) or not is_instance_valid(popup):
+		return
+	var button_rect := button.get_global_rect()
+	var viewport_size := Vector2i(button.get_viewport_rect().size)
+	var desired := Vector2i(
+		int(ceil(button_rect.end.x + 8.0)),
+		int(round(button_rect.position.y + (button_rect.size.y - float(popup.size.y)) * 0.5))
+	)
+	desired.x = clampi(desired.x, 4, maxi(4, viewport_size.x - popup.size.x - 4))
+	desired.y = clampi(desired.y, 4, maxi(4, viewport_size.y - popup.size.y - 4))
+	popup.position = desired
 
 
 func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
@@ -1232,7 +1279,7 @@ func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
 	s.border_color = border
 	s.set_border_width_all(2)
 	s.set_corner_radius_all(4)
-	s.shadow_color = Color(0.01, 0.005, 0.002, 0.70)
+	s.shadow_color = Color(1.0, 1.0, 1.0, 0.16) if border.a > 0.7 else Color(0.0, 0.0, 0.0, 0.42)
 	s.shadow_size = 3
 	s.content_margin_left = 8.0
 	s.content_margin_right = 8.0
@@ -1243,20 +1290,20 @@ func _make_btn_style(bg: Color, border: Color) -> StyleBoxFlat:
 
 func style_text_field(field: LineEdit) -> void:
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.035, 0.018, 0.009, 0.92)
-	normal.border_color = Color(0.52, 0.34, 0.10, 0.92)
+	normal.bg_color = Color(0.045, 0.055, 0.075, 0.70)
+	normal.border_color = Color(1.0, 1.0, 1.0, 0.24)
 	normal.set_border_width_all(2)
 	normal.set_corner_radius_all(4)
 	normal.content_margin_left = 10.0
 	normal.content_margin_right = 10.0
 	var focus := normal.duplicate() as StyleBoxFlat
-	focus.bg_color = Color(0.075, 0.038, 0.014, 0.97)
-	focus.border_color = Color(0.95, 0.70, 0.20, 1.0)
+	focus.bg_color = Color(0.10, 0.12, 0.15, 0.86)
+	focus.border_color = Color.WHITE
 	field.add_theme_stylebox_override("normal", normal)
 	field.add_theme_stylebox_override("focus", focus)
-	field.add_theme_color_override("font_color", Color(0.96, 0.88, 0.68, 1.0))
-	field.add_theme_color_override("font_placeholder_color", Color(0.62, 0.52, 0.35, 0.90))
-	field.add_theme_color_override("caret_color", Color(1.0, 0.77, 0.25, 1.0))
+	field.add_theme_color_override("font_color", Color.WHITE)
+	field.add_theme_color_override("font_placeholder_color", Color(1.0, 1.0, 1.0, 0.48))
+	field.add_theme_color_override("caret_color", Color.WHITE)
 
 
 func add_filter_caption(parent: HBoxContainer, caption: String) -> void:
@@ -1266,14 +1313,14 @@ func add_filter_caption(parent: HBoxContainer, caption: String) -> void:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 10)
-	label.add_theme_color_override("font_color", Color(0.78, 0.61, 0.27, 1.0))
+	label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.68))
 	parent.add_child(label)
 
 
 func add_filter_buttons(parent: HBoxContainer, labels: Array[String], store: Dictionary, callback: Callable) -> void:
 	for label_text in labels:
 		var button := make_button(label_text, Vector2(58, 26))
-		var s_active := _make_btn_style(Color(0.58, 0.40, 0.08, 1.0), Color(0.95, 0.74, 0.24, 1.0))
+		var s_active := _make_btn_style(Color(0.28, 0.30, 0.34, 0.92), Color.WHITE)
 		button.add_theme_stylebox_override("pressed", s_active)
 		var filter_key := label_text.to_lower()
 		button.toggle_mode = true
@@ -1292,7 +1339,7 @@ func create_ability_filter_panel(parent: Control) -> void:
 	ability_filter_panel.z_index = 20
 	ability_filter_panel.add_theme_stylebox_override(
 		"panel",
-		make_panel_style(Color(0.055, 0.026, 0.010, 0.94), Color(0.82, 0.58, 0.16, 0.96), 2)
+		make_panel_style(Color(0.055, 0.065, 0.085, 0.78), Color(1.0, 1.0, 1.0, 0.32), 1)
 	)
 	parent.add_child(ability_filter_panel)
 
@@ -1321,7 +1368,7 @@ func make_ability_filter_button(filter_key: String, label_text: String) -> Butto
 	button.name = label_text + "AbilityFilter"
 	button.toggle_mode = true
 	button.tooltip_text = label_text
-	button.add_theme_stylebox_override("pressed", _make_btn_style(Color(0.60, 0.42, 0.08, 1.0), Color(1.0, 0.82, 0.28, 1.0)))
+	button.add_theme_stylebox_override("pressed", _make_btn_style(Color(0.28, 0.30, 0.34, 0.92), Color.WHITE))
 
 	var icon_path: String = ABILITY_ICON_PATHS.get(filter_key, "")
 	if icon_path != "" and ResourceLoader.exists(icon_path):
@@ -1350,7 +1397,7 @@ func refresh_ability_filter_buttons() -> void:
 		var b: Button = ability_buttons[key]
 		var is_active := active_ability_filters.has(key)
 		b.button_pressed = is_active
-		b.modulate = Color(1.0, 0.92, 0.42, 1.0) if is_active else Color(1.0, 1.0, 1.0, 0.72)
+		b.modulate = Color.WHITE if is_active else Color(1.0, 1.0, 1.0, 0.72)
 
 
 func refresh_library() -> void:
@@ -1469,8 +1516,8 @@ func add_library_copy_badge(card_node: Node3D) -> void:
 	badge.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	badge.pixel_size = 0.0036
 	badge.font_size = 30
-	badge.modulate = Color(1.0, 0.86, 0.30, 1.0)
-	badge.outline_modulate = Color(0.05, 0.02, 0.0, 1.0)
+	badge.modulate = Color.WHITE
+	badge.outline_modulate = Color(0.0, 0.0, 0.0, 0.86)
 	badge.outline_size = 10
 	badge.no_depth_test = true
 	badge.render_priority = 20
@@ -2365,6 +2412,8 @@ func request_scene_change(scene_path: String) -> void:
 	if scene_transition_requested:
 		return
 	scene_transition_requested = true
+	if scene_path == MENU_SCENE_PATH:
+		PrototypeMenu.skip_intro_once = true
 	active_tabletop_viewport = null
 	for entry in tabletop_ui_surfaces:
 		entry["interactive"] = false
@@ -2475,6 +2524,6 @@ func make_panel_style(bg: Color, border: Color, border_width: int) -> StyleBoxFl
 	style.border_width_top = border_width
 	style.border_width_bottom = border_width
 	style.set_corner_radius_all(10)
-	style.shadow_color = Color(0.01, 0.004, 0.001, 0.72)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
 	style.shadow_size = 8
 	return style

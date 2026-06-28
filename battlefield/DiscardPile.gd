@@ -8,7 +8,7 @@ extends Node3D
 
 @export var counter_side_offset: float = 0.0
 @export var counter_height: float = 0.16
-@export var counter_forward_offset: float = 0.92
+@export var counter_forward_offset: float = -0.92
 @export var counter_pixel_size: float = 0.006
 
 var discarded_cards: Array[CardData] = []

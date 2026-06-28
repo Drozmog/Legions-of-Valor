@@ -35,6 +35,7 @@ var dp_counter: Node = null
 var pit_drop_area: Area3D = null
 var sacrifice_stack_root: Node3D = null
 var sacrifice_nodes: Array[Node3D] = []
+var sacrifice_cards: Array[CardData] = []
 var prompt_panel: PanelContainer = null
 var prompt_label: Label = null
 var let_die_button: Button = null
@@ -249,6 +250,7 @@ func _clear_visible_sacrifice_cards() -> void:
 			visual_card.queue_free()
 
 	sacrifice_nodes.clear()
+	sacrifice_cards.clear()
 
 
 func begin(
@@ -343,9 +345,14 @@ func sacrifice_card(card_ui: CardUI) -> void:
 	await bf.play_player_hand_to_node_animation(sacrificed_card, pit_root, false)
 
 	var gained_dp: int = max(0, sacrificed_card.dp)
+	var deflect := bf.slot_has_protection_ability(defender_slot, &"deflect")
+	if gathered_dp == 0 and deflect != null:
+		gained_dp += 2
+		await bf.show_protection_trigger(deflect, "First Parry card gains +2 DP")
 	gathered_dp += gained_dp
 
 	_add_visible_sacrifice_card(sacrificed_card)
+	sacrifice_cards.append(sacrificed_card)
 
 	if bf.discard_pile != null:
 		bf.discard_pile.add_card(sacrificed_card)
@@ -397,6 +404,7 @@ func _complete_success() -> void:
 		+ str(final_parry_target)
 		+ "."
 	)
+	await _resolve_successful_parry_abilities()
 
 	_end_prompt()
 	await bf.advance_combat_lane_after_resolution()
@@ -406,15 +414,33 @@ func _on_let_die_pressed() -> void:
 	if not active:
 		return
 
+	var destroyed := false
 	if defender_slot != null:
-		bf.send_slot_card_to_discard(defender_slot)
+		destroyed = await bf.destroy_unit_with_protection(defender_slot, attacker_slot, true)
 
-	if defender_card != null:
+	if defender_card != null and destroyed:
 		bf.log_msg("You let " + defender_card.card_name + " die.")
 		bf.add_aurion("ai", bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
 
 	_end_prompt()
 	await bf.advance_combat_lane_after_resolution()
+
+
+func _resolve_successful_parry_abilities() -> void:
+	var shield_burst := bf.get_card_protection_ability(sacrifice_cards[0], &"shield_burst") if sacrifice_cards.size() == 1 else null
+	if shield_burst != null:
+		await bf.show_protection_trigger(shield_burst, "Draw 2 cards")
+		for i in range(2):
+			var drawn := bf.player_deck.draw_top_card()
+			if drawn != null:
+				bf.hand.add_card_to_hand(drawn)
+	var last_stand := bf.get_card_protection_ability(sacrifice_cards[2], &"last_stand") if sacrifice_cards.size() >= 3 else null
+	if last_stand != null:
+		await bf.show_protection_trigger(last_stand, "Draw 3 cards")
+		for i in range(3):
+			var drawn := bf.player_deck.draw_top_card()
+			if drawn != null:
+				bf.hand.add_card_to_hand(drawn)
 
 
 func _end_prompt() -> void:

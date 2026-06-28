@@ -46,7 +46,7 @@ func attach_sort_button() -> void:
 	sort_button.text = get_sort_button_text()
 	sort_button.custom_minimum_size = Vector2(96, 34)
 	sort_button.size = Vector2(96, 34)
-	sort_button.position = Vector2(990, 48)
+	sort_button.position = Vector2(820, 48)
 	sort_button.z_index = 500
 	sort_button.focus_mode = Control.FOCUS_NONE
 	sort_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -61,7 +61,7 @@ func build_sort_dropdown(ui_root: Control) -> void:
 	sort_dropdown_panel = PanelContainer.new()
 	sort_dropdown_panel.name = "LibrarySortDropdown"
 	sort_dropdown_panel.visible = false
-	sort_dropdown_panel.position = Vector2(826, 48)
+	sort_dropdown_panel.position = sort_button.position + Vector2(sort_button.size.x + 6.0, 0.0)
 	sort_dropdown_panel.size = Vector2(160, 34)
 	sort_dropdown_panel.custom_minimum_size = Vector2(160, 34)
 	sort_dropdown_panel.z_index = 510
@@ -214,12 +214,12 @@ func get_sort_button_text() -> String:
 
 
 func apply_button_style(button: Button) -> void:
-	button.add_theme_stylebox_override("normal", make_button_style(Color(0.10, 0.065, 0.032, 0.94), Color(0.48, 0.34, 0.10, 0.85)))
-	button.add_theme_stylebox_override("hover", make_button_style(Color(0.20, 0.12, 0.045, 0.96), Color(0.82, 0.58, 0.18, 1.0)))
-	button.add_theme_stylebox_override("pressed", make_button_style(Color(0.52, 0.36, 0.09, 1.0), Color(0.95, 0.74, 0.24, 1.0)))
-	button.add_theme_color_override("font_color", Color(0.92, 0.84, 0.62, 1.0))
-	button.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.72, 1.0))
-	button.add_theme_color_override("font_pressed_color", Color(1.0, 0.97, 0.85, 1.0))
+	button.add_theme_stylebox_override("normal", make_button_style(Color(0.06, 0.07, 0.09, 0.66), Color(1.0, 1.0, 1.0, 0.25)))
+	button.add_theme_stylebox_override("hover", make_button_style(Color(0.22, 0.24, 0.28, 0.88), Color.WHITE))
+	button.add_theme_stylebox_override("pressed", make_button_style(Color(0.28, 0.30, 0.34, 0.92), Color.WHITE))
+	button.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.90))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	button.add_theme_font_size_override("font_size", 13)
 
 
@@ -229,7 +229,7 @@ func make_button_style(bg: Color, border: Color) -> StyleBoxFlat:
 	style.border_color = border
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(4)
-	style.shadow_color = Color(0.01, 0.005, 0.002, 0.70)
+	style.shadow_color = Color(1.0, 1.0, 1.0, 0.16) if border.a > 0.7 else Color(0.0, 0.0, 0.0, 0.42)
 	style.shadow_size = 3
 	style.content_margin_left = 7.0
 	style.content_margin_right = 7.0
@@ -240,10 +240,10 @@ func make_button_style(bg: Color, border: Color) -> StyleBoxFlat:
 
 func make_dropdown_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.055, 0.026, 0.010, 0.98)
-	style.border_color = Color(0.72, 0.49, 0.13, 1.0)
+	style.bg_color = Color(0.055, 0.065, 0.085, 0.92)
+	style.border_color = Color(1.0, 1.0, 1.0, 0.34)
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(4)
-	style.shadow_color = Color(0.01, 0.005, 0.002, 0.82)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.44)
 	style.shadow_size = 5
 	return style

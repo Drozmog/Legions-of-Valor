@@ -1,6 +1,8 @@
 class_name PrototypeMenu
 extends Control
 
+static var skip_intro_once := false
+
 const BATTLE_SCENE_PATH := "res://battlefield/battlefield_3d.tscn"
 const DECK_BUILDER_SCENE_PATH := "res://ui/deck_builder.tscn"
 
@@ -32,12 +34,35 @@ var intro_transitioning := false
 
 
 func _ready() -> void:
-	await get_tree().process_frame
+	var skip_intro := skip_intro_once
+	if skip_intro:
+		skip_intro_once = false
+	else:
+		await get_tree().process_frame
 
 	_apply_node_order()
 	_apply_layout()
 	build_menu()
-	play_intro()
+	if skip_intro:
+		show_main_menu_immediately()
+	else:
+		play_intro()
+
+
+func show_main_menu_immediately() -> void:
+	intro_can_continue = false
+	intro_transitioning = false
+	intro_curtain.visible = false
+	intro_logo.visible = false
+	continue_prompt.visible = false
+	menu_background.visible = true
+	menu_background.modulate.a = 1.0
+	menu_logo.visible = true
+	menu_logo.modulate.a = 1.0
+	menu_choices.visible = true
+	menu_choices.modulate.a = 1.0
+	menu_choices.mouse_filter = Control.MOUSE_FILTER_PASS
+	Cursors.use_normal()
 
 
 func _notification(what: int) -> void:

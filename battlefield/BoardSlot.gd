@@ -300,6 +300,22 @@ func get_equipment_cards() -> Array[CardData]:
 	return equipment_cards.duplicate()
 
 
+func discard_equipment_with_ability(ability_id: StringName) -> CardData:
+	for index in range(equipment_cards.size()):
+		var equipment := equipment_cards[index]
+		if equipment == null:
+			continue
+		for ability in equipment.get_abilities():
+			if ability != null and ability.category.to_lower() == "protection" and ability.ability_id == ability_id:
+				equipment_cards.remove_at(index)
+				var visual := equipment_nodes[index]
+				equipment_nodes.remove_at(index)
+				if visual != null and is_instance_valid(visual):
+					visual.queue_free()
+				return equipment
+	return null
+
+
 func add_stacked_unit(card_scene: PackedScene, card_data: CardData) -> bool:
 	if card_data == null or placed_card == null:
 		return false
@@ -454,10 +470,10 @@ func setup_highlight_outline() -> void:
 	outline_material = StandardMaterial3D.new()
 	outline_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	outline_material.albedo_color = valid_color
-	outline_material.emission_enabled = true
+	outline_material.emission_enabled = false
 	outline_material.emission = valid_color
 	outline_material.emission_energy_multiplier = 1.2
-	outline_material.no_depth_test = true
+	outline_material.no_depth_test = false
 
 	glow_outline = Node3D.new()
 	glow_outline.name = "GlowOutline"
@@ -468,10 +484,11 @@ func setup_highlight_outline() -> void:
 	glow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	glow_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	glow_material.albedo_color = Color(0.35, 1.0, 0.35, 0.18)
-	glow_material.emission_enabled = true
+	glow_material.emission_enabled = false
 	glow_material.emission = valid_color
 	glow_material.emission_energy_multiplier = 2.5
-	glow_material.no_depth_test = true
+	glow_material.no_depth_test = false
+	glow_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY
 
 	create_outline_bar(
 		highlight_outline,

@@ -43,6 +43,7 @@ const ABILITY_HOVER_BOX_SIZE := Vector3(0.34, 0.22, 0.34)
 const ABILITY_TOOLTIP_OFFSET := Vector2(-370.0, -122.0)
 const ABILITY_TOOLTIP_SCREEN_MARGIN := 12.0
 const MOBILITY_PROMPT_ICON_PATH := "res://ui/ability_icons/mobility.png"
+const PROTECTION_PROMPT_ICON_PATH := "res://ui/ability_icons/protection.png"
 const MOBILITY_PROMPT_CENTER_Y: float = 0.385
 const MOBILITY_CHOICE_PANEL_WIDTH := 360.0
 const MOBILITY_CHOICE_PANEL_HEIGHT := 58.0
@@ -80,6 +81,10 @@ var has_selected_card: bool = false
 var game_has_started: bool = false
 
 var opening_hand_deal_active := false
+var phase_tip_panel: PhaseTipPanel = null
+var phase_tip_elapsed := 0.0
+var phase_tip_shown := false
+const PHASE_TIP_DELAY := 20.0
 
 var waiting_for_battle_plan: bool = true
 
@@ -307,6 +312,7 @@ func _ready() -> void:
 	create_phase_ui()
 	create_ability_tooltip_ui()
 	create_bottom_hud_3d()
+	create_phase_tip_panel()
 	create_exit_button()
 	create_deck_selection_screen()
 	create_ability_prompt_panel()
@@ -324,6 +330,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	update_phase_tip(delta)
 	update_hand_drag_preview(delta)
 	update_battleplan_hand_cleanup(delta)
 	update_discard_warning_overlay()
@@ -332,6 +339,44 @@ func _process(delta: float) -> void:
 	refresh_bottom_hud_log()
 	refresh_board_slot_action_buttons()
 	refresh_player_usable_ability_icons()
+
+
+func create_phase_tip_panel() -> void:
+	phase_tip_panel = PhaseTipPanel.new()
+	phase_tip_panel.name = "PhaseTipPanel"
+	$UI.add_child(phase_tip_panel)
+
+
+func update_phase_tip(delta: float) -> void:
+	if phase_tip_panel == null or game_over or phase_transition_busy:
+		return
+	if phase_tip_shown:
+		phase_tip_panel.update_tip(get_contextual_phase_tip())
+		return
+	phase_tip_elapsed += delta
+	if phase_tip_elapsed < PHASE_TIP_DELAY:
+		return
+	phase_tip_shown = true
+	phase_tip_panel.show_tip(get_contextual_phase_tip())
+
+
+func get_contextual_phase_tip() -> String:
+	match current_phase:
+		BattlePhase.BATTLEPLAN:
+			if not deck_selection_complete:
+				return "Choose a saved deck to begin, then select one of the available Battleplans."
+			if pending_battleplan_draws > 0:
+				return "Draw the highlighted number of cards from your deck into your hand."
+			if battleplan_hand_cleanup_active:
+				return "Drag excess cards from your hand into the discard pile to meet your hand limit."
+			return "Choose one Battleplan. Its initiative and hand limit shape the coming round."
+		BattlePhase.TRIBUTE:
+			return "Drag one card from your hand into the Tribute pile to generate Tribute Points."
+		BattlePhase.DEPLOYMENT:
+			return "Deploy units to the frontline, set support cards behind them, then continue when ready."
+		BattlePhase.COMBAT:
+			return "Resolve the highlighted lane. Right-click your frontline unit for Attack, Check, abilities, or Pass."
+	return get_phase_instruction_text().replace("\n", " ")
 
 
 func connect_main_signals() -> void:
@@ -853,7 +898,7 @@ func choose_mobility_slot(candidates: Array[Node], prompt: String) -> Node:
 	return chosen
 
 
-func show_mobility_prompt(text: String) -> void:
+func show_mobility_prompt(text: String, icon_path: String = MOBILITY_PROMPT_ICON_PATH) -> void:
 	if not phase_title_interaction_locked:
 		phase_title_interaction_locked = true
 		set_blurred_modal_input_blocked(true)
@@ -865,6 +910,9 @@ func show_mobility_prompt(text: String) -> void:
 	phase_blur_material.set_shader_parameter("blur_lod", 0.0)
 	var row_root := get_or_create_mobility_prompt_row()
 	var row_label := row_root.get_node_or_null("CenterRow/PromptLabel") as Label
+	var row_icon := row_root.get_node_or_null("CenterRow/PromptIcon") as TextureRect
+	if row_icon != null and ResourceLoader.exists(icon_path):
+		row_icon.texture = load(icon_path) as Texture2D
 	if row_label != null:
 		row_label.text = text
 		row_label.add_theme_font_size_override("font_size", 32 if text.length() > 24 else 44)
@@ -970,7 +1018,7 @@ func create_exit_button() -> void:
 	exit_button.offset_right = -18.0
 	exit_button.offset_bottom = 58.0
 	exit_button.z_index = 80
-	exit_button.pressed.connect(func(): get_tree().change_scene_to_file(MENU_SCENE_PATH))
+	exit_button.pressed.connect(return_to_menu_without_intro)
 	$UI.add_child(exit_button)
 
 
@@ -1046,6 +1094,10 @@ func set_phase(new_phase: int) -> void:
 		clear_active_combat_lane_highlight()
 
 	current_phase = new_phase
+	phase_tip_elapsed = 0.0
+	phase_tip_shown = false
+	if phase_tip_panel != null:
+		phase_tip_panel.hide_tip()
 	update_phase_ui()
 	update_slot_highlights()
 	if current_phase != BattlePhase.BATTLEPLAN or deck_selection_complete:
@@ -1860,22 +1912,26 @@ func deal_starting_hand() -> void:
 		log_msg("Hand or PlayerDeck is missing.")
 		return
 	opening_hand_deal_active = true
-	var hand_origin := get_node_or_null("CardAnimationManager/PlayerHandOrigin") as Node3D
+	# Keep the destination visible while the cards travel into the fan.
+	# Starting with a lowered hand made the real card vanish below the viewport
+	# immediately after the old temporary animation reached its anchor.
+	hand.raise_hand()
+	var deal_origin := draw_pile.global_position + Vector3(0.0, 0.10, 0.0) if draw_pile != null else Vector3.ZERO
 	for i in range(3):
 		var drawn_card: CardData = player_deck.draw_top_card()
 		if drawn_card == null:
 			break
-		if card_animation_manager != null and draw_pile != null and hand_origin != null:
-			await card_animation_manager.animate_card_from_position_to_node(
-				drawn_card,
-				draw_pile.global_position + Vector3(0.0, 0.12, 0.0),
-				hand_origin,
-				false
-			)
+		# Spawn the persistent hand visual at the deck. BattlefieldHand3D then
+		# carries that same object into the fan, avoiding the old temporary-card
+		# handoff and its visible one-frame snap at the hand anchor.
+		if player_hand_3d != null and draw_pile != null:
+			player_hand_3d.queue_next_card_spawn(deal_origin + Vector3(0.0, float(i) * 0.012, 0.0))
 		hand.add_card_to_hand(drawn_card, false)
 		if draw_pile != null:
 			draw_pile.set_card_count(player_deck.cards_remaining())
-		await get_tree().create_timer(0.08).timeout
+		await get_tree().create_timer(0.34).timeout
+	# Let the last card complete its glide before restoring interaction.
+	await get_tree().create_timer(0.78).timeout
 	opening_hand_deal_active = false
 	if draw_pile != null:
 		draw_pile.set_card_count(player_deck.cards_remaining())
@@ -3187,6 +3243,12 @@ func resolve_directed_clash(
 
 	var attacker_ap := get_slot_combat_ap(_attacker_slot)
 	var defender_ap := get_slot_combat_ap(defender_slot)
+	var equalizer := slot_has_protection_ability(defender_slot, &"equalizer")
+	if equalizer != null and attacker_ap == defender_ap + 1:
+		await show_protection_trigger(equalizer, "Both units defeated")
+		await destroy_unit_with_protection(defender_slot, _attacker_slot, true)
+		await destroy_unit_with_protection(_attacker_slot, defender_slot, true)
+		return
 
 	var attacker_label: String = "Player" if player_is_attacker else "Opponent"
 	var defender_label: String = "Opponent" if player_is_attacker else "Player"
@@ -3208,8 +3270,8 @@ func resolve_directed_clash(
 	)
 
 	if attacker_ap == defender_ap:
-		send_slot_card_to_discard(defender_slot)
-		send_slot_card_to_discard(_attacker_slot)
+		await destroy_unit_with_protection(defender_slot, _attacker_slot, true)
+		await destroy_unit_with_protection(_attacker_slot, defender_slot, true)
 
 		log_msg(
 			lane.capitalize()
@@ -3236,7 +3298,7 @@ func resolve_directed_clash(
 
 	# The attacker knowingly chose to fight into a stronger unit.
 	# Voluntary lower-AP attacks are suicide and do not open the Parry Chain.
-	send_slot_card_to_discard(_attacker_slot)
+	await destroy_unit_with_protection(_attacker_slot, defender_slot, true)
 	log_msg(
 		"Suicide attack: "
 		+ attacker_label
@@ -3267,13 +3329,15 @@ func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defe
 		if hand_card != null:
 			available_dp += maxi(hand_card.dp, 0)
 	if available_dp < required:
-		send_slot_card_to_discard(defender_slot)
-		log_msg("Opponent could not parry. " + defender_card.card_name + " was destroyed.")
-		add_aurion("player", get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
+		var destroyed := await destroy_unit_with_protection(defender_slot, null, true)
+		if destroyed:
+			log_msg("Opponent could not parry. " + defender_card.card_name + " was destroyed.")
+			add_aurion("player", get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
 		return
 
 	log_msg("Opponent opens a Parry and needs " + str(required) + " DP.")
 	var gathered := 0
+	var parry_cards: Array[CardData] = []
 	var parry_target := get_enemy_visual_target("EnemyParryPitVisual")
 	while gathered < required:
 		var remaining := required - gathered
@@ -3284,7 +3348,14 @@ func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defe
 		await play_enemy_hand_to_node_animation(sacrifice, parry_target, false)
 		ai_hand.pop_at(hand_index)
 		ai_discard.append(sacrifice)
-		gathered += maxi(sacrifice.dp, 0)
+		var gained_dp := maxi(sacrifice.dp, 0)
+		if parry_cards.is_empty():
+			var deflect := slot_has_protection_ability(defender_slot, &"deflect")
+			if deflect != null:
+				gained_dp += 2
+				await show_protection_trigger(deflect, "First Parry card gains +2 DP")
+		gathered += gained_dp
+		parry_cards.append(sacrifice)
 		if opponent_visuals != null and opponent_visuals.has_method("add_parry_card"):
 			opponent_visuals.add_parry_card(sacrifice)
 		update_ai_visuals()
@@ -3293,13 +3364,37 @@ func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defe
 
 	if gathered >= required:
 		log_msg("Opponent Parry succeeds. " + defender_card.card_name + " survives.")
+		await resolve_ai_successful_parry_abilities(parry_cards)
 	else:
-		send_slot_card_to_discard(defender_slot)
-		log_msg("Opponent Parry fails. " + defender_card.card_name + " was destroyed.")
-		add_aurion("player", get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
+		var destroyed := await destroy_unit_with_protection(defender_slot, null, true)
+		if destroyed:
+			log_msg("Opponent Parry fails. " + defender_card.card_name + " was destroyed.")
+			add_aurion("player", get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
 	await get_tree().create_timer(0.55).timeout
 	if opponent_visuals != null and opponent_visuals.has_method("clear_parry_cards"):
 		opponent_visuals.clear_parry_cards()
+
+
+func resolve_ai_successful_parry_abilities(parry_cards: Array[CardData]) -> void:
+	var draw_count := 0
+	var trigger: AbilityData = null
+	if parry_cards.size() == 1:
+		trigger = get_card_protection_ability(parry_cards[0], &"shield_burst")
+		if trigger != null:
+			draw_count = 2
+	if parry_cards.size() >= 3:
+		var last_stand := get_card_protection_ability(parry_cards[2], &"last_stand")
+		if last_stand != null:
+			trigger = last_stand
+			draw_count += 3
+	if trigger == null or draw_count == 0:
+		return
+	await show_protection_trigger(trigger, "Opponent draws %d cards" % draw_count)
+	for i in range(draw_count):
+		if ai_deck.is_empty():
+			break
+		ai_hand.append(ai_deck.pop_back() as CardData)
+	update_ai_visuals()
 
 
 func find_ai_parry_card_index(remaining_dp: int) -> int:
@@ -3335,12 +3430,65 @@ func get_slot_combat_ap(slot: Node) -> int:
 	if not is_unit_card(card_data):
 		return 0
 	var total := maxi(card_data.ap, 0)
+	if slot_has_protection_ability(slot, &"shielded") != null and String(slot.get_meta("owner", "")) != combat_priority_owner:
+		total += 2
+	if slot_has_protection_ability(slot, &"solidarity") != null:
+		total += count_frontline_units(String(slot.get_meta("owner", "")))
 	if slot != null and int(slot.get_meta("vortex_bonus_turn", -1)) == turn_number and slot.has_method("get_stacked_unit_cards"):
 		for stacked in slot.call("get_stacked_unit_cards"):
 			var stacked_card := stacked as CardData
 			if stacked_card != null:
 				total += maxi(stacked_card.ap, 0)
 	return total
+
+
+func get_card_protection_ability(card_data: CardData, ability_id: StringName) -> AbilityData:
+	if card_data == null:
+		return null
+	for ability in card_data.get_abilities():
+		if ability != null and ability.category.to_lower() == "protection" and ability.ability_id == ability_id:
+			return ability
+	return null
+
+
+func get_gambit_attack_protection(attacker_slot: Node) -> AbilityData:
+	var infiltrator := slot_has_protection_ability(attacker_slot, &"infiltrator")
+	if infiltrator != null:
+		return infiltrator
+	return slot_has_protection_ability(attacker_slot, &"spell_shield")
+
+
+func slot_has_protection_ability(slot: Node, ability_id: StringName) -> AbilityData:
+	if slot == null:
+		return null
+	var ability := get_card_protection_ability(get_slot_card_data(slot), ability_id)
+	if ability != null:
+		return ability
+	if slot.has_method("get_equipment_cards"):
+		for equipment in slot.call("get_equipment_cards"):
+			ability = get_card_protection_ability(equipment as CardData, ability_id)
+			if ability != null:
+				return ability
+	return null
+
+
+func count_frontline_units(owner_name: String) -> int:
+	var count := 0
+	for lane_name in ["left", "middle", "right"]:
+		if lane_has_front_unit(owner_name, lane_name):
+			count += 1
+	return count
+
+
+func show_protection_trigger(ability: AbilityData, detail: String = "") -> void:
+	if ability == null:
+		return
+	var message := ability.ability_name.to_upper()
+	if not detail.is_empty():
+		message += "  -  " + detail
+	show_mobility_prompt(message, PROTECTION_PROMPT_ICON_PATH)
+	await get_tree().create_timer(0.72).timeout
+	await hide_mobility_prompt()
 
 
 func find_slot_by_owner_row_lane(owner_name: String, row: String, lane: String) -> Node:
@@ -3466,6 +3614,31 @@ func send_slot_card_to_discard(slot: Node) -> void:
 
 	if slot.has_method("clear_slot"):
 		slot.clear_slot()
+
+
+func destroy_unit_with_protection(slot: Node, opposing_slot: Node = null, from_clash: bool = false) -> bool:
+	if slot == null or get_slot_card_data(slot) == null:
+		return false
+	var plated := slot_has_protection_ability(slot, &"plated")
+	if plated != null and discard_protection_equipment(slot, &"plated"):
+		await show_protection_trigger(plated, "Destruction prevented")
+		return false
+	var spiked := slot_has_protection_ability(slot, &"spiked")
+	send_slot_card_to_discard(slot)
+	if from_clash and spiked != null and opposing_slot != null and get_slot_card_data(opposing_slot) != null:
+		await show_protection_trigger(spiked, "Attacker destroyed")
+		await destroy_unit_with_protection(opposing_slot, null, false)
+	return true
+
+
+func discard_protection_equipment(slot: Node, ability_id: StringName) -> bool:
+	if slot == null or not slot.has_method("discard_equipment_with_ability"):
+		return false
+	var discarded: CardData = slot.call("discard_equipment_with_ability", ability_id)
+	if discarded == null:
+		return false
+	discard_cards_with_animation([discarded], slot, String(slot.get_meta("owner", "")))
+	return true
 
 
 func get_3d_node_under_screen_position(screen_position: Vector2) -> Node:
@@ -3647,6 +3820,8 @@ func update_ai_visuals() -> void:
 
 
 func play_player_hand_to_node_animation(card_data: CardData, target_node: Node, face_down: bool = false) -> void:
+	clear_deployment_slot_highlights_for_animation()
+
 	if card_animation_manager == null:
 		return
 	var start_position := last_player_hand_animation_start
@@ -3892,9 +4067,16 @@ func show_game_result(player_won: bool) -> void:
 
 func _return_to_menu_from_result() -> void:
 	Cursors.use_normal()
+	PrototypeMenu.skip_intro_once = true
 	var tree := get_tree()
 	if tree != null:
 		tree.change_scene_to_file(MENU_SCENE_PATH)
+
+
+func return_to_menu_without_intro() -> void:
+	Cursors.use_normal()
+	PrototypeMenu.skip_intro_once = true
+	get_tree().change_scene_to_file(MENU_SCENE_PATH)
 
 
 func disable_keyboard_focus_for_all_buttons(root: Node) -> void:
@@ -4463,6 +4645,21 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 			return_card_to_hand_safely(spell_card_ui)
 
 	cancel_selected_card()
+
+
+func clear_deployment_slot_highlights_for_animation() -> void:
+	if board_slots == null:
+		return
+
+	for slot in board_slots.get_children():
+		if slot.has_method("set_highlight"):
+			slot.set_highlight(false)
+
+		if slot.has_method("set_invalid_highlight"):
+			slot.set_invalid_highlight(false)
+
+		if slot.has_method("set_promotion_highlight"):
+			slot.set_promotion_highlight(false)
 
 
 func resolve_dominance_before_cleanup() -> void:
@@ -6674,6 +6871,13 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 		await get_tree().create_timer(BLUFF_REVEAL_DELAY).timeout
 
 		if is_gambit_card(player_back_card):
+			var protection := get_gambit_attack_protection(ai_front_slot)
+			if protection != null:
+				await show_protection_trigger(protection, "Gambit ignored")
+				send_slot_card_to_discard(player_back_slot)
+				set_lane_priority_to_ai(lane)
+				await resolve_ai_current_priority_lane(lane)
+				return
 			log_msg("AI Attack failed: " + player_back_card.card_name + " was your hidden Gambit.")
 			var mobility_returned := await resolve_immediate_hidden_gambit_cast(player_back_card, "player", lane, player_back_slot)
 			if not mobility_returned:
@@ -6915,6 +7119,12 @@ func resolve_attack_into_face_down_backrow(
 	await get_tree().create_timer(BLUFF_REVEAL_DELAY).timeout
 
 	if is_gambit_card(enemy_back_card):
+		var protection := get_gambit_attack_protection(find_slot_by_owner_row_lane("player", "front", lane))
+		if protection != null:
+			await show_protection_trigger(protection, "Gambit ignored")
+			send_slot_card_to_discard(enemy_back_slot)
+			set_lane_priority_to_player(lane)
+			return
 		log_msg("Attack failed: " + enemy_back_card.card_name + " was a hidden Gambit.")
 		var mobility_returned := await resolve_immediate_hidden_gambit_cast(enemy_back_card, "enemy", lane, enemy_back_slot)
 		if not mobility_returned:
