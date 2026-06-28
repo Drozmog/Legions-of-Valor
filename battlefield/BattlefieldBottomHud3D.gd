@@ -7,7 +7,7 @@ const INSPECT_BUTTON_TEXTURE: Texture2D = preload("res://ui/combat_buttons/inspe
 
 const GOLD := Color(1.0, 1.0, 1.0, 0.92)
 const PALE_GOLD := Color(1.0, 1.0, 1.0, 1.0)
-const PANEL_BG := Color(0.045, 0.055, 0.070, 0.82)
+const PANEL_BG := Color(0.025, 0.030, 0.040, 0.88)
 const BATTLEPLAN_CARD_SIZE := Vector2(2.80, 1.70) # exact 3.5:2.5 landscape ratio
 const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
 const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
@@ -102,7 +102,7 @@ func build_main_bar() -> void:
 	var role := Label.new()
 	role.text = "Grand Marshal"
 	role.add_theme_font_size_override("font_size", 30)
-	role.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.62))
+	role.add_theme_color_override("font_color", Color.WHITE)
 	identity.add_child(role)
 	add_hud_cell(left_row, identity, 0.05)
 
@@ -307,20 +307,20 @@ render_mode unshaded, cull_disabled, blend_mix, depth_draw_never, depth_test_dis
 
 uniform sampler2D ui_texture : source_color, repeat_disable, filter_linear_mipmap_anisotropic;
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
-uniform float blur_lod = 3.2;
+uniform float blur_lod = 3.8;
 
 void fragment() {
 	vec4 ui = texture(ui_texture, UV);
 	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
 
-	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.82, 0.0, 1.0));
+	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.95, 0.0, 1.0));
 	ALPHA = ui.a;
 }
 """
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	material.set_shader_parameter("ui_texture", ui_texture)
-	material.set_shader_parameter("blur_lod", 3.2)
+	material.set_shader_parameter("blur_lod", 3.8)
 	material.render_priority = priority
 	return material
 
@@ -438,9 +438,9 @@ func create_battleplan_3d_label(label_text: String) -> Label3D:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.font_size = 46
 	label.pixel_size = 0.0038
-	label.modulate = PALE_GOLD
-	label.outline_modulate = Color(0.02, 0.008, 0.0, 1.0)
-	label.outline_size = 10
+	label.modulate = Color.WHITE
+	label.outline_modulate = Color(0.0, 0.0, 0.0, 0.55)
+	label.outline_size = 6
 	label.no_depth_test = true
 	label.render_priority = BATTLEPLAN_CARD_RENDER_PRIORITY
 	return label
