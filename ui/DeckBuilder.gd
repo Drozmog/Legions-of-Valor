@@ -525,7 +525,7 @@ func build_overlay_ui() -> void:
 	tabletop_ui_surfaces.push_front(ability_surface_entry)
 
 	var plaque_style := make_panel_style(
-		Color(0.115, 0.095, 0.070, 0.82),
+		Color(0.18, 0.115, 0.065, 0.62),
 		Color(0.0, 0.0, 0.0, 0.0),
 		0
 	)
@@ -755,7 +755,7 @@ void fragment() {
 	float ui_weight = clamp(ui.a, 0.0, 1.0);
 
 	ALBEDO = mix(blurred_world, ui.rgb, ui_weight);
-	ALPHA = clamp(ui.a * 1.12, 0.0, 1.0);
+	ALPHA = ui.a;
 }
 """
 	var material := ShaderMaterial.new()
@@ -1342,7 +1342,7 @@ func create_ability_filter_panel(parent: Control) -> void:
 	ability_filter_panel.z_index = 20
 	ability_filter_panel.add_theme_stylebox_override(
 		"panel",
-		make_panel_style(Color(0.115, 0.095, 0.070, 0.82), Color(0.0, 0.0, 0.0, 0.0), 0)
+		make_panel_style(Color(0.18, 0.115, 0.065, 0.62), Color(0.0, 0.0, 0.0, 0.0), 0)
 	)
 	parent.add_child(ability_filter_panel)
 

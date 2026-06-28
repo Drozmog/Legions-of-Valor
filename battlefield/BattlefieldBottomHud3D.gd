@@ -229,8 +229,8 @@ func build_plan_foldout() -> void:
 	var entry := create_surface("BattlePlans", Vector2i(1410, 570), plan_closed_position, Vector2(7.05, 2.35), false)
 	plan_surface = entry["surface"]
 	plan_viewport = entry["viewport"]
-	if plan_surface.material_override is StandardMaterial3D:
-		(plan_surface.material_override as StandardMaterial3D).render_priority = BATTLEPLAN_SURFACE_RENDER_PRIORITY
+	if plan_surface.material_override != null:
+		plan_surface.material_override.render_priority = BATTLEPLAN_SURFACE_RENDER_PRIORITY
 	var root: Control = entry["control"]
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -312,7 +312,7 @@ uniform float blur_lod = 2.8;
 void fragment() {
 	vec4 ui = texture(ui_texture, UV);
 	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
-	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.72, 0.0, 1.0));
+	ALBEDO = mix(blurred_world, ui.rgb, ui_weight);
 	ALPHA = ui.a;
 }
 """
