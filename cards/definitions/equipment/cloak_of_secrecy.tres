@@ -3,7 +3,7 @@
 [ext_resource type="Texture2D" uid="uid://bdyehb1lrcv1a" path="res://cards/images/equipment/cloak_of_secrecy.png" id="1_3qu0u"]
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_fxyki"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="2_fwss0"]
-[ext_resource type="Resource" uid="uid://dtai56wn1xj4p" path="res://abilities/definitions/insight/secrecy.tres" id="2_fxyki"]
+[ext_resource type="Resource" uid="uid://d0jt1dtw8wgoo" path="res://abilities/definitions/insight/intelligence.tres" id="2_fxyki"]
 
 [resource]
 script = ExtResource("2_fwss0")
