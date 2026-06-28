@@ -13,7 +13,7 @@ const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
 const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
 const BATTLEPLAN_CARD_SURFACE_Z := 0.26
 const BATTLEPLAN_LABEL_Z := 0.31
-const BATTLEPLAN_SURFACE_RENDER_PRIORITY := 80
+const BATTLEPLAN_SURFACE_RENDER_PRIORITY := 40
 const BATTLEPLAN_CARD_RENDER_PRIORITY := 127
 const BATTLEPLAN_INSPECT_BUTTON_SIZE := Vector2(0.5375, 0.25) # same 280x130-ish ratio, larger click target
 
@@ -312,11 +312,8 @@ uniform float blur_lod = 2.8;
 void fragment() {
 	vec4 ui = texture(ui_texture, UV);
 	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
-
-	float ui_weight = clamp(ui.a, 0.0, 1.0);
-
-	ALBEDO = mix(blurred_world, ui.rgb, ui_weight);
-	ALPHA = clamp(ui.a * 1.12, 0.0, 1.0);
+	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.72, 0.0, 1.0));
+	ALPHA = ui.a;
 }
 """
 	var material := ShaderMaterial.new()
@@ -670,7 +667,7 @@ func make_battleplan_card_material(texture: Texture2D) -> StandardMaterial3D:
 	material.albedo_color = Color.WHITE
 	material.albedo_texture = texture
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
 	material.no_depth_test = true

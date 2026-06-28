@@ -525,9 +525,9 @@ func build_overlay_ui() -> void:
 	tabletop_ui_surfaces.push_front(ability_surface_entry)
 
 	var plaque_style := make_panel_style(
-		Color(0.055, 0.065, 0.085, 0.90),
-		Color(1.0, 1.0, 1.0, 0.34),
-		1
+		Color(0.115, 0.095, 0.070, 0.82),
+		Color(0.0, 0.0, 0.0, 0.0),
+		0
 	)
 
 	# A floating wooden plaque over the lower-left table, not a screen-wide bar.
@@ -1342,7 +1342,7 @@ func create_ability_filter_panel(parent: Control) -> void:
 	ability_filter_panel.z_index = 20
 	ability_filter_panel.add_theme_stylebox_override(
 		"panel",
-		make_panel_style(Color(0.055, 0.065, 0.085, 0.90), Color(1.0, 1.0, 1.0, 0.36), 1)
+		make_panel_style(Color(0.115, 0.095, 0.070, 0.82), Color(0.0, 0.0, 0.0, 0.0), 0)
 	)
 	parent.add_child(ability_filter_panel)
 
