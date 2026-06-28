@@ -7,7 +7,7 @@ const INSPECT_BUTTON_TEXTURE: Texture2D = preload("res://ui/combat_buttons/inspe
 
 const GOLD := Color(1.0, 1.0, 1.0, 0.92)
 const PALE_GOLD := Color(1.0, 1.0, 1.0, 1.0)
-const PANEL_BG := Color(0.055, 0.065, 0.085, 0.72)
+const PANEL_BG := Color(0.045, 0.055, 0.070, 0.82)
 const BATTLEPLAN_CARD_SIZE := Vector2(2.80, 1.70) # exact 3.5:2.5 landscape ratio
 const BATTLEPLAN_CARD_CORNER_RADIUS_RATIO := 0.064
 const BATTLEPLAN_CARD_CORNER_SEGMENTS := 8
@@ -307,20 +307,20 @@ render_mode unshaded, cull_disabled, blend_mix, depth_draw_never, depth_test_dis
 
 uniform sampler2D ui_texture : source_color, repeat_disable, filter_linear_mipmap_anisotropic;
 uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
-uniform float blur_lod = 2.8;
+uniform float blur_lod = 3.2;
 
 void fragment() {
 	vec4 ui = texture(ui_texture, UV);
 	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
 
-	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.72, 0.0, 1.0));
+	ALBEDO = mix(blurred_world, ui.rgb, clamp(ui.a * 0.82, 0.0, 1.0));
 	ALPHA = ui.a;
 }
 """
 	var material := ShaderMaterial.new()
 	material.shader = shader
 	material.set_shader_parameter("ui_texture", ui_texture)
-	material.set_shader_parameter("blur_lod", 2.8)
+	material.set_shader_parameter("blur_lod", 3.2)
 	material.render_priority = priority
 	return material
 

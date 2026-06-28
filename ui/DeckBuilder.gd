@@ -1233,16 +1233,19 @@ func make_library_sort_button() -> MenuButton:
 	button.add_theme_stylebox_override("normal", _make_btn_style(bg_normal, border_normal))
 	button.add_theme_stylebox_override("hover", _make_btn_style(Color(0.22, 0.24, 0.28, 0.88), Color.WHITE))
 	button.add_theme_stylebox_override("pressed", _make_btn_style(Color(0.28, 0.30, 0.34, 0.92), Color.WHITE))
-	button.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.90))
+	button.add_theme_color_override("font_color", Color.WHITE)
 	button.add_theme_color_override("font_hover_color", Color.WHITE)
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	button.add_theme_font_size_override("font_size", 13)
 
 	var popup := button.get_popup()
 	popup.transparent_bg = true
-	popup.add_theme_stylebox_override("panel", make_panel_style(Color(0.055, 0.065, 0.085, 0.92), Color(1.0, 1.0, 1.0, 0.30), 1))
+	popup.add_theme_stylebox_override(
+		"panel",
+		make_panel_style(Color(0.045, 0.055, 0.075, 0.70), Color(1.0, 1.0, 1.0, 0.24), 1)
+	)
 	popup.add_theme_stylebox_override("hover", _make_btn_style(Color(0.22, 0.24, 0.28, 0.90), Color.WHITE))
-	popup.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.88))
+	popup.add_theme_color_override("font_color", Color.WHITE)
 	popup.add_theme_color_override("font_hover_color", Color.WHITE)
 	popup.add_theme_color_override("font_accelerator_color", Color(1.0, 1.0, 1.0, 0.55))
 	popup.add_theme_font_size_override("font_size", 13)
@@ -1316,7 +1319,7 @@ func add_filter_caption(parent: HBoxContainer, caption: String) -> void:
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 10)
-	label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.68))
+	label.add_theme_color_override("font_color", Color.WHITE)
 	parent.add_child(label)
 
 
