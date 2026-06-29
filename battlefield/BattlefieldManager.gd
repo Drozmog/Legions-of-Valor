@@ -465,13 +465,29 @@ func update_ai_debug_panel() -> void:
 	var hidden_rate := int(round(ai_memory_player_hidden_gambit_rate() * 100.0))
 	var check_rate := int(round(ai_memory_player_check_success_rate() * 100.0))
 	var profile := ai_get_difficulty_profile()
+	var active_turn_key := ai_get_active_ability_turn_key()
+	var active_uses_this_turn := int(ai_active_ability_turn_use_counts.get(active_turn_key, 0))
+	var active_use_limit := ai_max_active_ability_uses_per_turn()
 
 	ai_debug_label.text = (
 		"AI DEBUG  [F8]\n"
 		+ "Difficulty: " + ai_get_difficulty_name() + "\n"
+		+ "Difficulty: " + ai_get_difficulty_name() + "\n"
+		+ "Profile: M "
+		+ str(profile.get("memory_weight", 0.0))
+		+ " | R "
+		+ str(profile.get("randomness_multiplier", 0.0))
+		+ " | L "
+		+ str(profile.get("lookahead_weight", 0.0))
+		+ " | A "
+		+ str(profile.get("ability_awareness_weight", 0.0))
+		+ " | Active "
+		+ str(profile.get("active_ability_weight", 0.0))
+		+ "\n"
 		+ "Phase: " + ai_get_phase_name() + " | Turn: " + str(turn_number) + "\n"
 		+ "Lane: " + lane + " | Priority: " + combat_priority_owner + "\n"
 		+ "TP: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp) + "\n"
+		+ "Active uses: " + str(active_uses_this_turn) + "/" + str(active_use_limit) + "\n"
 		+ "Hand: " + str(ai_hand.size())
 		+ " | Deck: " + str(ai_deck.size())
 		+ " | Discard: " + str(ai_discard.size())
@@ -601,6 +617,10 @@ func ai_get_difficulty_profile() -> Dictionary:
 	}
 
 
+func ai_get_active_ability_lane_attempt_key(lane: String) -> String:
+	return str(turn_number) + ":" + lane
+
+
 func ai_get_active_ability_turn_key() -> String:
 	return str(turn_number)
 
@@ -676,6 +696,38 @@ func ai_get_empty_legal_enemy_back_slots() -> Array[Node]:
 
 func ai_min_deployment_score() -> int:
 	return int(ai_get_difficulty_profile().get("min_deployment_score", 12))
+	
+func ai_memory_decay_amount() -> int:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return 6
+		AI_DIFFICULTY_SOLDIER:
+			return 4
+		AI_DIFFICULTY_COMMANDER:
+			return 3
+		AI_DIFFICULTY_WARLORD:
+			return 2
+		AI_DIFFICULTY_GRANDMASTER:
+			return 1
+
+	return 3
+
+
+func ai_decay_memory_dictionary_values(memory_dict: Dictionary, amount: int) -> Dictionary:
+	var result: Dictionary = {}
+
+	for key in memory_dict.keys():
+		var current := int(memory_dict.get(key, 0))
+		result[key] = maxi(0, current - amount)
+
+	return result
+
+
+func ai_decay_player_memory_pressure() -> void:
+	var decay := ai_memory_decay_amount()
+
+	ai_memory_player_lane_pressure = ai_decay_memory_dictionary_values(ai_memory_player_lane_pressure, decay)
+	ai_memory_player_backrow_pressure = ai_decay_memory_dictionary_values(ai_memory_player_backrow_pressure, decay)
 
 
 func create_phase_tip_panel() -> void:
@@ -5205,6 +5257,8 @@ func ai_draw_cards(amount: int) -> void:
 
 
 func ai_start_tribute_phase() -> void:
+	ai_decay_player_memory_pressure()
+
 	ai_current_perm_tp = ai_perm_tp
 	ai_temp_tp = 0
 	ai_current_tp = ai_current_perm_tp
@@ -8622,6 +8676,10 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 	if combat_priority_owner != "ai":
 		return
 
+	if ai_passed_current_lane and player_passed_current_lane:
+		await advance_combat_lane_after_resolution()
+		return
+	
 	set_active_combat_lane_highlight(lane)
 	log_msg("AI considers action in the " + lane + " lane.")
 	await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
