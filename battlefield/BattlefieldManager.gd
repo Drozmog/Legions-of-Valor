@@ -7289,39 +7289,31 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 		return
 
 	var ai_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
-	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
-	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
-
 	var ai_card: CardData = get_slot_card_data(ai_front_slot)
-	var player_front_card: CardData = get_slot_card_data(player_front_slot)
-	var player_back_card: CardData = get_slot_card_data(player_back_slot)
-	var player_back_is_face_down: bool = player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
 
 	if not is_unit_card(ai_card):
 		await resolve_ai_pass_lane_with_visuals(lane)
 		return
 
-	# Phase 13: if AI has a unit and the player's front row is empty,
-	# AI must take the open-lane Monarch Strike instead of passing.
-	# If a face-down player back-row card exists, resolve that hidden card first.
-	if player_front_card == null:
-		if player_back_is_face_down:
+	var chosen_action: String = ai_choose_combat_action(lane)
+
+	match chosen_action:
+		"check":
+			log_msg("AI chooses Check in the " + lane + " lane.")
+			await resolve_ai_check_lane_with_visuals(lane)
+
+		"attack":
+			log_msg("AI chooses Attack in the " + lane + " lane.")
 			await resolve_ai_attack_lane_with_visuals(lane)
-			return
 
-		log_msg("AI takes open-lane Monarch Strike in the " + lane + " lane.")
-		resolve_ai_monarch_strike(lane, ai_card)
-		await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
-		await advance_combat_lane_after_resolution()
-		return
+		"pass":
+			log_msg("AI chooses Pass in the " + lane + " lane.")
+			await resolve_ai_pass_lane_with_visuals(lane)
 
-	if player_back_is_face_down and ai_should_check_hidden_backrow(lane, player_back_card):
-		await resolve_ai_check_lane_with_visuals(lane)
-		return
+		_:
+			log_msg("AI has no clear combat action and passes in the " + lane + " lane.")
+			await resolve_ai_pass_lane_with_visuals(lane)
 
-	# If AI does not Check the hidden card, it attacks into the lane.
-	# resolve_ai_attack_lane_with_visuals handles hidden back-row bluff first.
-	await resolve_ai_attack_lane_with_visuals(lane)
 
 func resolve_ai_pass_lane_with_visuals(lane: String) -> void:
 	set_active_combat_lane_highlight(lane)
@@ -7337,9 +7329,236 @@ func resolve_ai_pass_lane_with_visuals(lane: String) -> void:
 	set_lane_priority_to_player(lane, "Priority passes to Player.")
 
 
-func ai_should_check_hidden_backrow(_lane: String, _hidden_card: CardData) -> bool:
-	# Prototype AI does not know what the hidden card is. It sometimes Checks and sometimes Attacks.
-	return (randi() % 100) < 40
+func ai_should_check_hidden_backrow(lane: String, _hidden_card: CardData) -> bool:
+	return ai_choose_combat_action(lane) == "check"
+	
+func ai_choose_combat_action(lane: String) -> String:
+	var attack_score: int = ai_score_combat_attack_action(lane)
+	var check_score: int = ai_score_combat_check_action(lane)
+	var pass_score: int = ai_score_combat_pass_action(lane)
+
+	var best_action: String = "pass"
+	var best_score: int = pass_score
+
+	if attack_score > best_score:
+		best_action = "attack"
+		best_score = attack_score
+
+	if check_score > best_score:
+		best_action = "check"
+		best_score = check_score
+
+	log_msg(
+		"AI combat scores in "
+		+ lane
+		+ ": Attack "
+		+ str(attack_score)
+		+ ", Check "
+		+ str(check_score)
+		+ ", Pass "
+		+ str(pass_score)
+		+ " -> "
+		+ best_action.capitalize()
+		+ "."
+	)
+
+	return best_action
+
+
+func ai_score_combat_attack_action(lane: String) -> int:
+	var ai_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+
+	var ai_card: CardData = get_slot_card_data(ai_front_slot)
+	var player_front_card: CardData = get_slot_card_data(player_front_slot)
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var player_back_is_face_down: bool = player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	if not is_unit_card(ai_card):
+		return -999999
+
+	var score: int = 0
+
+	# Hidden back row must be resolved before attacking the front row or Monarch.
+	if player_back_is_face_down:
+		score += 30
+
+		var gambit_protection := get_gambit_attack_protection(ai_front_slot)
+
+		if gambit_protection != null:
+			score += 65
+		else:
+			score -= 28
+
+		if player_front_card == null:
+			# Hidden card blocks an otherwise open Monarch Strike.
+			score += 35
+
+	# Open Monarch lane.
+	if player_front_card == null:
+		score += 150
+		score += get_unit_defeat_aurion_reward(ai_card) * 4
+
+		if player_back_is_face_down:
+			score -= 25
+
+		return score + (randi() % 6)
+
+	var ai_ap: int = get_slot_combat_ap(ai_front_slot)
+	var player_ap: int = get_slot_combat_ap(player_front_slot)
+	var ap_gap: int = ai_ap - player_ap
+
+	var ai_reward_value: int = get_unit_defeat_aurion_reward(ai_card)
+	var player_reward_value: int = get_unit_defeat_aurion_reward(player_front_card)
+
+	if ap_gap > 0:
+		score += 82
+		score += ap_gap * 14
+		score += player_reward_value * 10
+
+		# Player may be able to parry, so do not overvalue tiny AP wins.
+		if ap_gap == 1:
+			score -= 10
+
+	elif ap_gap == 0:
+		score += 28
+		score += player_reward_value * 8
+		score -= ai_reward_value * 6
+
+		# Equal trades are better if the player's card is more valuable.
+		if player_reward_value > ai_reward_value:
+			score += 18
+		elif ai_reward_value > player_reward_value:
+			score -= 16
+
+	else:
+		score -= 88
+		score += ap_gap * 16
+		score -= ai_reward_value * 14
+
+		# Protection can make dangerous attacks less stupid.
+		if slot_has_protection_ability(ai_front_slot, &"plated") != null:
+			score += 68
+
+		if slot_has_protection_ability(ai_front_slot, &"spiked") != null:
+			score += 54
+
+	# Side lanes matter for Dominance.
+	if lane == "left" or lane == "right":
+		score += 12
+
+		if ai_ap > player_ap:
+			score += 18
+		elif ai_ap < player_ap:
+			score -= 10
+
+	# If the player has a hidden back-row card, attacking is less clean.
+	if player_back_is_face_down and get_gambit_attack_protection(ai_front_slot) == null:
+		score -= 12
+
+	score += randi() % 8
+	return score
+
+
+func ai_score_combat_check_action(lane: String) -> int:
+	var ai_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+
+	var ai_card: CardData = get_slot_card_data(ai_front_slot)
+	var player_front_card: CardData = get_slot_card_data(player_front_slot)
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var player_back_is_face_down: bool = player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	if not is_unit_card(ai_card):
+		return -999999
+
+	if not player_back_is_face_down:
+		return -999999
+
+	var score: int = 46
+
+	var ai_ap: int = get_slot_combat_ap(ai_front_slot)
+	var player_ap: int = get_slot_combat_ap(player_front_slot)
+
+	# If AI can ignore Gambits, checking is less necessary.
+	if get_gambit_attack_protection(ai_front_slot) != null:
+		score -= 45
+
+	# If the hidden card blocks a Monarch Strike, checking is attractive.
+	if player_front_card == null:
+		score += 38
+
+	# If direct attack into the front row looks bad, checking is safer.
+	if is_unit_card(player_front_card):
+		if ai_ap < player_ap:
+			score += 32
+		elif ai_ap == player_ap:
+			score += 14
+		else:
+			score -= 8
+
+	# If player already passed, AI may prefer ending or attacking over risky check.
+	if player_passed_current_lane:
+		score -= 12
+
+	# If AI already failed/committed pass in this lane, avoid weird repeated checking.
+	if ai_passed_current_lane:
+		score -= 35
+
+	score += randi() % 10
+	return score
+
+
+func ai_score_combat_pass_action(lane: String) -> int:
+	var ai_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+
+	var ai_card: CardData = get_slot_card_data(ai_front_slot)
+	var player_front_card: CardData = get_slot_card_data(player_front_slot)
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var player_back_is_face_down: bool = player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	if not is_unit_card(ai_card):
+		return 80
+
+	var score: int = 8
+
+	var attack_score: int = ai_score_combat_attack_action(lane)
+	var check_score: int = ai_score_combat_check_action(lane)
+
+	# If player has already passed, AI can end a dangerous lane by passing too.
+	if player_passed_current_lane:
+		score += 42
+
+		if attack_score < 25:
+			score += 35
+
+		if check_score < 25:
+			score += 14
+
+	# Never pass an open Monarch lane unless hidden back-row danger makes it unclear.
+	if player_front_card == null and not player_back_is_face_down:
+		score -= 120
+
+	# Passing is reasonable if attacking is suicidal and checking is unavailable.
+	if attack_score < -20 and check_score < 0:
+		score += 45
+
+	# Passing while ahead usually gives the player a chance to solve the lane, so discourage it.
+	if is_unit_card(player_front_card):
+		var ai_ap: int = get_slot_combat_ap(ai_front_slot)
+		var player_ap: int = get_slot_combat_ap(player_front_slot)
+
+		if ai_ap > player_ap:
+			score -= 25
+		elif ai_ap < player_ap:
+			score += 18
+
+	score += randi() % 6
+	return score
 
 
 func resolve_ai_check_lane_with_visuals(lane: String) -> void:
@@ -7439,7 +7658,7 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 		return
 
 	# AI is the active attacker here, regardless of who had the original Battleplan initiative.
-	resolve_directed_clash(lane, ai_front_slot, ai_card, player_front_slot, player_front_card, false)
+	await resolve_directed_clash(lane, ai_front_slot, ai_card, player_front_slot, player_front_card, false)
 
 	if parry_system.active:
 		return
