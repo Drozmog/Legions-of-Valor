@@ -7,6 +7,58 @@ const REST_X := 28.0
 
 var body_label: Label
 var slide_tween: Tween
+var battlefield: BattlefieldManager
+var elapsed := 0.0
+var shown := false
+
+const SHOW_DELAY := 20.0
+
+
+func setup(owner_battlefield: BattlefieldManager) -> void:
+	battlefield = owner_battlefield
+
+
+func reset_timer() -> void:
+	elapsed = 0.0
+	shown = false
+	hide_tip(true)
+
+
+func update_for_battlefield(delta: float) -> void:
+	if battlefield == null or battlefield.game_over or battlefield.phase_transition_busy:
+		return
+	if not battlefield.deck_selection_complete or battlefield.waiting_for_battle_plan:
+		elapsed = 0.0
+		shown = false
+		hide_tip(true)
+		return
+	if shown:
+		update_tip(_contextual_tip())
+		return
+	elapsed += delta
+	if elapsed < SHOW_DELAY:
+		return
+	shown = true
+	show_tip(_contextual_tip())
+
+
+func _contextual_tip() -> String:
+	match battlefield.current_phase:
+		BattlefieldManager.BattlePhase.BATTLEPLAN:
+			if not battlefield.deck_selection_complete:
+				return "Choose a saved deck to begin, then select one of the available Battleplans."
+			if battlefield.pending_battleplan_draws > 0:
+				return "Draw the highlighted number of cards from your deck into your hand."
+			if battlefield.battleplan_hand_cleanup_active:
+				return "Drag excess cards from your hand into the discard pile to meet your hand limit."
+			return "Choose one Battleplan. Its initiative and hand limit shape the coming round."
+		BattlefieldManager.BattlePhase.TRIBUTE:
+			return "Drag one card from your hand into the Tribute pile to generate Tribute Points."
+		BattlefieldManager.BattlePhase.DEPLOYMENT:
+			return "Deploy units to the frontline, set support cards behind them, then continue when ready."
+		BattlefieldManager.BattlePhase.COMBAT:
+			return "Resolve the highlighted lane. Right-click your frontline unit for Attack, Check, abilities, or Pass."
+	return battlefield.get_phase_instruction_text().replace("\n", " ")
 
 
 func _ready() -> void:
