@@ -3,7 +3,11 @@ extends Control
 
 signal deck_selected(slot_index: int)
 
+const SPECIAL_MIRROR_MATCH_SLOT := -2
+
 var options_grid: GridContainer
+var title_label: Label
+var subtitle_label: Label
 
 var selection_panel: PanelContainer
 var panel_blur: ColorRect
@@ -57,19 +61,19 @@ func build_ui() -> void:
 	rows.add_theme_constant_override("separation", 14)
 	margin.add_child(rows)
 
-	var title := Label.new()
-	title.text = "CHOOSE YOUR WAR DECK"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 30)
-	title.add_theme_color_override("font_color", Color.WHITE)
-	rows.add_child(title)
+	title_label = Label.new()
+	title_label.text = "CHOOSE YOUR WAR DECK"
+	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_label.add_theme_font_size_override("font_size", 30)
+	title_label.add_theme_color_override("font_color", Color.WHITE)
+	rows.add_child(title_label)
 
-	var subtitle := Label.new()
-	subtitle.text = "Select the saved deck you will bring into this battle."
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 16)
-	subtitle.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.82))
-	rows.add_child(subtitle)
+	subtitle_label = Label.new()
+	subtitle_label.text = "Select the saved deck you will bring into this battle."
+	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle_label.add_theme_font_size_override("font_size", 16)
+	subtitle_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.82))
+	rows.add_child(subtitle_label)
 
 	options_grid = GridContainer.new()
 	options_grid.columns = 5
@@ -176,14 +180,37 @@ func _layout_to_viewport() -> void:
 	selection_panel.size = panel_size
 
 
-func show_selection(deck_summaries: Array[Dictionary]) -> void:
+func show_selection(
+	deck_summaries: Array[Dictionary],
+	title_text: String = "CHOOSE YOUR WAR DECK",
+	subtitle_text: String = "Select the saved deck you will bring into this battle.",
+	include_mirror_match: bool = false
+) -> void:
 	_layout_to_viewport()
 	mouse_filter = Control.MOUSE_FILTER_STOP
+
+	if title_label != null:
+		title_label.text = title_text
+
+	if subtitle_label != null:
+		subtitle_label.text = subtitle_text
 
 	for child in options_grid.get_children():
 		child.queue_free()
 
 	var has_valid_deck := false
+
+	if include_mirror_match:
+		var mirror_button := Button.new()
+		mirror_button.text = "MIRROR MATCH\nCopy Your Deck\n40 / 40 CARDS"
+		mirror_button.custom_minimum_size = Vector2(170, 105)
+		mirror_button.focus_mode = Control.FOCUS_NONE
+		mirror_button.disabled = false
+		mirror_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		mirror_button.pressed.connect(_on_deck_pressed.bind(SPECIAL_MIRROR_MATCH_SLOT))
+		style_deck_slot_button(mirror_button, true)
+		options_grid.add_child(mirror_button)
+		has_valid_deck = true
 
 	for summary in deck_summaries:
 		var slot_index := int(summary.get("slot_index", -1))

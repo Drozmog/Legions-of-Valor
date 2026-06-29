@@ -107,6 +107,57 @@ func get_saved_deck_summaries() -> Array[Dictionary]:
 	return summaries
 
 
+func get_saved_deck_slot_cards(slot_index: int) -> Array[CardData]:
+	var result: Array[CardData] = []
+	var data := read_saved_deck_data()
+
+	if data.is_empty():
+		return result
+
+	var slot_data: Dictionary = {}
+
+	if data.has("decks") and data["decks"] is Array:
+		var saved_slots: Array = data["decks"]
+
+		if slot_index < 0 or slot_index >= saved_slots.size():
+			return result
+
+		if not saved_slots[slot_index] is Dictionary:
+			return result
+
+		slot_data = saved_slots[slot_index]
+
+	elif slot_index == 0:
+		slot_data = data
+
+	else:
+		return result
+
+	var card_ids: Array = slot_data.get("cards", [])
+
+	if card_ids.size() < MIN_SAVED_DECK_SIZE:
+		return result
+
+	var lookup: Dictionary = {}
+
+	for card in CardDatabase.get_all_test_cards():
+		var key := get_card_key(card)
+
+		if key != "":
+			lookup[key] = card
+
+	for raw_id in card_ids:
+		var key := String(raw_id)
+
+		if lookup.has(key):
+			result.append(lookup[key])
+
+	if result.size() < MIN_SAVED_DECK_SIZE:
+		result.clear()
+
+	return result
+
+
 func read_saved_deck_data() -> Dictionary:
 	if not FileAccess.file_exists(SAVE_PATH):
 		return {}

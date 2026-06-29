@@ -139,6 +139,19 @@ var turn_label: Label = null
 var turn_number: int = 1
 
 var deck_selection_screen: DeckSelectionScreen = null
+const DECK_SELECTION_CONTEXT_PLAYER := "player"
+const DECK_SELECTION_CONTEXT_AI := "ai"
+
+const AI_DECK_SOURCE_FALLBACK := "fallback"
+const AI_DECK_SOURCE_MIRROR := "mirror"
+const AI_DECK_SOURCE_SAVED := "saved"
+
+const AI_DECK_OPTION_MIRROR := -2
+
+var deck_selection_context: String = DECK_SELECTION_CONTEXT_PLAYER
+var ai_deck_source_mode: String = AI_DECK_SOURCE_FALLBACK
+var ai_selected_saved_deck_slot: int = -1
+var player_selected_deck_snapshot: Array[CardData] = []
 
 var hand_drag_preview: Node3D = null
 
@@ -804,35 +817,106 @@ func create_player_hand_3d() -> void:
 func create_deck_selection_screen() -> void:
 	deck_selection_screen = DeckSelectionScreen.new()
 	deck_selection_screen.name = "DeckSelectionScreen"
-	deck_selection_screen.deck_selected.connect(_on_prebattle_deck_selected)
+	deck_selection_screen.deck_selected.connect(_on_deck_selection_screen_selected)
 	$UI.add_child(deck_selection_screen)
+
+
+func _on_deck_selection_screen_selected(slot_index: int) -> void:
+	if deck_selection_context == DECK_SELECTION_CONTEXT_AI:
+		await _on_ai_deck_selected(slot_index)
+	else:
+		await _on_prebattle_deck_selected(slot_index)
 
 
 func setup_deck_selection_flow() -> void:
 	waiting_for_battle_plan = true
+	deck_selection_context = DECK_SELECTION_CONTEXT_PLAYER
+	deck_selection_complete = false
+
 	if battle_plan_selection_screen != null:
 		battle_plan_selection_screen.hide_selection()
+
 	if deck_selection_screen == null or player_deck == null:
 		deck_selection_complete = true
 		setup_battle_plan_flow()
 		return
-	deck_selection_screen.show_selection(player_deck.get_saved_deck_summaries())
+
+	deck_selection_screen.show_selection(
+		player_deck.get_saved_deck_summaries(),
+		"CHOOSE YOUR WAR DECK",
+		"Select the saved deck you will bring into this battle.",
+		false
+	)
+
 	update_phase_progress_state()
 
 
 func _on_prebattle_deck_selected(slot_index: int) -> void:
 	if player_deck == null:
 		return
+
 	if slot_index < 0:
 		player_deck.use_fallback_deck()
 	else:
 		var loaded := player_deck.load_saved_deck_slot(slot_index, true)
+
 		if not loaded:
 			log_msg("That saved deck is unavailable or has fewer than 10 valid cards.")
-			deck_selection_screen.show_selection(player_deck.get_saved_deck_summaries())
+			deck_selection_screen.show_selection(
+				player_deck.get_saved_deck_summaries(),
+				"CHOOSE YOUR WAR DECK",
+				"Select the saved deck you will bring into this battle.",
+				false
+			)
 			return
+
+	player_selected_deck_snapshot = player_deck.deck.duplicate()
+
 	log_msg("Battle deck selected: " + str(player_deck.cards_remaining()) + " cards.")
+
+	await get_tree().process_frame
+	show_ai_deck_selection()
+
+
+func show_ai_deck_selection() -> void:
+	if deck_selection_screen == null or player_deck == null:
+		ai_deck_source_mode = AI_DECK_SOURCE_FALLBACK
+		ai_selected_saved_deck_slot = -1
+		deck_selection_complete = true
+		setup_battle_plan_flow()
+		return
+
+	deck_selection_context = DECK_SELECTION_CONTEXT_AI
+
+	deck_selection_screen.show_selection(
+		player_deck.get_saved_deck_summaries(),
+		"CHOOSE OPPONENT DECK",
+		"Select Mirror Match or choose one of your saved decks for the AI.",
+		true
+	)
+
+	update_phase_progress_state()
+
+
+func _on_ai_deck_selected(slot_index: int) -> void:
+	if slot_index == AI_DECK_OPTION_MIRROR:
+		ai_deck_source_mode = AI_DECK_SOURCE_MIRROR
+		ai_selected_saved_deck_slot = -1
+		log_msg("AI deck selected: Mirror Match.")
+	else:
+		var saved_cards := player_deck.get_saved_deck_slot_cards(slot_index) if player_deck != null else []
+
+		if saved_cards.is_empty():
+			log_msg("That opponent deck is unavailable or has fewer than 10 valid cards.")
+			show_ai_deck_selection()
+			return
+
+		ai_deck_source_mode = AI_DECK_SOURCE_SAVED
+		ai_selected_saved_deck_slot = slot_index
+		log_msg("AI deck selected: Saved Deck Slot " + str(slot_index + 1) + ".")
+
 	deck_selection_complete = true
+
 	await get_tree().process_frame
 	setup_battle_plan_flow()
 
@@ -5235,13 +5319,49 @@ func setup_ai_deck() -> void:
 	ai_current_tp = 0
 	ai_tribute_used_this_turn = false
 
-	var pool: Array[CardData] = CardDatabase.get_ai_test_deck()
+	var selected_ai_cards := ai_build_selected_deck_cards()
 
-	for i in range(40):
-		ai_deck.append(pool[i % pool.size()])
+	if selected_ai_cards.is_empty():
+		var pool: Array[CardData] = CardDatabase.get_ai_test_deck()
+
+		for i in range(40):
+			ai_deck.append(pool[i % pool.size()])
+
+		log_msg("AI deck source: prototype AI deck.")
+	else:
+		for card_data in selected_ai_cards:
+			if card_data != null:
+				ai_deck.append(card_data)
+
+		match ai_deck_source_mode:
+			AI_DECK_SOURCE_MIRROR:
+				log_msg("AI deck source: Mirror Match. AI copied your selected deck.")
+			AI_DECK_SOURCE_SAVED:
+				log_msg("AI deck source: Saved Deck Slot " + str(ai_selected_saved_deck_slot + 1) + ".")
 
 	ai_deck.shuffle()
 	update_ai_visuals()
+
+
+func ai_build_selected_deck_cards() -> Array[CardData]:
+	var result: Array[CardData] = []
+
+	match ai_deck_source_mode:
+		AI_DECK_SOURCE_MIRROR:
+			if not player_selected_deck_snapshot.is_empty():
+				result = player_selected_deck_snapshot.duplicate()
+			elif player_deck != null:
+				result = player_deck.deck.duplicate()
+
+		AI_DECK_SOURCE_SAVED:
+			if player_deck != null:
+				result = player_deck.get_saved_deck_slot_cards(ai_selected_saved_deck_slot)
+
+		_:
+			result.clear()
+
+	return result
+
 
 
 func ai_draw_cards(amount: int) -> void:
