@@ -148,8 +148,6 @@ var play_button: Button
 var search_box: LineEdit
 var library_sort_button: MenuButton
 var library_scroll_slider: HSlider
-var library_scroll_slider_surface: MeshInstance3D
-var library_scroll_slider_internal_update := false
 var card_detail_label: RichTextLabel
 var card_detail_name_3d: Label3D
 var card_detail_stats_3d: Label3D
@@ -528,6 +526,8 @@ func build_overlay_ui() -> void:
 	)
 	var library_slider_root: Control = library_slider_ui["control"]
 	library_scroll_slider_surface = library_slider_ui["surface"]
+	library_scroll_slider_viewport = library_slider_ui["viewport"]
+	library_scroll_slider_world_size = library_slider_ui["world_size"]
 	build_library_scroll_slider(library_slider_root)
 
 	var deck_ui := create_tabletop_ui_surface(
@@ -759,6 +759,10 @@ func build_library_scroll_slider(parent: Control) -> void:
 	library_scroll_slider.focus_mode = Control.FOCUS_NONE
 	library_scroll_slider.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	library_scroll_slider.value_changed.connect(_on_library_scroll_slider_changed)
+	library_scroll_slider.gui_input.connect(_on_library_scroll_slider_gui_input)
+	library_scroll_slider.mouse_entered.connect(_on_library_scroll_slider_mouse_entered)
+	library_scroll_slider.mouse_exited.connect(_on_library_scroll_slider_mouse_exited)
+
 	style_library_scroll_slider(library_scroll_slider)
 	margin.add_child(library_scroll_slider)
 
