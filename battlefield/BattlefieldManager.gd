@@ -190,6 +190,8 @@ var used_mobility_ability_keys: Dictionary = {}
 var ability_tooltip_panel: PanelContainer = null
 var ability_tooltip_label: Label = null
 
+var inspected_faded_slots: Array[Node] = []
+
 const AURION_WIN_TARGET: int = 25
 
 var player_aurion_points: int = 0
@@ -3280,8 +3282,8 @@ func resolve_directed_clash(
 	if await resolve_vanish_when_targeted(defender_slot, defender_card, not player_is_attacker):
 		return
 
-	var attacker_ap := get_slot_combat_ap(_attacker_slot)
-	var defender_ap := get_slot_combat_ap(defender_slot)
+	var attacker_ap: int = await get_slot_combat_ap_with_protection_announcements(_attacker_slot)
+	var defender_ap: int = await get_slot_combat_ap_with_protection_announcements(defender_slot)
 	var equalizer := slot_has_protection_ability(defender_slot, &"equalizer")
 	if equalizer != null and attacker_ap == defender_ap + 1:
 		await show_protection_trigger(equalizer, "Both units defeated")
@@ -3481,6 +3483,40 @@ func get_slot_combat_ap(slot: Node) -> int:
 	return total
 
 
+func get_slot_combat_ap_with_protection_announcements(slot: Node) -> int:
+	var card_data := get_slot_card_data(slot)
+
+	if not is_unit_card(card_data):
+		return 0
+
+	var total := maxi(card_data.ap, 0)
+	var owner_name := String(slot.get_meta("owner", ""))
+
+	var shielded := slot_has_protection_ability(slot, &"shielded")
+
+	if shielded != null and owner_name != combat_priority_owner:
+		total += 2
+		await show_protection_trigger(shielded, "+2 AP while defending")
+
+	var solidarity := slot_has_protection_ability(slot, &"solidarity")
+
+	if solidarity != null:
+		var solidarity_bonus := count_frontline_units(owner_name)
+		total += solidarity_bonus
+
+		if solidarity_bonus > 0:
+			await show_protection_trigger(solidarity, "+" + str(solidarity_bonus) + " AP from frontline units")
+
+	if slot != null and int(slot.get_meta("vortex_bonus_turn", -1)) == turn_number and slot.has_method("get_stacked_unit_cards"):
+		for stacked in slot.call("get_stacked_unit_cards"):
+			var stacked_card := stacked as CardData
+
+			if stacked_card != null:
+				total += maxi(stacked_card.ap, 0)
+
+	return total
+
+
 func get_card_protection_ability(card_data: CardData, ability_id: StringName) -> AbilityData:
 	if card_data == null:
 		return null
@@ -3522,11 +3558,15 @@ func count_frontline_units(owner_name: String) -> int:
 func show_protection_trigger(ability: AbilityData, detail: String = "") -> void:
 	if ability == null:
 		return
+
 	var message := ability.ability_name.to_upper()
+
 	if not detail.is_empty():
 		message += "  -  " + detail
+
+	log_msg("Protection triggered: " + message)
 	show_mobility_prompt(message, PROTECTION_PROMPT_ICON_PATH)
-	await get_tree().create_timer(0.72).timeout
+	await get_tree().create_timer(0.9).timeout
 	await hide_mobility_prompt()
 
 
@@ -3658,15 +3698,21 @@ func send_slot_card_to_discard(slot: Node) -> void:
 func destroy_unit_with_protection(slot: Node, opposing_slot: Node = null, from_clash: bool = false) -> bool:
 	if slot == null or get_slot_card_data(slot) == null:
 		return false
+
 	var plated := slot_has_protection_ability(slot, &"plated")
+
 	if plated != null and discard_protection_equipment(slot, &"plated"):
 		await show_protection_trigger(plated, "Destruction prevented")
 		return false
+
 	var spiked := slot_has_protection_ability(slot, &"spiked")
+
 	send_slot_card_to_discard(slot)
+
 	if from_clash and spiked != null and opposing_slot != null and get_slot_card_data(opposing_slot) != null:
 		await show_protection_trigger(spiked, "Attacker destroyed")
 		await destroy_unit_with_protection(opposing_slot, null, false)
+
 	return true
 
 
@@ -6414,17 +6460,43 @@ func inspect_board_slot(slot: Node) -> void:
 	if inspect_panel == null:
 		log_msg("CardInspectPanel is missing.")
 		return
-	if slot.has_method("set_inspected_faded"):
-		slot.call("set_inspected_faded", true)
-		var clear_fade := Callable(slot, "_clear_inspection_fade")
-		if not inspect_panel.inspection_closed.is_connected(clear_fade):
-			inspect_panel.inspection_closed.connect(clear_fade)
+
+	register_inspection_fade(slot, inspect_panel)
 
 	var source_position: Vector2 = get_viewport().get_mouse_position()
 	inspect_panel.last_source_rect = Rect2(source_position, Vector2(130.0, 180.0))
 	inspect_panel.show_card(null, card_data)
 
 	log_msg("Inspecting board card: " + card_data.card_name)
+
+
+func register_inspection_fade(slot: Node, inspect_panel: CardInspectPanel) -> void:
+	clear_all_inspection_fades()
+
+	if slot != null and slot.has_method("set_inspected_faded"):
+		slot.call("set_inspected_faded", true)
+		inspected_faded_slots.append(slot)
+
+	if inspect_panel != null:
+		var clear_callable := Callable(self, "_on_card_inspection_closed")
+		if not inspect_panel.inspection_closed.is_connected(clear_callable):
+			inspect_panel.inspection_closed.connect(clear_callable)
+
+
+func _on_card_inspection_closed() -> void:
+	clear_all_inspection_fades()
+
+
+func clear_all_inspection_fades() -> void:
+	for slot in inspected_faded_slots:
+		if slot == null:
+			continue
+		if not is_instance_valid(slot):
+			continue
+		if slot.has_method("set_inspected_faded"):
+			slot.call("set_inspected_faded", false)
+
+	inspected_faded_slots.clear()
 
 
 func get_card_inspect_panel() -> CardInspectPanel:

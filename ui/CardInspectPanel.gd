@@ -70,6 +70,8 @@ var default_card_corner_radius: float
 var custom_texture_mode := false
 var preview_render_scale_override: float = 0.0
 
+var inspection_close_emitted := true
+
 
 func _ready() -> void:
 	default_center_on_screen = center_on_screen
@@ -364,6 +366,7 @@ func show_card(source_card: CardUI, card_data: CardData) -> void:
 	card_material.albedo_texture = card_data.card_art
 
 	visible = true
+	inspection_close_emitted = false
 	is_animating = true
 	is_displayed = false
 	is_holding_display_card = false
@@ -425,6 +428,7 @@ func show_texture(texture: Texture2D, source_rect: Rect2 = Rect2(), landscape: b
 		last_source_rect = Rect2(viewport_size * 0.5 - Vector2(80.0, 55.0), Vector2(160.0, 110.0))
 
 	visible = true
+	inspection_close_emitted = false
 	is_animating = true
 	is_displayed = false
 	is_holding_display_card = false
@@ -576,6 +580,19 @@ func _finish_hide() -> void:
 	size = display_rect.size
 
 	reset_card_rotation()
+	emit_inspection_closed_once()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_VISIBILITY_CHANGED and not visible:
+		emit_inspection_closed_once()
+
+
+func emit_inspection_closed_once() -> void:
+	if inspection_close_emitted:
+		return
+
+	inspection_close_emitted = true
 	inspection_closed.emit()
 
 
