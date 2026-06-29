@@ -31,11 +31,14 @@ const LOGO_TOP_RATIO := 0.15
 const LOGO_WIDTH_RATIO := 0.40
 const LOGO_MAX_WIDTH := 760.0
 const LOGO_ASPECT_RATIO := 16.0 / 9.0
-const BUTTONS_WIDTH := 420.0
+const BUTTONS_WIDTH := 620.0
 const BUTTONS_HEIGHT := 236.0
 const BUTTONS_GAP_BELOW_LOGO := 4.0
 const BUTTONS_X_OFFSET := 0.0
 const BUTTONS_Y_OFFSET := 0.0
+const DIFFICULTY_ROW_WIDTH := 620.0
+const DIFFICULTY_ARROW_WIDTH := 48.0
+const DIFFICULTY_LABEL_WIDTH := 480.0
 const INTRO_LOGO_WIDTH_RATIO := 1
 const INTRO_LOGO_MAX_WIDTH := 1500
 const INTRO_LOGO_ASPECT_RATIO := 16.0 / 9.0
@@ -49,7 +52,7 @@ const INTRO_LOGO_ASPECT_RATIO := 16.0 / 9.0
 
 var intro_can_continue := false
 var intro_transitioning := false
-var ai_difficulty_label: Button = null
+var ai_difficulty_label: Label = null
 
 
 func _ready() -> void:
@@ -241,22 +244,34 @@ func _on_ai_difficulty_increased() -> void:
 func make_difficulty_selector() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.custom_minimum_size = Vector2(420, 48)
+	row.custom_minimum_size = Vector2(DIFFICULTY_ROW_WIDTH, 48)
+	row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	row.add_theme_constant_override("separation", 8)
 
 	var left_button := make_menu_button("<")
-	left_button.custom_minimum_size = Vector2(48, 48)
+	left_button.custom_minimum_size = Vector2(DIFFICULTY_ARROW_WIDTH, 48)
 	left_button.pressed.connect(_on_ai_difficulty_decreased)
 	row.add_child(left_button)
 
-	ai_difficulty_label = make_menu_button(get_ai_difficulty_display_text())
-	ai_difficulty_label.custom_minimum_size = Vector2(300, 48)
-	ai_difficulty_label.disabled = true
-	ai_difficulty_label.mouse_default_cursor_shape = Control.CURSOR_ARROW
-	row.add_child(ai_difficulty_label)
+	var label_holder := Control.new()
+	label_holder.custom_minimum_size = Vector2(DIFFICULTY_LABEL_WIDTH, 48)
+	label_holder.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	row.add_child(label_holder)
+
+	ai_difficulty_label = Label.new()
+	ai_difficulty_label.text = get_ai_difficulty_display_text()
+	ai_difficulty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ai_difficulty_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ai_difficulty_label.clip_text = true
+	ai_difficulty_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ai_difficulty_label.add_theme_font_size_override("font_size", 25)
+	ai_difficulty_label.add_theme_color_override("font_color", Color(0.86, 0.85, 0.82, 1.0))
+	ai_difficulty_label.add_theme_constant_override("outline_size", 0)
+	ai_difficulty_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label_holder.add_child(ai_difficulty_label)
 
 	var right_button := make_menu_button(">")
-	right_button.custom_minimum_size = Vector2(48, 48)
+	right_button.custom_minimum_size = Vector2(DIFFICULTY_ARROW_WIDTH, 48)
 	right_button.pressed.connect(_on_ai_difficulty_increased)
 	row.add_child(right_button)
 
