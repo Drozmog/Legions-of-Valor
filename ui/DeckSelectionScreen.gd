@@ -3,7 +3,7 @@ extends Control
 
 signal deck_selected(slot_index: int)
 
-const SPECIAL_MIRROR_MATCH_SLOT := -2
+const SPECIAL_RANDOM_AI_DECK_SLOT := -2
 
 var options_grid: GridContainer
 var title_label: Label
@@ -184,7 +184,7 @@ func show_selection(
 	deck_summaries: Array[Dictionary],
 	title_text: String = "CHOOSE YOUR WAR DECK",
 	subtitle_text: String = "Select the saved deck you will bring into this battle.",
-	include_mirror_match: bool = false
+	include_random_ai_deck: bool = false
 ) -> void:
 	_layout_to_viewport()
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -200,16 +200,16 @@ func show_selection(
 
 	var has_valid_deck := false
 
-	if include_mirror_match:
-		var mirror_button := Button.new()
-		mirror_button.text = "MIRROR MATCH\nCopy Your Deck\n40 / 40 CARDS"
-		mirror_button.custom_minimum_size = Vector2(170, 105)
-		mirror_button.focus_mode = Control.FOCUS_NONE
-		mirror_button.disabled = false
-		mirror_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		mirror_button.pressed.connect(_on_deck_pressed.bind(SPECIAL_MIRROR_MATCH_SLOT))
-		style_deck_slot_button(mirror_button, true)
-		options_grid.add_child(mirror_button)
+	if include_random_ai_deck:
+		var random_button := Button.new()
+		random_button.text = "RANDOM SYNERGY\nAI Builds Deck\n40 / 40 CARDS"
+		random_button.custom_minimum_size = Vector2(170, 105)
+		random_button.focus_mode = Control.FOCUS_NONE
+		random_button.disabled = false
+		random_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		random_button.pressed.connect(_on_deck_pressed.bind(SPECIAL_RANDOM_AI_DECK_SLOT))
+		style_deck_slot_button(random_button, true)
+		options_grid.add_child(random_button)
 		has_valid_deck = true
 
 	for summary in deck_summaries:
