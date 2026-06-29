@@ -329,6 +329,15 @@ var ai_memory_player_backrow_pressure: Dictionary = {
 	"right": 0
 }
 
+var ai_debug_panel: PanelContainer = null
+var ai_debug_label: Label = null
+var ai_debug_visible: bool = false
+
+var ai_last_tribute_decision: String = "None"
+var ai_last_deployment_decision: String = "None"
+var ai_last_active_ability_decision: String = "None"
+var ai_last_combat_decision: String = "None"
+
 
 # === Functions ===
 
@@ -364,6 +373,7 @@ func _ready() -> void:
 	setup_deck_selection_flow()
 	create_spell_choice_panel()
 	create_aurion_counter_ui()
+	create_ai_debug_panel()
 	disable_keyboard_focus_for_all_buttons($UI)
 	create_board_slot_action_menu()
 	create_board_slot_action_buttons()
@@ -381,6 +391,137 @@ func _process(delta: float) -> void:
 	refresh_bottom_hud_log()
 	refresh_board_slot_action_buttons()
 	refresh_player_usable_ability_icons()
+	update_ai_debug_panel()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+
+		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_F8:
+			ai_debug_visible = not ai_debug_visible
+
+			if ai_debug_panel != null:
+				ai_debug_panel.visible = ai_debug_visible
+
+			get_viewport().set_input_as_handled()
+
+
+func create_ai_debug_panel() -> void:
+	if ai_debug_panel != null:
+		return
+
+	ai_debug_panel = PanelContainer.new()
+	ai_debug_panel.name = "AIDebugPanel"
+	ai_debug_panel.visible = false
+	ai_debug_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ai_debug_panel.anchor_left = 1.0
+	ai_debug_panel.anchor_right = 1.0
+	ai_debug_panel.anchor_top = 0.0
+	ai_debug_panel.anchor_bottom = 0.0
+	ai_debug_panel.offset_left = -560.0
+	ai_debug_panel.offset_right = -18.0
+	ai_debug_panel.offset_top = 18.0
+	ai_debug_panel.offset_bottom = 330.0
+	ai_debug_panel.z_index = 220
+
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.0, 0.0, 0.0, 0.72)
+	panel_style.border_color = Color(1.0, 1.0, 1.0, 0.16)
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(10)
+	ai_debug_panel.add_theme_stylebox_override("panel", panel_style)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	ai_debug_panel.add_child(margin)
+
+	ai_debug_label = Label.new()
+	ai_debug_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ai_debug_label.add_theme_font_size_override("font_size", 14)
+	ai_debug_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.92))
+	ai_debug_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.85))
+	ai_debug_label.add_theme_constant_override("outline_size", 1)
+	margin.add_child(ai_debug_label)
+
+	$UI.add_child(ai_debug_panel)
+
+
+func update_ai_debug_panel() -> void:
+	if ai_debug_panel == null or ai_debug_label == null:
+		return
+
+	if not ai_debug_visible:
+		return
+
+	ai_debug_panel.visible = true
+
+	var lane := current_combat_lane()
+	var hidden_rate := int(round(ai_memory_player_hidden_gambit_rate() * 100.0))
+	var check_rate := int(round(ai_memory_player_check_success_rate() * 100.0))
+
+	ai_debug_label.text = (
+		"AI DEBUG  [F8]\n"
+		+ "Difficulty: " + ai_get_difficulty_name() + "\n"
+		+ "Phase: " + ai_get_phase_name() + " | Turn: " + str(turn_number) + "\n"
+		+ "Lane: " + lane + " | Priority: " + combat_priority_owner + "\n"
+		+ "TP: " + str(ai_current_tp) + "/" + str(ai_perm_tp) + " Temp +" + str(ai_temp_tp) + "\n"
+		+ "Hand: " + str(ai_hand.size())
+		+ " | Deck: " + str(ai_deck.size())
+		+ " | Discard: " + str(ai_discard.size())
+		+ " | Tribute: " + str(ai_tribute.size())
+		+ "\n\n"
+		+ "Memory:\n"
+		+ "- Hidden seen: " + str(ai_memory_player_hidden_cards_seen)
+		+ " | Gambit rate: " + str(hidden_rate) + "%\n"
+		+ "- Player checks: " + str(ai_memory_player_checks_seen)
+		+ " | Success rate: " + str(check_rate) + "%\n"
+		+ "- Lane pressure: L "
+		+ str(ai_memory_player_lane_pressure_score("left"))
+		+ " / M "
+		+ str(ai_memory_player_lane_pressure_score("middle"))
+		+ " / R "
+		+ str(ai_memory_player_lane_pressure_score("right"))
+		+ "\n\n"
+		+ "Last Decisions:\n"
+		+ "- Tribute: " + ai_last_tribute_decision + "\n"
+		+ "- Deployment: " + ai_last_deployment_decision + "\n"
+		+ "- Active Ability: " + ai_last_active_ability_decision + "\n"
+		+ "- Combat: " + ai_last_combat_decision
+	)
+
+
+func ai_get_difficulty_name() -> String:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return "Novice"
+		AI_DIFFICULTY_SOLDIER:
+			return "Soldier"
+		AI_DIFFICULTY_COMMANDER:
+			return "Commander"
+		AI_DIFFICULTY_WARLORD:
+			return "Warlord"
+		AI_DIFFICULTY_GRANDMASTER:
+			return "Grandmaster"
+
+	return "Commander"
+
+
+func ai_get_phase_name() -> String:
+	match current_phase:
+		BattlePhase.BATTLEPLAN:
+			return "Battleplan"
+		BattlePhase.TRIBUTE:
+			return "Tribute"
+		BattlePhase.DEPLOYMENT:
+			return "Deployment"
+		BattlePhase.COMBAT:
+			return "Combat"
+
+	return "Unknown"
 
 
 func create_phase_tip_panel() -> void:
@@ -4989,6 +5130,11 @@ func ai_choose_tribute_card_index() -> int:
 			best_score = score
 			best_index = i
 
+	if best_index >= 0 and best_index < ai_hand.size():
+		var chosen_card: CardData = ai_hand[best_index]
+		if chosen_card != null:
+			ai_last_tribute_decision = chosen_card.card_name + " | score " + str(best_score)
+
 	return best_index
 
 
@@ -6322,6 +6468,7 @@ func ai_choose_deployment_action() -> Dictionary:
 	var actions: Array[Dictionary] = ai_build_deployment_actions()
 
 	if actions.is_empty():
+		ai_last_deployment_decision = "No legal deployment actions"
 		return {}
 
 	var best_action: Dictionary = {}
@@ -6335,7 +6482,45 @@ func ai_choose_deployment_action() -> Dictionary:
 			best_score = score
 			best_action = action
 
+	ai_last_deployment_decision = ai_describe_deployment_action(best_action, best_score)
 	return best_action
+
+
+func ai_describe_deployment_action(action: Dictionary, score: int) -> String:
+	if action.is_empty():
+		return "None"
+
+	var card_index := int(action.get("card_index", -1))
+
+	if card_index < 0 or card_index >= ai_hand.size():
+		return "Invalid action"
+
+	var card_data: CardData = ai_hand[card_index]
+	var slot := action.get("slot", null) as Node
+	var action_type := String(action.get("action_type", ""))
+	var face_down := bool(action.get("face_down", false))
+
+	if card_data == null or slot == null:
+		return "Invalid action"
+
+	var lane := get_slot_lane(slot)
+	var row := String(slot.get_meta("row", "unknown"))
+	var visibility := "face-down" if face_down else "face-up"
+
+	return (
+		card_data.card_name
+		+ " | "
+		+ action_type
+		+ " | "
+		+ row
+		+ " "
+		+ lane
+		+ " | "
+		+ visibility
+		+ " | score "
+		+ str(score)
+	)
+
 
 
 func ai_make_deployment_action(card_index: int, slot: Node, action_type: String, face_down: bool) -> Dictionary:
@@ -8391,20 +8576,25 @@ func ai_apply_active_ability_bonus(base_score: int) -> int:
 
 func ai_try_use_active_ability_before_combat(lane: String) -> Dictionary:
 	if ai_active_ability_weight() <= 0.0:
+		ai_last_active_ability_decision = "Ignored by difficulty"
 		return {"used": false, "result": "none"}
 
 	if current_phase != BattlePhase.COMBAT:
+		ai_last_active_ability_decision = "Not combat phase"
 		return {"used": false, "result": "none"}
 
 	if parry_system.active:
+		ai_last_active_ability_decision = "Parry active"
 		return {"used": false, "result": "none"}
 
 	if combat_priority_owner != "ai":
+		ai_last_active_ability_decision = "No AI priority"
 		return {"used": false, "result": "none"}
 
 	var actions: Array[Dictionary] = ai_build_active_ability_actions(lane)
 
 	if actions.is_empty():
+		ai_last_active_ability_decision = "No active ability actions in " + lane
 		return {"used": false, "result": "none"}
 
 	var best_action: Dictionary = {}
@@ -8418,6 +8608,7 @@ func ai_try_use_active_ability_before_combat(lane: String) -> Dictionary:
 			best_action = action
 
 	var threshold := ai_active_ability_use_threshold()
+	ai_last_active_ability_decision = ai_describe_active_ability_action(best_action, best_score, threshold)
 
 	if best_score < threshold:
 		return {"used": false, "result": "none"}
@@ -8425,6 +8616,38 @@ func ai_try_use_active_ability_before_combat(lane: String) -> Dictionary:
 	log_msg("AI active ability score in " + lane + ": " + str(best_score) + " / threshold " + str(threshold) + ".")
 
 	return await ai_execute_active_ability_action(best_action, lane)
+	
+	
+func ai_describe_active_ability_action(action: Dictionary, score: int, threshold: int) -> String:
+	if action.is_empty():
+		return "None"
+
+	var ability := action.get("ability", null) as AbilityData
+	var source_slot := action.get("source_slot", null) as Node
+	var target_slot := action.get("target_slot", null) as Node
+	var action_type := String(action.get("type", ""))
+
+	if ability == null or source_slot == null:
+		return "Invalid active ability"
+
+	var source_lane := get_slot_lane(source_slot)
+	var target_text := ""
+
+	if target_slot != null:
+		target_text = " -> " + get_slot_lane(target_slot)
+
+	return (
+		ability.ability_name
+		+ " | "
+		+ action_type
+		+ " | "
+		+ source_lane
+		+ target_text
+		+ " | score "
+		+ str(score)
+		+ " / threshold "
+		+ str(threshold)
+	)
 
 
 func ai_active_ability_use_threshold() -> int:
@@ -8979,7 +9202,8 @@ func resolve_ai_pass_lane_with_visuals(lane: String) -> void:
 
 func ai_should_check_hidden_backrow(lane: String, _hidden_card: CardData) -> bool:
 	return ai_choose_combat_action(lane) == "check"
-	
+
+
 func ai_choose_combat_action(lane: String) -> String:
 	var attack_base: int = ai_score_combat_attack_action(lane)
 	var check_base: int = ai_score_combat_check_action(lane)
@@ -9007,6 +9231,36 @@ func ai_choose_combat_action(lane: String) -> String:
 	if check_score > best_score:
 		best_action = "check"
 		best_score = check_score
+
+	ai_last_combat_decision = (
+		lane
+		+ " | Attack "
+		+ str(attack_score)
+		+ " = "
+		+ str(attack_base)
+		+ "+"
+		+ str(attack_lookahead)
+		+ "+"
+		+ str(attack_ability)
+		+ " | Check "
+		+ str(check_score)
+		+ " = "
+		+ str(check_base)
+		+ "+"
+		+ str(check_lookahead)
+		+ "+"
+		+ str(check_ability)
+		+ " | Pass "
+		+ str(pass_score)
+		+ " = "
+		+ str(pass_base)
+		+ "+"
+		+ str(pass_lookahead)
+		+ "+"
+		+ str(pass_ability)
+		+ " -> "
+		+ best_action.capitalize()
+	)
 
 	log_msg(
 		"AI combat scores in "
