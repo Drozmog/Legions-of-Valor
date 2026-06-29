@@ -40,6 +40,13 @@ var prompt_panel: PanelContainer = null
 var prompt_label: Label = null
 var let_die_button: Button = null
 
+var prompt_title_label: Label = null
+var prompt_matchup_label: Label = null
+var prompt_instruction_label: Label = null
+var prompt_formula_label: Label = null
+var prompt_needed_label: Label = null
+var prompt_progress_label: Label = null
+
 
 func setup(manager: BattlefieldManager) -> void:
 	bf = manager
@@ -67,46 +74,203 @@ func _create_prompt_ui() -> void:
 	prompt_panel.anchor_right = 0.5
 	prompt_panel.anchor_top = 0.5
 	prompt_panel.anchor_bottom = 0.5
-	prompt_panel.offset_left = -260.0
-	prompt_panel.offset_right = 260.0
-	prompt_panel.offset_top = -75.0
-	prompt_panel.offset_bottom = 75.0
-	prompt_panel.z_index = 90
+	prompt_panel.offset_left = -380.0
+	prompt_panel.offset_right = 380.0
+	prompt_panel.offset_top = -145.0
+	prompt_panel.offset_bottom = 145.0
+	prompt_panel.z_index = 126
+	prompt_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	prompt_panel.clip_contents = true
+	prompt_panel.add_theme_stylebox_override("panel", _make_parry_panel_style())
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.02, 0.01, 0.005, 0.92)
-	style.border_color = Color(1.0, 0.35, 0.12, 1.0)
-	style.border_width_left = 2
-	style.border_width_right = 2
-	style.border_width_top = 2
-	style.border_width_bottom = 2
-	prompt_panel.add_theme_stylebox_override("panel", style)
+	var blur := ColorRect.new()
+	blur.name = "ParryPromptBlur"
+	blur.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	blur.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	blur.color = Color.WHITE
+	blur.material = _make_parry_blur_material()
+	prompt_panel.add_child(blur)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 16)
-	margin.add_theme_constant_override("margin_right", 16)
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_bottom", 14)
+	margin.name = "ContentMargin"
+	margin.add_theme_constant_override("margin_left", 28)
+	margin.add_theme_constant_override("margin_right", 28)
+	margin.add_theme_constant_override("margin_top", 22)
+	margin.add_theme_constant_override("margin_bottom", 22)
 	prompt_panel.add_child(margin)
 
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 10)
+	vbox.add_theme_constant_override("separation", 12)
 	margin.add_child(vbox)
 
-	prompt_label = Label.new()
-	prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	prompt_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	prompt_label.text = "Parry"
-	prompt_label.add_theme_font_size_override("font_size", 17)
-	vbox.add_child(prompt_label)
+	var header := HBoxContainer.new()
+	header.alignment = BoxContainer.ALIGNMENT_CENTER
+	header.add_theme_constant_override("separation", 12)
+	vbox.add_child(header)
+
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(34.0, 34.0)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if ResourceLoader.exists("res://ui/ability_icons/protection.png"):
+		icon.texture = load("res://ui/ability_icons/protection.png") as Texture2D
+	header.add_child(icon)
+
+	prompt_title_label = Label.new()
+	prompt_title_label.text = "PARRY CHAIN"
+	prompt_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prompt_title_label.add_theme_font_size_override("font_size", 26)
+	prompt_title_label.add_theme_color_override("font_color", Color.WHITE)
+	prompt_title_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.82))
+	prompt_title_label.add_theme_constant_override("outline_size", 2)
+	header.add_child(prompt_title_label)
+
+	prompt_matchup_label = Label.new()
+	prompt_matchup_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prompt_matchup_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	prompt_matchup_label.add_theme_font_size_override("font_size", 18)
+	prompt_matchup_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.94))
+	prompt_matchup_label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.78))
+	prompt_matchup_label.add_theme_constant_override("outline_size", 1)
+	vbox.add_child(prompt_matchup_label)
+
+	prompt_instruction_label = Label.new()
+	prompt_instruction_label.text = "Drop hand cards into the glowing pit to add DP."
+	prompt_instruction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	prompt_instruction_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	prompt_instruction_label.add_theme_font_size_override("font_size", 16)
+	prompt_instruction_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.76))
+	vbox.add_child(prompt_instruction_label)
+
+	var stats_row := HBoxContainer.new()
+	stats_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	stats_row.add_theme_constant_override("separation", 10)
+	vbox.add_child(stats_row)
+
+	prompt_formula_label = _make_parry_stat_label()
+	stats_row.add_child(_wrap_parry_stat(prompt_formula_label))
+
+	prompt_needed_label = _make_parry_stat_label()
+	stats_row.add_child(_wrap_parry_stat(prompt_needed_label))
+
+	prompt_progress_label = _make_parry_stat_label()
+	stats_row.add_child(_wrap_parry_stat(prompt_progress_label))
 
 	let_die_button = Button.new()
-	let_die_button.text = "Let Unit Die"
+	let_die_button.text = "LET UNIT DIE"
 	let_die_button.focus_mode = Control.FOCUS_NONE
+	let_die_button.custom_minimum_size = Vector2(220.0, 42.0)
 	let_die_button.pressed.connect(_on_let_die_pressed)
+	_style_parry_button(let_die_button)
 	vbox.add_child(let_die_button)
 
 	bf.get_node("UI").add_child(prompt_panel)
+
+
+func _make_parry_panel_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.border_color = Color(0.0, 0.0, 0.0, 0.0)
+	style.set_border_width_all(0)
+	style.set_corner_radius_all(18)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.24)
+	style.shadow_size = 10
+	return style
+
+
+func _make_parry_blur_material() -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = """
+shader_type canvas_item;
+
+uniform sampler2D screen_texture : hint_screen_texture, repeat_disable, filter_linear_mipmap;
+uniform float blur_lod = 3.8;
+uniform vec4 glass_tint = vec4(0.015, 0.018, 0.024, 0.66);
+
+void fragment() {
+	float radius = 0.080;
+	vec2 q = abs(UV - vec2(0.5)) - vec2(0.5 - radius);
+	float d = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - radius;
+	float mask = 1.0 - smoothstep(0.0, 0.018, d);
+
+	vec3 blurred_world = textureLod(screen_texture, SCREEN_UV, blur_lod).rgb;
+	vec3 tinted = mix(blurred_world, glass_tint.rgb, glass_tint.a);
+
+	COLOR = vec4(tinted, 0.88 * mask);
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("blur_lod", 3.8)
+	material.set_shader_parameter("glass_tint", Color(0.015, 0.018, 0.024, 0.66))
+	return material
+
+
+func _make_parry_stat_label() -> Label:
+	var label := Label.new()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 15)
+	label.add_theme_color_override("font_color", Color.WHITE)
+	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.70))
+	label.add_theme_constant_override("outline_size", 1)
+	return label
+
+
+func _wrap_parry_stat(label: Label) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size = Vector2(190.0, 42.0)
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.0, 0.0, 0.0, 0.38)
+	style.border_color = Color(1.0, 1.0, 1.0, 0.10)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(7)
+	panel.add_theme_stylebox_override("panel", style)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_bottom", 6)
+	panel.add_child(margin)
+
+	margin.add_child(label)
+	return panel
+
+
+func _style_parry_button(button: Button) -> void:
+	button.add_theme_color_override("font_color", Color.WHITE)
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_font_size_override("font_size", 15)
+
+	button.add_theme_stylebox_override(
+		"normal",
+		_make_parry_button_style(Color(0.02, 0.022, 0.026, 0.70), Color(1.0, 1.0, 1.0, 0.16))
+	)
+	button.add_theme_stylebox_override(
+		"hover",
+		_make_parry_button_style(Color(0.10, 0.10, 0.11, 0.82), Color(1.0, 1.0, 1.0, 0.42))
+	)
+	button.add_theme_stylebox_override(
+		"pressed",
+		_make_parry_button_style(Color(0.16, 0.16, 0.17, 0.92), Color(1.0, 1.0, 1.0, 0.62))
+	)
+
+
+func _make_parry_button_style(bg: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(6)
+	style.content_margin_left = 14.0
+	style.content_margin_right = 14.0
+	style.content_margin_top = 8.0
+	style.content_margin_bottom = 8.0
+	return style
 
 
 func _create_pit() -> void:
@@ -263,6 +427,7 @@ func begin(
 	def_power: int = -1
 ) -> void:
 	bf.set_active_combat_lane_highlight(combat_lane)
+
 	if atk_card == null or def_card == null:
 		return
 
@@ -274,35 +439,24 @@ func begin(
 	defender_card = def_card
 	attacker_ap = atk_power if atk_power >= 0 else atk_card.ap
 	defender_ap = def_power if def_power >= 0 else def_card.ap
-	# Phase 9 parry formula:
-	# Required pit DP = attacking/threatening AP - endangered unit AP.
-	# The visible counter shows endangered unit AP + pit DP / threatening AP.
+
+	# Required pit DP = attacking AP - endangered unit AP.
+	# The visible counter shows endangered unit AP + pit DP / attacking AP.
 	required_dp = max(1, attacker_ap - defender_ap)
 	gathered_dp = 0
-	bf.update_phase_instruction_ui()
 
+	bf.update_phase_instruction_ui()
 	_show_pit(required_dp)
 
 	if prompt_panel != null:
 		prompt_panel.visible = true
+		prompt_panel.modulate.a = 0.0
 
-	if prompt_label != null:
-		prompt_label.text = (
-			"Your "
-			+ def_card.card_name
-			+ " must survive against "
-			+ atk_card.card_name
-			+ ".\nDrop hand cards into the glowing pit to add DP, or let the unit die."
-			+ "\nParry target: "
-			+ str(defender_ap)
-			+ " + pit DP / "
-			+ str(attacker_ap)
-			+ " AP"
-			+ "\nNeeded from pit: "
-			+ str(required_dp)
-			+ " DP"
-		)
+		var tween := prompt_panel.create_tween()
+		tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.tween_property(prompt_panel, "modulate:a", 1.0, 0.18)
 
+	_refresh_prompt_text()
 	_update_counter_label()
 
 	bf.log_msg(
@@ -310,8 +464,7 @@ func begin(
 		+ def_card.card_name
 		+ " needs "
 		+ str(required_dp)
-		+ " pit DP. "
-		+ "Parry: "
+		+ " pit DP. Parry: "
 		+ str(defender_ap)
 		+ " / "
 		+ str(attacker_ap)
@@ -320,6 +473,24 @@ func begin(
 
 func _update_counter_label() -> void:
 	_update_counter_visual(gathered_dp, required_dp)
+	_refresh_prompt_text()
+
+
+func _refresh_prompt_text() -> void:
+	if defender_card == null or attacker_card == null:
+		return
+
+	if prompt_matchup_label != null:
+		prompt_matchup_label.text = "Your " + defender_card.card_name + " must survive against " + attacker_card.card_name + "."
+
+	if prompt_formula_label != null:
+		prompt_formula_label.text = "Target  " + str(defender_ap) + " + pit DP / " + str(attacker_ap) + " AP"
+
+	if prompt_needed_label != null:
+		prompt_needed_label.text = "Needed  " + str(required_dp) + " DP"
+
+	if prompt_progress_label != null:
+		prompt_progress_label.text = "Pit DP  " + str(gathered_dp) + " / " + str(required_dp)
 
 
 func sacrifice_card(card_ui: CardUI) -> void:
