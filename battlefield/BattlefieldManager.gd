@@ -5019,7 +5019,7 @@ func ai_score_tribute_card(card_index: int, card_data: CardData) -> int:
 			score -= 18
 
 	# Tiny randomness only for tie-breaking, not strategy.
-	score += randi() % 6
+	score += ai_tactical_noise(6)
 
 	return score
 
@@ -5240,6 +5240,357 @@ func ai_memory_note_player_attacked_hidden(lane: String, revealed_gambit: bool) 
 
 	if lane != "":
 		ai_memory_add_lane_pressure(lane, 2)
+
+
+func ai_lookahead_weight() -> float:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return 0.0
+		AI_DIFFICULTY_SOLDIER:
+			return 0.20
+		AI_DIFFICULTY_COMMANDER:
+			return 0.50
+		AI_DIFFICULTY_WARLORD:
+			return 0.85
+		AI_DIFFICULTY_GRANDMASTER:
+			return 1.15
+
+	return 0.50
+
+
+func ai_apply_lookahead_bonus(base_score: int) -> int:
+	return int(round(float(base_score) * ai_lookahead_weight()))
+
+
+func ai_card_has_ability_id(card_data: CardData, ability_id: StringName) -> bool:
+	if card_data == null:
+		return false
+
+	for ability in card_data.get_abilities():
+		if ability != null and ability.ability_id == ability_id:
+			return true
+
+	return false
+
+
+func ai_estimate_card_value(card_data: CardData) -> int:
+	if card_data == null:
+		return 0
+
+	var score: int = 0
+	score += maxi(card_data.ap, 0) * 8
+	score += maxi(card_data.dp, 0) * 4
+	score += maxi(card_data.tribute_cost, 0) * 2
+	score += get_unit_defeat_aurion_reward(card_data) * 10
+
+	for ability in card_data.get_abilities():
+		if ability == null:
+			continue
+
+		var category := ability.category.to_lower()
+		var handler_id := ability.get_handler_id()
+
+		if category == "protection":
+			score += 12
+
+			if handler_id == &"plated":
+				score += 22
+			elif handler_id == &"spiked":
+				score += 18
+			elif handler_id == &"shielded":
+				score += 16
+			elif handler_id == &"deflect":
+				score += 10
+
+		elif category == "mobility":
+			score += 10
+
+			if handler_id == &"flank_swap" or handler_id == &"vortex":
+				score += 14
+
+		elif category == "insight":
+			score += 8
+
+	return score
+
+
+func ai_score_projected_lane_control(lane: String, projected_ai_ap: int, projected_ai_dp: int, ai_has_front_unit: bool) -> int:
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+
+	var player_front_card: CardData = get_slot_card_data(player_front_slot)
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var player_back_is_face_down := player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	var score: int = 0
+
+	if not ai_has_front_unit:
+		if is_unit_card(player_front_card):
+			score -= 42
+		else:
+			score -= 8
+
+		return score
+
+	if not is_unit_card(player_front_card):
+		score += 55
+		score += projected_ai_ap * 4
+
+		if player_back_is_face_down:
+			score -= 18
+
+		if lane == "left" or lane == "right":
+			score += 16
+
+		return score
+
+	var player_ap: int = get_slot_combat_ap(player_front_slot)
+	var ap_gap: int = projected_ai_ap - player_ap
+
+	if ap_gap > 0:
+		score += 42
+		score += ap_gap * 12
+		score += get_unit_defeat_aurion_reward(player_front_card) * 8
+
+		if lane == "left" or lane == "right":
+			score += 14
+
+	elif ap_gap == 0:
+		score += 8
+		score += get_unit_defeat_aurion_reward(player_front_card) * 4
+
+	else:
+		score -= 36
+		score += ap_gap * 10
+		score += projected_ai_dp * 2
+
+	if player_back_is_face_down:
+		var hidden_gambit_penalty := int(round((ai_memory_player_hidden_gambit_rate() - 0.50) * 70.0))
+		score -= ai_apply_memory_bonus(hidden_gambit_penalty)
+
+	return score
+
+
+func ai_score_deployment_lookahead(card_data: CardData, slot: Node, action_type: String, face_down: bool) -> int:
+	if card_data == null or slot == null:
+		return 0
+
+	if ai_lookahead_weight() <= 0.0:
+		return 0
+
+	var lane := get_slot_lane(slot)
+	var row := String(slot.get_meta("row", ""))
+	var score: int = 0
+
+	match action_type:
+		"promotion":
+			score += ai_score_projected_lane_control(lane, card_data.ap, card_data.dp, true)
+			score += ai_estimate_card_value(card_data) / 3
+
+		"unit":
+			if face_down or row == "back":
+				var enemy_front := get_slot_card_data(find_slot_by_owner_row_lane("enemy", "front", lane))
+				score += 16
+				score += card_data.dp * 3
+
+				if is_unit_card(enemy_front):
+					score += 22
+
+				if ai_get_empty_enemy_slots("front").is_empty():
+					score += 18
+				else:
+					score -= 14
+			else:
+				score += ai_score_projected_lane_control(lane, card_data.ap, card_data.dp, true)
+				score += ai_estimate_card_value(card_data) / 4
+
+		"equipment":
+			var equipped_unit := get_slot_card_data(slot)
+
+			if is_unit_card(equipped_unit):
+				var projected_ap := equipped_unit.ap + card_data.ap
+				var projected_dp := equipped_unit.dp + card_data.dp
+				score += ai_score_projected_lane_control(lane, projected_ap, projected_dp, true)
+
+				if ai_card_has_ability_id(card_data, &"plated"):
+					score += 24
+
+				if ai_card_has_ability_id(card_data, &"spiked"):
+					score += 20
+
+				if ai_card_has_ability_id(card_data, &"shielded"):
+					score += 18
+
+		"equipment_setup":
+			var enemy_front := get_slot_card_data(find_slot_by_owner_row_lane("enemy", "front", lane))
+			score += 10
+
+			if is_unit_card(enemy_front):
+				score += 20
+			else:
+				score -= 12
+
+			score += card_data.dp * 2
+
+		"gambit":
+			if face_down:
+				score += 35
+				score += ai_memory_player_lane_pressure_score(lane)
+
+				var enemy_front := get_slot_card_data(find_slot_by_owner_row_lane("enemy", "front", lane))
+
+				if is_unit_card(enemy_front):
+					score += 22
+
+				if lane == "left" or lane == "right":
+					score += 8
+			else:
+				score += 12
+				score += card_data.ap * 2
+				score += card_data.dp
+
+	return ai_apply_lookahead_bonus(score)
+
+
+func ai_score_combat_action_lookahead(lane: String, action_type: String) -> int:
+	if ai_lookahead_weight() <= 0.0:
+		return 0
+
+	match action_type:
+		"attack":
+			return ai_apply_lookahead_bonus(ai_score_attack_lookahead(lane))
+		"check":
+			return ai_apply_lookahead_bonus(ai_score_check_lookahead(lane))
+		"pass":
+			return ai_apply_lookahead_bonus(ai_score_pass_lookahead(lane))
+
+	return 0
+
+
+func ai_score_attack_lookahead(lane: String) -> int:
+	var ai_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+
+	var ai_card: CardData = get_slot_card_data(ai_front_slot)
+	var player_front_card: CardData = get_slot_card_data(player_front_slot)
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var player_back_is_face_down := player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	if not is_unit_card(ai_card):
+		return -120
+
+	var score: int = 0
+
+	if player_back_is_face_down:
+		var gambit_bias := int(round((ai_memory_player_hidden_gambit_rate() - 0.50) * 100.0))
+
+		if get_gambit_attack_protection(ai_front_slot) != null:
+			score += 40
+		else:
+			score -= gambit_bias
+
+	if not is_unit_card(player_front_card):
+		score += 75
+
+		if player_back_is_face_down:
+			score -= 25
+
+		return score
+
+	var ai_ap := get_slot_combat_ap(ai_front_slot)
+	var player_ap := get_slot_combat_ap(player_front_slot)
+	var ap_gap := ai_ap - player_ap
+
+	var ai_value := ai_estimate_card_value(ai_card)
+	var player_value := ai_estimate_card_value(player_front_card)
+
+	if ap_gap > 0:
+		score += 55
+		score += ap_gap * 14
+		score += player_value / 5
+
+		if ap_gap == 1:
+			score -= 14
+
+	elif ap_gap == 0:
+		score += 10
+		score += player_value / 6
+		score -= ai_value / 7
+
+	else:
+		score -= 55
+		score -= ai_value / 5
+
+		if slot_has_protection_ability(ai_front_slot, &"plated") != null:
+			score += 42
+
+		if slot_has_protection_ability(ai_front_slot, &"spiked") != null:
+			score += 34
+
+	if lane == "left" or lane == "right":
+		score += 10
+
+	return score
+
+
+func ai_score_check_lookahead(lane: String) -> int:
+	var ai_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+	var player_back_slot: Node = find_slot_by_owner_row_lane("player", "back", lane)
+
+	var ai_card: CardData = get_slot_card_data(ai_front_slot)
+	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var player_back_is_face_down := player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	if not is_unit_card(ai_card):
+		return -120
+
+	if not player_back_is_face_down:
+		return -120
+
+	var score: int = 0
+	var gambit_rate := ai_memory_player_hidden_gambit_rate()
+
+	score += int(round((gambit_rate - 0.50) * 120.0))
+	score += ai_memory_player_lane_pressure_score(lane) * 2
+
+	if get_gambit_attack_protection(ai_front_slot) != null:
+		score -= 45
+
+	return score
+
+
+func ai_score_pass_lookahead(lane: String) -> int:
+	var ai_front_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+	var player_front_slot: Node = find_slot_by_owner_row_lane("player", "front", lane)
+
+	var ai_card: CardData = get_slot_card_data(ai_front_slot)
+	var player_front_card: CardData = get_slot_card_data(player_front_slot)
+
+	if not is_unit_card(ai_card):
+		return 35
+
+	var score: int = 0
+	var lane_pressure := ai_memory_player_lane_pressure_score(lane)
+
+	if player_passed_current_lane:
+		score += 30
+
+	if is_unit_card(player_front_card):
+		var ai_ap := get_slot_combat_ap(ai_front_slot)
+		var player_ap := get_slot_combat_ap(player_front_slot)
+
+		if ai_ap > player_ap:
+			score -= 35
+			score -= lane_pressure
+		elif ai_ap < player_ap:
+			score += 22
+			score += lane_pressure
+
+	else:
+		score -= 55
+
+	return score
 
 
 func ai_take_combat_initiative() -> void:
@@ -5706,7 +6057,6 @@ func ai_score_deployment_action(action: Dictionary) -> int:
 
 	var action_type: String = String(action.get("action_type", ""))
 	var face_down: bool = bool(action.get("face_down", false))
-	var lane: String = get_slot_lane(slot)
 	var score: int = 0
 	var deployment_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down)
 
@@ -5737,8 +6087,10 @@ func ai_score_deployment_action(action: Dictionary) -> int:
 		_:
 			score -= 100
 
-	# Small randomness for tie-breaking only.
-	score += randi() % 8
+	score += ai_score_deployment_lookahead(card_data, slot, action_type, face_down)
+
+	# Difficulty-aware tie-breaking.
+	score += ai_tactical_noise(8)
 
 	return score
 
@@ -7568,9 +7920,17 @@ func ai_should_check_hidden_backrow(lane: String, _hidden_card: CardData) -> boo
 	return ai_choose_combat_action(lane) == "check"
 	
 func ai_choose_combat_action(lane: String) -> String:
-	var attack_score: int = ai_score_combat_attack_action(lane)
-	var check_score: int = ai_score_combat_check_action(lane)
-	var pass_score: int = ai_score_combat_pass_action(lane)
+	var attack_base: int = ai_score_combat_attack_action(lane)
+	var check_base: int = ai_score_combat_check_action(lane)
+	var pass_base: int = ai_score_combat_pass_action(lane)
+
+	var attack_lookahead: int = ai_score_combat_action_lookahead(lane, "attack")
+	var check_lookahead: int = ai_score_combat_action_lookahead(lane, "check")
+	var pass_lookahead: int = ai_score_combat_action_lookahead(lane, "pass")
+
+	var attack_score: int = attack_base + attack_lookahead
+	var check_score: int = check_base + check_lookahead
+	var pass_score: int = pass_base + pass_lookahead
 
 	var best_action: String = "pass"
 	var best_score: int = pass_score
@@ -7588,11 +7948,23 @@ func ai_choose_combat_action(lane: String) -> String:
 		+ lane
 		+ ": Attack "
 		+ str(attack_score)
-		+ ", Check "
+		+ " (base "
+		+ str(attack_base)
+		+ ", lookahead "
+		+ str(attack_lookahead)
+		+ "), Check "
 		+ str(check_score)
-		+ ", Pass "
+		+ " (base "
+		+ str(check_base)
+		+ ", lookahead "
+		+ str(check_lookahead)
+		+ "), Pass "
 		+ str(pass_score)
-		+ " | Memory: hidden Gambit rate "
+		+ " (base "
+		+ str(pass_base)
+		+ ", lookahead "
+		+ str(pass_lookahead)
+		+ ") | Memory: hidden Gambit rate "
 		+ str(int(round(ai_memory_player_hidden_gambit_rate() * 100.0)))
 		+ "%, lane pressure "
 		+ str(ai_memory_player_lane_pressure_score(lane))
