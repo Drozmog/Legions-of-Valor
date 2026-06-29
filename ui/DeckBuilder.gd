@@ -251,20 +251,17 @@ func _input(event: InputEvent) -> void:
 			current_viewport.set_input_as_handled()
 		return
 
-	if handle_library_scroll_slider_drag_input(event):
-		var current_viewport := get_viewport()
-		if current_viewport != null and is_inside_tree():
-			current_viewport.set_input_as_handled()
-		return
-
-	if handle_library_scroll_slider_drag_input(event):
+	if handle_library_scroll_slider_manual_input(event):
 		var current_viewport := get_viewport()
 		if current_viewport != null and is_inside_tree():
 			current_viewport.set_input_as_handled()
 		return
 
 	if event is InputEventMouseMotion and dragging_node == null:
-		update_cursor_for_screen_position((event as InputEventMouseMotion).position)
+		var mouse_position := (event as InputEventMouseMotion).position
+
+		if not update_library_slider_cursor_for_screen_position(mouse_position):
+			update_cursor_for_screen_position(mouse_position)
 
 	if route_tabletop_ui_input(event):
 		var current_viewport := get_viewport()
@@ -800,10 +797,12 @@ func build_library_scroll_slider(parent: Control) -> void:
 	library_scroll_slider_hitbox = Control.new()
 	library_scroll_slider_hitbox.name = "LibraryScrollSliderKnobHitbox"
 	library_scroll_slider_hitbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	library_scroll_slider_hitbox.mouse_filter = Control.MOUSE_FILTER_STOP
-	library_scroll_slider_hitbox.gui_input.connect(_on_library_scroll_slider_gui_input)
-	library_scroll_slider_hitbox.mouse_entered.connect(_on_library_scroll_slider_mouse_entered)
-	library_scroll_slider_hitbox.mouse_exited.connect(_on_library_scroll_slider_mouse_exited)
+
+	# Important:
+	# This hitbox is only used for size/position math.
+	# It must NOT receive Godot GUI input, otherwise the whole track starts acting like a slider.
+	library_scroll_slider_hitbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	slider_layer.add_child(library_scroll_slider_hitbox)
 
 	refresh_library_scroll_slider()
@@ -901,66 +900,67 @@ func make_library_scroll_knob_texture(diameter: int, fill_color: Color, border_c
 	return ImageTexture.create_from_image(image)
 	
 
-func _on_library_scroll_slider_gui_input(event: InputEvent) -> void:
+func handle_library_scroll_slider_manual_input(event: InputEvent) -> bool:
 	if library_scroll_slider == null:
-		return
+		return false
 
 	if library_scroll_slider_hitbox == null:
-		return
-
-	if event is InputEventMouseMotion:
-		var mouse_motion := event as InputEventMouseMotion
-		library_scroll_slider_hovered = is_library_scroll_slider_local_point_on_knob(mouse_motion.position)
-
-		if library_scroll_slider_dragging:
-			Cursors.use_grab()
-		elif library_scroll_slider_hovered:
-			Cursors.use_pointing()
-		else:
-			Cursors.use_normal()
-
-		return
+		return false
 
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 
 		if mouse_event.button_index != MOUSE_BUTTON_LEFT:
-			return
+			return false
 
-		if mouse_event.pressed:
-			if not is_library_scroll_slider_local_point_on_knob(mouse_event.position):
-				return
+		if not mouse_event.pressed:
+			if library_scroll_slider_dragging:
+				end_library_scroll_slider_drag()
+				return true
 
-			var knob_rect := get_library_scroll_slider_knob_rect()
-			library_scroll_slider_drag_offset_x = mouse_event.position.x - knob_rect.get_center().x
-			begin_library_scroll_slider_drag()
-			get_viewport().set_input_as_handled()
-		else:
-			end_library_scroll_slider_drag()
-			get_viewport().set_input_as_handled()
+			return false
+
+		var local_point := get_library_scroll_slider_hitbox_local_from_screen(mouse_event.position)
+
+		if not is_library_scroll_slider_local_point_valid(local_point):
+			return false
+
+		# Clicking the track should do nothing, but it should still consume the click
+		# so it does not accidentally trigger other deck-builder interactions.
+		if not is_library_scroll_slider_local_point_on_knob(local_point):
+			Cursors.use_normal()
+			return true
+
+		var knob_rect := get_library_scroll_slider_knob_rect()
+		library_scroll_slider_drag_offset_x = local_point.x - knob_rect.get_center().x
+		begin_library_scroll_slider_drag()
+		return true
+
+	if event is InputEventMouseMotion and library_scroll_slider_dragging:
+		var mouse_motion := event as InputEventMouseMotion
+		set_library_scroll_from_slider_screen_position(mouse_motion.position)
+		Cursors.use_grab()
+		return true
+
+	return false
 
 
-func _on_library_scroll_slider_mouse_entered() -> void:
+func update_library_slider_cursor_for_screen_position(screen_position: Vector2) -> bool:
 	if library_scroll_slider_dragging:
 		Cursors.use_grab()
-		return
+		return true
 
-	var local_mouse := library_scroll_slider_hitbox.get_local_mouse_position()
-	library_scroll_slider_hovered = is_library_scroll_slider_local_point_on_knob(local_mouse)
+	var local_point := get_library_scroll_slider_hitbox_local_from_screen(screen_position)
 
-	if library_scroll_slider_hovered:
+	if not is_library_scroll_slider_local_point_valid(local_point):
+		return false
+
+	if is_library_scroll_slider_local_point_on_knob(local_point):
 		Cursors.use_pointing()
 	else:
 		Cursors.use_normal()
 
-
-func _on_library_scroll_slider_mouse_exited() -> void:
-	library_scroll_slider_hovered = false
-
-	if library_scroll_slider_dragging:
-		Cursors.use_grab()
-	else:
-		Cursors.use_normal()
+	return true
 
 
 func begin_library_scroll_slider_drag() -> void:
@@ -975,77 +975,25 @@ func end_library_scroll_slider_drag() -> void:
 	library_scroll_slider_dragging = false
 	library_scroll_slider_drag_offset_x = 0.0
 
-	var local_mouse := Vector2.ZERO
+	var local_point := get_library_scroll_slider_hitbox_local_from_screen(get_viewport().get_mouse_position())
 
-	if library_scroll_slider_hitbox != null:
-		local_mouse = library_scroll_slider_hitbox.get_local_mouse_position()
-		library_scroll_slider_hovered = is_library_scroll_slider_local_point_on_knob(local_mouse)
-	else:
-		library_scroll_slider_hovered = false
-
-	if library_scroll_slider_hovered:
+	if is_library_scroll_slider_local_point_valid(local_point) and is_library_scroll_slider_local_point_on_knob(local_point):
 		Cursors.use_pointing()
 	else:
 		Cursors.use_normal()
 
 
-func handle_library_scroll_slider_drag_input(event: InputEvent) -> bool:
-	if not library_scroll_slider_dragging:
-		return false
-
-	if event is InputEventMouseButton:
-		var mouse_event := event as InputEventMouseButton
-
-		if mouse_event.button_index == MOUSE_BUTTON_LEFT and not mouse_event.pressed:
-			end_library_scroll_slider_drag()
-			return true
-
-	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		end_library_scroll_slider_drag()
-		return true
-
-	if event is InputEventMouseMotion:
-		var mouse_motion := event as InputEventMouseMotion
-		set_library_scroll_from_slider_screen_position(mouse_motion.position)
-		Cursors.use_grab()
-		return true
-
-	return false
-
-
 func set_library_scroll_from_slider_screen_position(screen_position: Vector2) -> void:
-	if camera_3d == null:
+	var local_point := get_library_scroll_slider_hitbox_local_from_screen(screen_position)
+
+	if not is_library_scroll_slider_local_point_valid(local_point):
+		# While dragging, allow off-surface mouse movement to clamp to the edge.
+		local_point = get_library_scroll_slider_unclamped_hitbox_local_from_screen(screen_position)
+
+	if not is_library_scroll_slider_local_point_valid(local_point):
 		return
 
-	if library_scroll_slider_surface == null:
-		return
-
-	if library_scroll_slider_viewport == null:
-		return
-
-	if library_scroll_slider_world_size.x <= 0.001:
-		return
-
-	if library_scroll_slider_hitbox == null:
-		return
-
-	var hit: Vector3 = screen_to_horizontal_plane(screen_position, library_scroll_slider_surface.global_position.y)
-	var local_hit: Vector3 = library_scroll_slider_surface.to_local(hit)
-
-	var surface_ratio_x := clampf(
-		(local_hit.x / library_scroll_slider_world_size.x) + 0.5,
-		0.0,
-		1.0
-	)
-
-	var viewport_x := surface_ratio_x * float(library_scroll_slider_viewport.size.x)
-	var hitbox_rect := library_scroll_slider_hitbox.get_global_rect()
-
-	if hitbox_rect.size.x <= 0.001:
-		return
-
-	var local_x := viewport_x - hitbox_rect.position.x
-	set_library_scroll_from_slider_local_x(local_x)
+	set_library_scroll_from_slider_local_x(local_point.x)
 
 
 func set_library_scroll_from_slider_local_x(local_x: float) -> void:
@@ -1059,6 +1007,7 @@ func set_library_scroll_from_slider_local_x(local_x: float) -> void:
 
 	var knob_radius := get_library_scroll_slider_knob_radius()
 	var usable_width := maxf(hitbox_width - knob_radius * 2.0, 1.0)
+
 	var knob_center_x := clampf(
 		local_x - library_scroll_slider_drag_offset_x,
 		knob_radius,
@@ -1075,10 +1024,80 @@ func set_library_scroll_from_slider_local_x(local_x: float) -> void:
 	set_library_scroll(next_scroll)
 
 
+func get_library_scroll_slider_hitbox_local_from_screen(screen_position: Vector2) -> Vector2:
+	if library_scroll_slider_surface == null:
+		return Vector2(INF, INF)
+
+	if library_scroll_slider_viewport == null:
+		return Vector2(INF, INF)
+
+	if library_scroll_slider_world_size.x <= 0.001 or library_scroll_slider_world_size.y <= 0.001:
+		return Vector2(INF, INF)
+
+	if library_scroll_slider_hitbox == null:
+		return Vector2(INF, INF)
+
+	var hit: Vector3 = screen_to_horizontal_plane(screen_position, library_scroll_slider_surface.global_position.y)
+	var local_hit: Vector3 = library_scroll_slider_surface.to_local(hit)
+	var half_size := library_scroll_slider_world_size * 0.5
+
+	if absf(local_hit.x) > half_size.x:
+		return Vector2(INF, INF)
+
+	if absf(local_hit.y) > half_size.y:
+		return Vector2(INF, INF)
+
+	return get_library_scroll_slider_hitbox_local_from_surface_local(local_hit)
+
+
+func get_library_scroll_slider_unclamped_hitbox_local_from_screen(screen_position: Vector2) -> Vector2:
+	if library_scroll_slider_surface == null:
+		return Vector2(INF, INF)
+
+	if library_scroll_slider_viewport == null:
+		return Vector2(INF, INF)
+
+	if library_scroll_slider_world_size.x <= 0.001:
+		return Vector2(INF, INF)
+
+	if library_scroll_slider_hitbox == null:
+		return Vector2(INF, INF)
+
+	var hit: Vector3 = screen_to_horizontal_plane(screen_position, library_scroll_slider_surface.global_position.y)
+	var local_hit: Vector3 = library_scroll_slider_surface.to_local(hit)
+
+	return get_library_scroll_slider_hitbox_local_from_surface_local(local_hit)
+
+
+func get_library_scroll_slider_hitbox_local_from_surface_local(local_hit: Vector3) -> Vector2:
+	var surface_ratio_x := clampf(
+		(local_hit.x / library_scroll_slider_world_size.x) + 0.5,
+		0.0,
+		1.0
+	)
+
+	var viewport_x := surface_ratio_x * float(library_scroll_slider_viewport.size.x)
+	var hitbox_rect := library_scroll_slider_hitbox.get_global_rect()
+
+	if hitbox_rect.size.x <= 0.001:
+		return Vector2(INF, INF)
+
+	var local_x := viewport_x - hitbox_rect.position.x
+
+	# We intentionally lock Y to the knob center.
+	# The physical slider strip is already tiny, so X is the only important grab test.
+	return Vector2(local_x, library_scroll_slider_hitbox.size.y * 0.5)
+
+
+func is_library_scroll_slider_local_point_valid(local_point: Vector2) -> bool:
+	return is_finite(local_point.x) and is_finite(local_point.y)
+
+
 func is_library_scroll_slider_local_point_on_knob(local_position: Vector2) -> bool:
 	var knob_rect := get_library_scroll_slider_knob_rect()
 
-	return knob_rect.grow(8.0).has_point(local_position)
+	# Larger grab zone around the dot so it is not annoyingly hard to pick up.
+	return knob_rect.grow(16.0).has_point(local_position)
 
 
 func get_library_scroll_slider_knob_rect() -> Rect2:
@@ -1107,7 +1126,7 @@ func get_library_scroll_slider_knob_rect() -> Rect2:
 
 
 func get_library_scroll_slider_knob_radius() -> float:
-	return 15.0
+	return 18.0
 
 
 func _on_library_scroll_slider_changed(value: float) -> void:
@@ -1127,12 +1146,12 @@ func refresh_library_scroll_slider() -> void:
 	library_scroll_slider.min_value = library_scroll_min
 	library_scroll_slider.max_value = maxf(library_scroll_max, 0.001)
 	library_scroll_slider.value = clampf(library_scroll_target, library_scroll_min, library_scroll_max)
-	library_scroll_slider.editable = can_scroll
+	library_scroll_slider.editable = false
 	library_scroll_slider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	library_scroll_slider_internal_update = false
 
 	if library_scroll_slider_hitbox != null:
-		library_scroll_slider_hitbox.mouse_filter = Control.MOUSE_FILTER_STOP if can_scroll else Control.MOUSE_FILTER_IGNORE
+		library_scroll_slider_hitbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	if library_scroll_slider_surface != null:
 		library_scroll_slider_surface.visible = can_scroll
