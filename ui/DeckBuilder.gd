@@ -550,6 +550,12 @@ func build_overlay_ui() -> void:
 	var ability_surface_entry: Dictionary = tabletop_ui_surfaces.pop_back()
 	tabletop_ui_surfaces.push_front(ability_surface_entry)
 
+	var plaque_style := make_panel_style(
+		Color(0.18, 0.115, 0.065, 0.62),
+		Color(0.0, 0.0, 0.0, 0.0),
+		0
+	)
+
 	# A floating wooden plaque over the lower-left table, not a screen-wide bar.
 	var library_plaque := PanelContainer.new()
 	library_plaque.name = "LibraryControlPlaque"
