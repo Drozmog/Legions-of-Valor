@@ -22,20 +22,20 @@ func offer_card_to_tribute(card_data: CardData) -> bool:
 		return false
 
 	var type := card_data.card_type.to_lower()
+	# Set completion before add_* refreshes the totals and emits tribute_changed.
+	# Phase progression observes this signal and must see the committed state.
+	tribute_card_used_this_turn = true
 
-	if type == "spell":
+	if type == "spell" or type == "gambit":
 		add_temporary_tribute(card_data)
-		tribute_card_used_this_turn = true
 		return true
 
 	if type == "unit" or type == "equipment" or type == "ruse" or type == "trap":
 		add_permanent_tribute(card_data)
-		tribute_card_used_this_turn = true
 		return true
 
 	push_warning("Unknown card_type offered to Tribute: " + card_data.card_type + ". Treating as permanent for now.")
 	add_permanent_tribute(card_data)
-	tribute_card_used_this_turn = true
 	return true
 
 

@@ -148,12 +148,14 @@ var play_button: Button
 var search_box: LineEdit
 var library_sort_button: MenuButton
 var library_scroll_slider: HSlider
+var library_scroll_slider_hitbox: Control
 var library_scroll_slider_surface: MeshInstance3D
 var library_scroll_slider_viewport: SubViewport
 var library_scroll_slider_world_size := Vector2.ZERO
 var library_scroll_slider_internal_update := false
 var library_scroll_slider_dragging := false
 var library_scroll_slider_hovered := false
+var library_scroll_slider_drag_offset_x := 0.0
 var card_detail_label: RichTextLabel
 var card_detail_name_3d: Label3D
 var card_detail_stats_3d: Label3D
@@ -202,10 +204,10 @@ func _process(delta: float) -> void:
 	if library_scroll_slider_dragging:
 		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 			set_library_scroll_from_slider_screen_position(get_viewport().get_mouse_position())
-			use_library_slider_grab_cursor()
+			Cursors.use_grab()
 		else:
 			end_library_scroll_slider_drag()
-			
+
 	if absf(library_scroll - library_scroll_target) > 0.001:
 		var scroll_weight: float = clampf(delta * LIBRARY_SCROLL_LERP_SPEED, 0.0, 1.0)
 		library_scroll = lerpf(library_scroll, library_scroll_target, scroll_weight)
@@ -773,23 +775,36 @@ func build_library_scroll_slider(parent: Control) -> void:
 	margin.add_theme_constant_override("margin_bottom", 6)
 	outer.add_child(margin)
 
+	var slider_layer := Control.new()
+	slider_layer.name = "LibraryScrollSliderLayer"
+	slider_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	slider_layer.mouse_filter = Control.MOUSE_FILTER_PASS
+	margin.add_child(slider_layer)
+
 	library_scroll_slider = HSlider.new()
 	library_scroll_slider.name = "LibraryScrollSlider"
+	library_scroll_slider.set_anchors_preset(Control.PRESET_FULL_RECT)
 	library_scroll_slider.min_value = library_scroll_min
 	library_scroll_slider.max_value = maxf(library_scroll_max, 0.001)
 	library_scroll_slider.step = 0.001
 	library_scroll_slider.value = library_scroll_target
-	library_scroll_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	library_scroll_slider.custom_minimum_size = Vector2(0, 28)
 	library_scroll_slider.focus_mode = Control.FOCUS_NONE
-	library_scroll_slider.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	library_scroll_slider.value_changed.connect(_on_library_scroll_slider_changed)
-	library_scroll_slider.gui_input.connect(_on_library_scroll_slider_gui_input)
-	library_scroll_slider.mouse_entered.connect(_on_library_scroll_slider_mouse_entered)
-	library_scroll_slider.mouse_exited.connect(_on_library_scroll_slider_mouse_exited)
+
+	# Important: the real HSlider is visual-only.
+	# It must not receive clicks, track clicks, hover drags, or Godot's default slider behavior.
+	library_scroll_slider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	style_library_scroll_slider(library_scroll_slider)
-	margin.add_child(library_scroll_slider)
+	slider_layer.add_child(library_scroll_slider)
+
+	library_scroll_slider_hitbox = Control.new()
+	library_scroll_slider_hitbox.name = "LibraryScrollSliderKnobHitbox"
+	library_scroll_slider_hitbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	library_scroll_slider_hitbox.mouse_filter = Control.MOUSE_FILTER_STOP
+	library_scroll_slider_hitbox.gui_input.connect(_on_library_scroll_slider_gui_input)
+	library_scroll_slider_hitbox.mouse_entered.connect(_on_library_scroll_slider_mouse_entered)
+	library_scroll_slider_hitbox.mouse_exited.connect(_on_library_scroll_slider_mouse_exited)
+	slider_layer.add_child(library_scroll_slider_hitbox)
 
 	refresh_library_scroll_slider()
 
@@ -887,6 +902,25 @@ func make_library_scroll_knob_texture(diameter: int, fill_color: Color, border_c
 	
 
 func _on_library_scroll_slider_gui_input(event: InputEvent) -> void:
+	if library_scroll_slider == null:
+		return
+
+	if library_scroll_slider_hitbox == null:
+		return
+
+	if event is InputEventMouseMotion:
+		var mouse_motion := event as InputEventMouseMotion
+		library_scroll_slider_hovered = is_library_scroll_slider_local_point_on_knob(mouse_motion.position)
+
+		if library_scroll_slider_dragging:
+			Cursors.use_grab()
+		elif library_scroll_slider_hovered:
+			Cursors.use_pointing()
+		else:
+			Cursors.use_normal()
+
+		return
+
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 
@@ -894,33 +928,44 @@ func _on_library_scroll_slider_gui_input(event: InputEvent) -> void:
 			return
 
 		if mouse_event.pressed:
+			if not is_library_scroll_slider_local_point_on_knob(mouse_event.position):
+				return
+
+			var knob_rect := get_library_scroll_slider_knob_rect()
+			library_scroll_slider_drag_offset_x = mouse_event.position.x - knob_rect.get_center().x
 			begin_library_scroll_slider_drag()
+			get_viewport().set_input_as_handled()
 		else:
 			end_library_scroll_slider_drag()
+			get_viewport().set_input_as_handled()
 
 
 func _on_library_scroll_slider_mouse_entered() -> void:
-	library_scroll_slider_hovered = true
-
 	if library_scroll_slider_dragging:
-		use_library_slider_grab_cursor()
+		Cursors.use_grab()
+		return
+
+	var local_mouse := library_scroll_slider_hitbox.get_local_mouse_position()
+	library_scroll_slider_hovered = is_library_scroll_slider_local_point_on_knob(local_mouse)
+
+	if library_scroll_slider_hovered:
+		Cursors.use_pointing()
 	else:
-		use_library_slider_point_cursor()
+		Cursors.use_normal()
 
 
 func _on_library_scroll_slider_mouse_exited() -> void:
 	library_scroll_slider_hovered = false
 
 	if library_scroll_slider_dragging:
-		use_library_slider_grab_cursor()
+		Cursors.use_grab()
 	else:
-		use_library_slider_normal_cursor()
+		Cursors.use_normal()
 
 
 func begin_library_scroll_slider_drag() -> void:
 	library_scroll_slider_dragging = true
-	use_library_slider_grab_cursor()
-	set_library_scroll_from_slider_screen_position(get_viewport().get_mouse_position())
+	Cursors.use_grab()
 
 
 func end_library_scroll_slider_drag() -> void:
@@ -928,16 +973,32 @@ func end_library_scroll_slider_drag() -> void:
 		return
 
 	library_scroll_slider_dragging = false
+	library_scroll_slider_drag_offset_x = 0.0
+
+	var local_mouse := Vector2.ZERO
+
+	if library_scroll_slider_hitbox != null:
+		local_mouse = library_scroll_slider_hitbox.get_local_mouse_position()
+		library_scroll_slider_hovered = is_library_scroll_slider_local_point_on_knob(local_mouse)
+	else:
+		library_scroll_slider_hovered = false
 
 	if library_scroll_slider_hovered:
-		use_library_slider_point_cursor()
+		Cursors.use_pointing()
 	else:
-		use_library_slider_normal_cursor()
+		Cursors.use_normal()
 
 
 func handle_library_scroll_slider_drag_input(event: InputEvent) -> bool:
 	if not library_scroll_slider_dragging:
 		return false
+
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT and not mouse_event.pressed:
+			end_library_scroll_slider_drag()
+			return true
 
 	if not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		end_library_scroll_slider_drag()
@@ -946,20 +1007,7 @@ func handle_library_scroll_slider_drag_input(event: InputEvent) -> bool:
 	if event is InputEventMouseMotion:
 		var mouse_motion := event as InputEventMouseMotion
 		set_library_scroll_from_slider_screen_position(mouse_motion.position)
-		use_library_slider_grab_cursor()
-		return true
-
-	if event is InputEventMouseButton:
-		var mouse_event := event as InputEventMouseButton
-
-		if mouse_event.button_index != MOUSE_BUTTON_LEFT:
-			return false
-
-		if mouse_event.pressed:
-			set_library_scroll_from_slider_screen_position(mouse_event.position)
-		else:
-			end_library_scroll_slider_drag()
-
+		Cursors.use_grab()
 		return true
 
 	return false
@@ -969,9 +1017,6 @@ func set_library_scroll_from_slider_screen_position(screen_position: Vector2) ->
 	if camera_3d == null:
 		return
 
-	if library_scroll_slider == null:
-		return
-
 	if library_scroll_slider_surface == null:
 		return
 
@@ -979,6 +1024,9 @@ func set_library_scroll_from_slider_screen_position(screen_position: Vector2) ->
 		return
 
 	if library_scroll_slider_world_size.x <= 0.001:
+		return
+
+	if library_scroll_slider_hitbox == null:
 		return
 
 	var hit: Vector3 = screen_to_horizontal_plane(screen_position, library_scroll_slider_surface.global_position.y)
@@ -991,13 +1039,34 @@ func set_library_scroll_from_slider_screen_position(screen_position: Vector2) ->
 	)
 
 	var viewport_x := surface_ratio_x * float(library_scroll_slider_viewport.size.x)
-	var slider_rect := library_scroll_slider.get_global_rect()
+	var hitbox_rect := library_scroll_slider_hitbox.get_global_rect()
 
-	if slider_rect.size.x <= 0.001:
+	if hitbox_rect.size.x <= 0.001:
 		return
 
+	var local_x := viewport_x - hitbox_rect.position.x
+	set_library_scroll_from_slider_local_x(local_x)
+
+
+func set_library_scroll_from_slider_local_x(local_x: float) -> void:
+	if library_scroll_slider_hitbox == null:
+		return
+
+	var hitbox_width := library_scroll_slider_hitbox.size.x
+
+	if hitbox_width <= 0.001:
+		return
+
+	var knob_radius := get_library_scroll_slider_knob_radius()
+	var usable_width := maxf(hitbox_width - knob_radius * 2.0, 1.0)
+	var knob_center_x := clampf(
+		local_x - library_scroll_slider_drag_offset_x,
+		knob_radius,
+		hitbox_width - knob_radius
+	)
+
 	var slider_ratio := clampf(
-		(viewport_x - slider_rect.position.x) / slider_rect.size.x,
+		(knob_center_x - knob_radius) / usable_width,
 		0.0,
 		1.0
 	)
@@ -1006,19 +1075,39 @@ func set_library_scroll_from_slider_screen_position(screen_position: Vector2) ->
 	set_library_scroll(next_scroll)
 
 
-func use_library_slider_point_cursor() -> void:
-	Input.set_custom_mouse_cursor(null, Input.CURSOR_POINTING_HAND)
-	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND)
+func is_library_scroll_slider_local_point_on_knob(local_position: Vector2) -> bool:
+	var knob_rect := get_library_scroll_slider_knob_rect()
+
+	return knob_rect.grow(8.0).has_point(local_position)
 
 
-func use_library_slider_grab_cursor() -> void:
-	Input.set_custom_mouse_cursor(null, Input.CURSOR_DRAG)
-	Input.set_default_cursor_shape(Input.CURSOR_DRAG)
+func get_library_scroll_slider_knob_rect() -> Rect2:
+	if library_scroll_slider_hitbox == null:
+		return Rect2()
+
+	var hitbox_width := library_scroll_slider_hitbox.size.x
+	var hitbox_height := library_scroll_slider_hitbox.size.y
+	var knob_radius := get_library_scroll_slider_knob_radius()
+	var usable_width := maxf(hitbox_width - knob_radius * 2.0, 1.0)
+	var scroll_ratio := 0.0
+
+	if library_scroll_max > library_scroll_min:
+		scroll_ratio = inverse_lerp(library_scroll_min, library_scroll_max, library_scroll_target)
+
+	scroll_ratio = clampf(scroll_ratio, 0.0, 1.0)
+
+	var center_x := knob_radius + usable_width * scroll_ratio
+	var center_y := hitbox_height * 0.5
+	var diameter := knob_radius * 2.0
+
+	return Rect2(
+		Vector2(center_x - knob_radius, center_y - knob_radius),
+		Vector2(diameter, diameter)
+	)
 
 
-func use_library_slider_normal_cursor() -> void:
-	Input.set_custom_mouse_cursor(null, Input.CURSOR_ARROW)
-	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+func get_library_scroll_slider_knob_radius() -> float:
+	return 15.0
 
 
 func _on_library_scroll_slider_changed(value: float) -> void:
@@ -1039,7 +1128,11 @@ func refresh_library_scroll_slider() -> void:
 	library_scroll_slider.max_value = maxf(library_scroll_max, 0.001)
 	library_scroll_slider.value = clampf(library_scroll_target, library_scroll_min, library_scroll_max)
 	library_scroll_slider.editable = can_scroll
+	library_scroll_slider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	library_scroll_slider_internal_update = false
+
+	if library_scroll_slider_hitbox != null:
+		library_scroll_slider_hitbox.mouse_filter = Control.MOUSE_FILTER_STOP if can_scroll else Control.MOUSE_FILTER_IGNORE
 
 	if library_scroll_slider_surface != null:
 		library_scroll_slider_surface.visible = can_scroll

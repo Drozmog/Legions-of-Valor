@@ -101,20 +101,18 @@ func try_sacrifice_selected_card_to_tribute() -> bool:
 	var offered_card_name: String = bf.selected_card_data.card_name
 	var offered_card_type: String = bf.get_clean_card_type(bf.selected_card_data)
 
+	if not bf.tribute_manager.offer_card_to_tribute(bf.selected_card_data):
+		return false
+
 	if offered_card_type == "gambit":
-		bf.tribute_manager.add_temporary_tribute(bf.selected_card_data)
-		bf.tribute_manager.tribute_card_used_this_turn = true
 		bf.log_msg("Offered " + offered_card_name + " for temporary Tribute. +2 TP this turn.")
 	else:
-		bf.tribute_manager.add_permanent_tribute(bf.selected_card_data)
-		bf.tribute_manager.tribute_card_used_this_turn = true
 		bf.log_msg("Offered " + offered_card_name + " for permanent Tribute. +1 permanent TP.")
 
 	if bf.tribute_pile != null:
 		bf.tribute_pile.add_card(bf.selected_card_data)
 
 	bf.update_tribute_counter()
-	call_deferred("try_auto_advance_tribute_phase")
 	return true
 
 

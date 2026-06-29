@@ -1551,7 +1551,8 @@ func is_node_inside_target(node: Node, target: Node) -> bool:
 
 func _on_tribute_changed(_status_text: String) -> void:
 	update_tribute_counter()
-	try_auto_advance_tribute_phase()
+	# Let the active card-transfer call finish before changing phase/UI state.
+	call_deferred("try_auto_advance_tribute_phase")
 
 
 func try_auto_advance_tribute_phase() -> void:
