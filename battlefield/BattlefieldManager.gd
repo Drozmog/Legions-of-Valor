@@ -5018,7 +5018,9 @@ func ai_score_tribute_card(card_index: int, card_data: CardData) -> int:
 		else:
 			score -= 18
 
-	# Tiny randomness only for tie-breaking, not strategy.
+	# Preserve high-value ability cards more on higher difficulties.
+	score -= ai_score_tribute_ability_preservation(card_data)
+
 	score += ai_tactical_noise(6)
 
 	return score
@@ -5282,34 +5284,7 @@ func ai_estimate_card_value(card_data: CardData) -> int:
 	score += maxi(card_data.dp, 0) * 4
 	score += maxi(card_data.tribute_cost, 0) * 2
 	score += get_unit_defeat_aurion_reward(card_data) * 10
-
-	for ability in card_data.get_abilities():
-		if ability == null:
-			continue
-
-		var category := ability.category.to_lower()
-		var handler_id := ability.get_handler_id()
-
-		if category == "protection":
-			score += 12
-
-			if handler_id == &"plated":
-				score += 22
-			elif handler_id == &"spiked":
-				score += 18
-			elif handler_id == &"shielded":
-				score += 16
-			elif handler_id == &"deflect":
-				score += 10
-
-		elif category == "mobility":
-			score += 10
-
-			if handler_id == &"flank_swap" or handler_id == &"vortex":
-				score += 14
-
-		elif category == "insight":
-			score += 8
+	score += ai_apply_ability_awareness_bonus(ai_score_card_ability_value(card_data, null, "value", false))
 
 	return score
 
@@ -5591,6 +5566,462 @@ func ai_score_pass_lookahead(lane: String) -> int:
 		score -= 55
 
 	return score
+
+
+func ai_ability_awareness_weight() -> float:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return 0.0
+		AI_DIFFICULTY_SOLDIER:
+			return 0.25
+		AI_DIFFICULTY_COMMANDER:
+			return 0.60
+		AI_DIFFICULTY_WARLORD:
+			return 0.95
+		AI_DIFFICULTY_GRANDMASTER:
+			return 1.20
+
+	return 0.60
+
+
+func ai_apply_ability_awareness_bonus(base_score: int) -> int:
+	return int(round(float(base_score) * ai_ability_awareness_weight()))
+
+
+func ai_slot_has_any_ability(slot: Node, ability_id: StringName) -> AbilityData:
+	if slot == null:
+		return null
+
+	var entries: Array = []
+
+	if slot.has_method("get_ability_visual_entries"):
+		entries = slot.call("get_ability_visual_entries")
+
+	if entries.is_empty():
+		var main_card := get_slot_card_data(slot)
+
+		if main_card != null:
+			for ability in main_card.get_abilities():
+				if ability != null and ability.ability_id == ability_id:
+					return ability
+
+		return null
+
+	for entry in entries:
+		var card_data := entry.get("card") as CardData
+
+		if card_data == null:
+			continue
+
+		for ability in card_data.get_abilities():
+			if ability != null and ability.ability_id == ability_id:
+				return ability
+
+	return null
+
+
+func ai_count_player_front_units_at_or_below(max_ap: int) -> int:
+	var count := 0
+
+	for lane in ["left", "middle", "right"]:
+		var slot := find_slot_by_owner_row_lane("player", "front", lane)
+		var card := get_slot_card_data(slot)
+
+		if is_unit_card(card) and get_slot_combat_ap(slot) <= max_ap:
+			count += 1
+
+	return count
+
+
+func ai_count_enemy_empty_adjacent_front_slots(lane: String) -> int:
+	var count := 0
+
+	for adjacent_lane in get_adjacent_lanes(lane):
+		var slot := find_slot_by_owner_row_lane("enemy", "front", adjacent_lane)
+
+		if slot != null and get_slot_card_data(slot) == null:
+			count += 1
+
+	return count
+
+
+func ai_count_player_hidden_backrow_cards() -> int:
+	var count := 0
+
+	for lane in ["left", "middle", "right"]:
+		var slot := find_slot_by_owner_row_lane("player", "back", lane)
+		var card := get_slot_card_data(slot)
+
+		if card != null and slot != null and bool(slot.get_meta("face_down", false)):
+			count += 1
+
+	return count
+
+
+func ai_score_card_ability_value(card_data: CardData, slot: Node = null, context: String = "", face_down: bool = false) -> int:
+	if card_data == null:
+		return 0
+
+	var score := 0
+
+	for ability in card_data.get_abilities():
+		if ability == null:
+			continue
+
+		var category := String(ability.category).to_lower()
+		var handler_id := ability.get_handler_id()
+
+		match category:
+			"protection":
+				score += ai_score_protection_ability_value(ability, card_data, slot, context, face_down)
+
+			"mobility":
+				score += ai_score_mobility_ability_value(ability, card_data, slot, context, face_down)
+
+			"insight":
+				score += ai_score_insight_ability_value(ability, card_data, slot, context, face_down)
+
+	return score
+
+
+func ai_score_protection_ability_value(ability: AbilityData, card_data: CardData, slot: Node, context: String, face_down: bool) -> int:
+	if ability == null:
+		return 0
+
+	var handler_id := ability.get_handler_id()
+	var score := 8
+
+	var lane := ""
+	var player_front: CardData = null
+	var player_ap := 0
+	var projected_ai_ap := card_data.ap
+
+	if slot != null:
+		lane = get_slot_lane(slot)
+		var player_front_slot := find_slot_by_owner_row_lane("player", "front", lane)
+		player_front = get_slot_card_data(player_front_slot)
+		player_ap = get_slot_combat_ap(player_front_slot)
+
+		if context == "equipment":
+			var equipped_unit := get_slot_card_data(slot)
+
+			if is_unit_card(equipped_unit):
+				projected_ai_ap = equipped_unit.ap + card_data.ap
+
+	match handler_id:
+		&"plated":
+			score += 30
+
+			if is_unit_card(player_front):
+				score += 16
+
+				if projected_ai_ap <= player_ap:
+					score += 22
+
+			if context == "equipment":
+				score += 12
+
+		&"spiked":
+			score += 26
+
+			if is_unit_card(player_front):
+				score += 18
+
+				if projected_ai_ap <= player_ap:
+					score += 22
+
+		&"shielded":
+			score += 24
+
+			if is_unit_card(player_front):
+				score += 16
+
+			if lane != "":
+				score += ai_memory_player_lane_pressure_score(lane)
+
+		&"deflect":
+			score += 18
+
+			if is_unit_card(player_front) and projected_ai_ap < player_ap:
+				score += 20
+
+		&"shield_burst":
+			score += 16
+
+			if is_unit_card(player_front) and projected_ai_ap < player_ap:
+				score += 16
+
+		&"last_stand":
+			score += 18
+
+			if is_unit_card(player_front) and projected_ai_ap < player_ap:
+				score += 22
+
+		&"equalizer":
+			score += 20
+
+			if is_unit_card(player_front) and player_ap == projected_ai_ap + 1:
+				score += 40
+
+		&"infiltrator", &"spell_shield":
+			score += 18
+
+			if ai_count_player_hidden_backrow_cards() > 0:
+				score += 26
+
+		_:
+			score += 8
+
+	if face_down:
+		score -= 8
+
+	return score
+
+
+func ai_score_mobility_ability_value(ability: AbilityData, card_data: CardData, slot: Node, context: String, face_down: bool) -> int:
+	if ability == null:
+		return 0
+
+	var handler_id := ability.get_handler_id()
+	var score := 8
+
+	var lane := ""
+
+	if slot != null:
+		lane = get_slot_lane(slot)
+
+	match handler_id:
+		&"lane_shift":
+			score += 22
+
+			if lane != "":
+				score += ai_count_enemy_empty_adjacent_front_slots(lane) * 18
+
+		&"mobilize":
+			score += 20
+
+			if lane != "":
+				score += ai_count_enemy_empty_adjacent_front_slots(lane) * 16
+
+		&"tactic_flow":
+			score += 18
+
+			var left_slot := find_slot_by_owner_row_lane("enemy", "front", "left")
+			var right_slot := find_slot_by_owner_row_lane("enemy", "front", "right")
+
+			if get_slot_card_data(left_slot) == null:
+				score += 12
+
+			if get_slot_card_data(right_slot) == null:
+				score += 12
+
+		&"reassign":
+			score += 24
+
+			if ai_count_front_units("enemy") >= 2:
+				score += 18
+
+		&"flank_swap":
+			score += 30
+
+			if ai_count_front_units("enemy") >= 2:
+				score += 24
+
+		&"vortex":
+			score += 34
+
+			if ai_count_front_units("enemy") >= 2:
+				score += 28
+
+		&"imperial_decree":
+			score += 24
+			score += ai_count_player_front_units_at_or_below(6) * 20
+
+		&"volley":
+			score += 22
+
+			if lane == "left" or lane == "right":
+				score += 12
+
+			if ai_count_front_units("enemy") >= 2:
+				score += 10
+
+		_:
+			score += 8
+
+	if face_down and context == "gambit":
+		score += 12
+
+	return score
+
+
+func ai_score_insight_ability_value(ability: AbilityData, _card_data: CardData, slot: Node, context: String, face_down: bool) -> int:
+	if ability == null:
+		return 0
+
+	var handler_id := ability.get_handler_id()
+	var score := 8
+	var hidden_player_backrow_count := ai_count_player_hidden_backrow_cards()
+
+	match handler_id:
+		&"stealth":
+			score += 26
+
+			if face_down:
+				score += 30
+
+			if context == "gambit" or context == "unit":
+				score += 10
+
+		&"true_sight":
+			score += 26
+			score += hidden_player_backrow_count * 18
+
+		&"vantage":
+			score += 22
+			score += hidden_player_backrow_count * 14
+
+		&"intuition":
+			score += 20
+			score += hidden_player_backrow_count * 12
+
+		&"intel", &"intelligence", &"secrecy", &"seer", &"vision":
+			score += 18
+
+			if ai_difficulty >= AI_DIFFICULTY_COMMANDER:
+				score += 8
+
+		_:
+			score += 8
+
+	if slot != null:
+		var lane := get_slot_lane(slot)
+
+		if lane != "":
+			score += ai_memory_player_lane_pressure_score(lane) / 2
+
+	return score
+
+
+func ai_score_card_abilities_for_deployment(card_data: CardData, slot: Node, action_type: String, face_down: bool) -> int:
+	if card_data == null:
+		return 0
+
+	var raw_score := ai_score_card_ability_value(card_data, slot, action_type, face_down)
+
+	if action_type == "equipment":
+		raw_score += 12
+
+	if action_type == "promotion":
+		raw_score += 10
+
+	if face_down:
+		if is_gambit_card(card_data):
+			raw_score += 16
+
+		if ai_card_has_ability_id(card_data, &"stealth"):
+			raw_score += 20
+
+	return ai_apply_ability_awareness_bonus(raw_score)
+
+
+func ai_score_tribute_ability_preservation(card_data: CardData) -> int:
+	if card_data == null:
+		return 0
+
+	var raw_score := ai_score_card_ability_value(card_data, null, "tribute", false)
+
+	# If the card is currently faction-locked, sacrificing it can be useful,
+	# so preserve it less aggressively.
+	if not ai_card_passes_faction_gate(card_data, false):
+		raw_score = int(round(float(raw_score) * 0.45))
+
+	# Equipment is less urgent to preserve if there is no AI unit to equip.
+	if is_equipment_card(card_data) and ai_count_front_units("enemy") <= 0:
+		raw_score = int(round(float(raw_score) * 0.55))
+
+	return ai_apply_ability_awareness_bonus(raw_score)
+
+
+func ai_score_combat_ability_awareness(lane: String, action_type: String) -> int:
+	var ai_front_slot := find_slot_by_owner_row_lane("enemy", "front", lane)
+	var player_front_slot := find_slot_by_owner_row_lane("player", "front", lane)
+	var player_back_slot := find_slot_by_owner_row_lane("player", "back", lane)
+
+	var ai_card := get_slot_card_data(ai_front_slot)
+	var player_front_card := get_slot_card_data(player_front_slot)
+	var player_back_card := get_slot_card_data(player_back_slot)
+	var player_back_is_face_down := player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	if not is_unit_card(ai_card):
+		return 0
+
+	var raw_score := 0
+	var ai_ap := get_slot_combat_ap(ai_front_slot)
+	var player_ap := get_slot_combat_ap(player_front_slot)
+
+	match action_type:
+		"attack":
+			if player_back_is_face_down:
+				if get_gambit_attack_protection(ai_front_slot) != null:
+					raw_score += 32
+				else:
+					raw_score -= int(round((ai_memory_player_hidden_gambit_rate() - 0.50) * 55.0))
+
+			if is_unit_card(player_front_card):
+				if ai_ap < player_ap:
+					if slot_has_protection_ability(ai_front_slot, &"plated") != null:
+						raw_score += 34
+
+					if slot_has_protection_ability(ai_front_slot, &"spiked") != null:
+						raw_score += 28
+
+					if slot_has_protection_ability(ai_front_slot, &"equalizer") != null and player_ap == ai_ap + 1:
+						raw_score += 40
+
+				elif ai_ap > player_ap:
+					raw_score += 10
+
+			if slot_has_mobility_ability(ai_front_slot, &"volley") != null:
+				raw_score += 10
+
+		"check":
+			if not player_back_is_face_down:
+				return -999999
+
+			if ai_slot_has_any_ability(ai_front_slot, &"true_sight") != null:
+				raw_score += 28
+
+			if ai_slot_has_any_ability(ai_front_slot, &"vantage") != null:
+				raw_score += 24
+
+			if ai_slot_has_any_ability(ai_front_slot, &"intuition") != null:
+				raw_score += 18
+
+			if get_gambit_attack_protection(ai_front_slot) != null:
+				raw_score -= 20
+
+			raw_score += int(round((ai_memory_player_hidden_gambit_rate() - 0.50) * 65.0))
+
+		"pass":
+			if player_passed_current_lane:
+				raw_score += 10
+
+			if is_unit_card(player_front_card):
+				if ai_ap < player_ap:
+					raw_score += 16
+
+					if slot_has_protection_ability(ai_front_slot, &"shielded") != null:
+						raw_score += 18
+
+					if slot_has_protection_ability(ai_front_slot, &"deflect") != null:
+						raw_score += 14
+
+				elif ai_ap > player_ap:
+					raw_score -= 20
+
+	return ai_apply_ability_awareness_bonus(raw_score)
+
 
 
 func ai_take_combat_initiative() -> void:
@@ -6087,9 +6518,9 @@ func ai_score_deployment_action(action: Dictionary) -> int:
 		_:
 			score -= 100
 
+	score += ai_score_card_abilities_for_deployment(card_data, slot, action_type, face_down)
 	score += ai_score_deployment_lookahead(card_data, slot, action_type, face_down)
 
-	# Difficulty-aware tie-breaking.
 	score += ai_tactical_noise(8)
 
 	return score
@@ -7928,9 +8359,13 @@ func ai_choose_combat_action(lane: String) -> String:
 	var check_lookahead: int = ai_score_combat_action_lookahead(lane, "check")
 	var pass_lookahead: int = ai_score_combat_action_lookahead(lane, "pass")
 
-	var attack_score: int = attack_base + attack_lookahead
-	var check_score: int = check_base + check_lookahead
-	var pass_score: int = pass_base + pass_lookahead
+	var attack_ability: int = ai_score_combat_ability_awareness(lane, "attack")
+	var check_ability: int = ai_score_combat_ability_awareness(lane, "check")
+	var pass_ability: int = ai_score_combat_ability_awareness(lane, "pass")
+
+	var attack_score: int = attack_base + attack_lookahead + attack_ability
+	var check_score: int = check_base + check_lookahead + check_ability
+	var pass_score: int = pass_base + pass_lookahead + pass_ability
 
 	var best_action: String = "pass"
 	var best_score: int = pass_score
@@ -7952,18 +8387,24 @@ func ai_choose_combat_action(lane: String) -> String:
 		+ str(attack_base)
 		+ ", lookahead "
 		+ str(attack_lookahead)
+		+ ", ability "
+		+ str(attack_ability)
 		+ "), Check "
 		+ str(check_score)
 		+ " (base "
 		+ str(check_base)
 		+ ", lookahead "
 		+ str(check_lookahead)
+		+ ", ability "
+		+ str(check_ability)
 		+ "), Pass "
 		+ str(pass_score)
 		+ " (base "
 		+ str(pass_base)
 		+ ", lookahead "
 		+ str(pass_lookahead)
+		+ ", ability "
+		+ str(pass_ability)
 		+ ") | Memory: hidden Gambit rate "
 		+ str(int(round(ai_memory_player_hidden_gambit_rate() * 100.0)))
 		+ "%, lane pressure "
