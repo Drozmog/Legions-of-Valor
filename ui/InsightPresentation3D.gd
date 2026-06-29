@@ -30,6 +30,7 @@ var card_entries: Array[Dictionary] = []
 var back_button: Button
 var ability_title: HBoxContainer
 var ability_title_label: Label
+var ability_description_label: Label
 var options: Dictionary = {}
 var active := false
 var input_ready := false
@@ -102,8 +103,8 @@ void fragment() {
 
 	ability_title = HBoxContainer.new()
 	ability_title.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	ability_title.offset_left = -220.0
-	ability_title.offset_right = 220.0
+	ability_title.offset_left = -520.0
+	ability_title.offset_right = 520.0
 	ability_title.offset_top = 180.0
 	ability_title.offset_bottom = 116.0
 	ability_title.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -122,6 +123,15 @@ void fragment() {
 	ability_title_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.85))
 	ability_title_label.add_theme_constant_override("shadow_outline_size", 5)
 	ability_title.add_child(ability_title_label)
+	ability_description_label = Label.new()
+	ability_description_label.custom_minimum_size = Vector2(520.0, 0.0)
+	ability_description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ability_description_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	ability_description_label.add_theme_font_size_override("font_size", 22)
+	ability_description_label.add_theme_color_override("font_color", Color(0.94, 0.94, 0.94, 0.98))
+	ability_description_label.add_theme_color_override("font_shadow_color", Color(0.10, 0.11, 0.14, 0.72))
+	ability_description_label.add_theme_constant_override("shadow_outline_size", 3)
+	ability_title.add_child(ability_description_label)
 	add_child(ability_title)
 
 	back_button = Button.new()
@@ -176,6 +186,8 @@ func present(cards: Array[CardData], config: Dictionary) -> void:
 	back_return_in_progress = false
 	options = config.duplicate(true)
 	ability_title_label.text = String(options.get("ability_name", "Insight"))
+	ability_description_label.text = String(options.get("ability_description", ""))
+	ability_description_label.visible = not ability_description_label.text.strip_edges().is_empty()
 	ability_title.visible = true
 	show()
 	move_to_front()

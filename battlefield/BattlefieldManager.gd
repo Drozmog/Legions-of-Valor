@@ -2573,6 +2573,11 @@ func handle_card_deployed(card_data: CardData, slot: Node = null) -> void:
 
 	ai_memory_note_player_deployment(card_data, slot)
 
+	# A set card has not entered play yet. Its deployment abilities become
+	# eligible only when the card is revealed or when it is placed face up.
+	if slot != null and bool(slot.get_meta("face_down", false)):
+		return
+
 	if await resolve_mobility_deployment(card_data, slot, "player"):
 		return
 
@@ -2914,17 +2919,17 @@ func resolve_insight_with_presentation(ability: AbilityData, extra_context: Dict
 		return {"success": false, "reason": "missing_ability"}
 	match ability.get_handler_id():
 		&"intel":
-			return await present_intel()
+			return await present_intel(ability)
 		&"intelligence":
-			return await present_intelligence()
+			return await present_intelligence(ability)
 		&"secrecy":
-			return await present_secrecy()
+			return await present_secrecy(ability)
 		&"seer":
-			return await present_ai_deck_choice("Seer")
+			return await present_ai_deck_choice(ability)
 		&"vantage":
-			return await present_ai_deck_choice("Vantage")
+			return await present_ai_deck_choice(ability)
 		&"vision":
-			return await present_vision()
+			return await present_vision(ability)
 		&"intuition", &"true_sight":
 			return await present_hidden_enemy_gambit_choice(ability)
 	return AbilityResolver.resolve(ability, build_ability_context(extra_context))
@@ -2991,7 +2996,7 @@ func get_insight_world_position(source_name: String) -> Vector3:
 	return Vector3(0.0, 0.8, 0.8)
 
 
-func present_intel() -> Dictionary:
+func present_intel(ability: AbilityData) -> Dictionary:
 	var cards := pop_player_deck_top_cards(3)
 	if cards.is_empty():
 		show_phase_title("NO CARDS TO REVEAL")
@@ -2999,6 +3004,7 @@ func present_intel() -> Dictionary:
 	var result := await present_insight_cards(cards, {
 		"mode": "choose",
 		"ability_name": "Intel",
+		"ability_description": ability.rules_text,
 		"display_scale": 1.80,
 		"source_position": get_insight_world_position("player_deck"),
 		"chosen_destination": get_insight_world_position("player_hand"),
@@ -3022,7 +3028,7 @@ func present_intel() -> Dictionary:
 	return {"success": true, "cards_seen": cards, "card_taken": chosen}
 
 
-func present_ai_deck_choice(ability_name: String) -> Dictionary:
+func present_ai_deck_choice(ability: AbilityData) -> Dictionary:
 	var cards := pop_ai_deck_top_cards(3)
 	if cards.is_empty():
 		show_phase_title("NO CARDS TO REVEAL")
@@ -3030,7 +3036,8 @@ func present_ai_deck_choice(ability_name: String) -> Dictionary:
 	update_ai_visuals()
 	var result := await present_insight_cards(cards, {
 		"mode": "choose",
-		"ability_name": ability_name,
+		"ability_name": ability.ability_name,
+		"ability_description": ability.rules_text,
 		"display_scale": 1.42,
 		"source_position": get_insight_world_position("enemy_deck"),
 		"chosen_destination": get_insight_world_position("enemy_discard"),
@@ -3049,7 +3056,7 @@ func present_ai_deck_choice(ability_name: String) -> Dictionary:
 	return {"success": true, "cards_seen": cards, "card_discarded": discarded}
 
 
-func present_intelligence() -> Dictionary:
+func present_intelligence(ability: AbilityData) -> Dictionary:
 	var cards: Array[CardData] = []
 	for card in ai_hand:
 		cards.append(card as CardData)
@@ -3062,6 +3069,7 @@ func present_intelligence() -> Dictionary:
 	var result := await present_insight_cards(cards, {
 		"mode": "hidden_pick",
 		"ability_name": "Intelligence",
+		"ability_description": ability.rules_text,
 		"face_down": true,
 		"shuffle": true,
 		"source_position": get_insight_world_position("enemy_hand"),
@@ -3072,7 +3080,7 @@ func present_intelligence() -> Dictionary:
 	return {"success": true, "cards_seen": [result.get("card")]}
 
 
-func present_secrecy() -> Dictionary:
+func present_secrecy(ability: AbilityData) -> Dictionary:
 	var indexes: Array[int] = []
 	for index in range(ai_hand.size()):
 		indexes.append(index)
@@ -3089,6 +3097,7 @@ func present_secrecy() -> Dictionary:
 	await present_insight_cards(cards, {
 		"mode": "reveal",
 		"ability_name": "Secrecy",
+		"ability_description": ability.rules_text,
 		"display_scale": 1.56,
 		"source_position": get_insight_world_position("enemy_hand"),
 		"return_destination": get_insight_world_position("enemy_hand"),
@@ -3099,7 +3108,7 @@ func present_secrecy() -> Dictionary:
 	return {"success": true, "cards_seen": cards}
 
 
-func present_vision() -> Dictionary:
+func present_vision(ability: AbilityData) -> Dictionary:
 	var cards := peek_player_deck_top_cards(3)
 	if cards.is_empty():
 		show_phase_title("NO CARDS TO REVEAL")
@@ -3107,6 +3116,7 @@ func present_vision() -> Dictionary:
 	await present_insight_cards(cards, {
 		"mode": "reveal",
 		"ability_name": "Vision",
+		"ability_description": ability.rules_text,
 		"display_scale": 1.42,
 		"source_position": get_insight_world_position("player_deck"),
 		"return_destination": get_insight_world_position("player_deck"),
@@ -3149,6 +3159,7 @@ func present_hidden_enemy_gambit_choice(ability: AbilityData) -> Dictionary:
 			await present_insight_cards(revealed_cards, {
 				"mode": "reveal",
 				"ability_name": ability.ability_name,
+				"ability_description": ability.rules_text,
 				"display_scale": 1.5,
 				"source_position": (chosen_slot as Node3D).global_position,
 				"return_destination": (chosen_slot as Node3D).global_position,
@@ -8313,6 +8324,21 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 		await resolve_ai_pass_lane_with_visuals(lane)
 		return
 
+	var active_result: Dictionary = await ai_try_use_active_ability_before_combat(lane)
+
+	if String(active_result.get("result", "")) == "consumed":
+		return
+
+	if bool(active_result.get("used", false)):
+		await get_tree().create_timer(COMBAT_LANE_START_DELAY).timeout
+
+		ai_front_slot = find_slot_by_owner_row_lane("enemy", "front", lane)
+		ai_card = get_slot_card_data(ai_front_slot)
+
+		if not is_unit_card(ai_card):
+			await resolve_ai_pass_lane_with_visuals(lane)
+			return
+
 	var chosen_action: String = ai_choose_combat_action(lane)
 
 	match chosen_action:
@@ -8331,6 +8357,600 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 		_:
 			log_msg("AI has no clear combat action and passes in the " + lane + " lane.")
 			await resolve_ai_pass_lane_with_visuals(lane)
+
+
+func ai_active_ability_weight() -> float:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return 0.0
+		AI_DIFFICULTY_SOLDIER:
+			return 0.25
+		AI_DIFFICULTY_COMMANDER:
+			return 0.60
+		AI_DIFFICULTY_WARLORD:
+			return 0.95
+		AI_DIFFICULTY_GRANDMASTER:
+			return 1.20
+
+	return 0.60
+
+
+func ai_apply_active_ability_bonus(base_score: int) -> int:
+	return int(round(float(base_score) * ai_active_ability_weight()))
+
+
+func ai_try_use_active_ability_before_combat(lane: String) -> Dictionary:
+	if ai_active_ability_weight() <= 0.0:
+		return {"used": false, "result": "none"}
+
+	if current_phase != BattlePhase.COMBAT:
+		return {"used": false, "result": "none"}
+
+	if parry_system.active:
+		return {"used": false, "result": "none"}
+
+	if combat_priority_owner != "ai":
+		return {"used": false, "result": "none"}
+
+	var actions: Array[Dictionary] = ai_build_active_ability_actions(lane)
+
+	if actions.is_empty():
+		return {"used": false, "result": "none"}
+
+	var best_action: Dictionary = {}
+	var best_score: int = -999999
+
+	for action in actions:
+		var score := ai_score_active_ability_action(action, lane)
+
+		if score > best_score:
+			best_score = score
+			best_action = action
+
+	var threshold := ai_active_ability_use_threshold()
+
+	if best_score < threshold:
+		return {"used": false, "result": "none"}
+
+	log_msg("AI active ability score in " + lane + ": " + str(best_score) + " / threshold " + str(threshold) + ".")
+
+	return await ai_execute_active_ability_action(best_action, lane)
+
+
+func ai_active_ability_use_threshold() -> int:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return 999999
+		AI_DIFFICULTY_SOLDIER:
+			return 85
+		AI_DIFFICULTY_COMMANDER:
+			return 68
+		AI_DIFFICULTY_WARLORD:
+			return 52
+		AI_DIFFICULTY_GRANDMASTER:
+			return 38
+
+	return 68
+
+
+func ai_build_active_ability_actions(current_lane_name: String) -> Array[Dictionary]:
+	var actions: Array[Dictionary] = []
+
+	for slot in ai_get_enemy_face_up_front_slots():
+		var source_slot := slot as Node
+
+		if source_slot == null:
+			continue
+
+		for entry in ai_get_active_ability_entries_for_slot(source_slot):
+			var ability := entry.get("ability") as AbilityData
+
+			if ability == null:
+				continue
+
+			if not ai_can_consider_active_ability(source_slot, ability):
+				continue
+
+			var category := String(ability.category).to_lower()
+
+			if category == "mobility":
+				ai_add_active_mobility_actions(actions, current_lane_name, source_slot, ability)
+
+			elif category == "insight":
+				ai_add_active_insight_actions(actions, current_lane_name, source_slot, ability)
+
+	return actions
+
+
+func ai_get_enemy_face_up_front_slots() -> Array[Node]:
+	var result: Array[Node] = []
+
+	for lane in ["left", "middle", "right"]:
+		var slot := find_slot_by_owner_row_lane("enemy", "front", lane)
+		var card := get_slot_card_data(slot)
+
+		if not is_unit_card(card):
+			continue
+
+		if bool(slot.get_meta("face_down", false)):
+			continue
+
+		result.append(slot)
+
+	return result
+
+
+func ai_get_active_ability_entries_for_slot(slot: Node) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+
+	if slot == null:
+		return result
+
+	var entries: Array = []
+
+	if slot.has_method("get_ability_visual_entries"):
+		entries = slot.call("get_ability_visual_entries")
+
+	if entries.is_empty():
+		var main_card := get_slot_card_data(slot)
+
+		if main_card != null:
+			entries.append({"card": main_card})
+
+	for entry in entries:
+		var card_data := entry.get("card") as CardData
+
+		if card_data == null:
+			continue
+
+		for ability in card_data.get_abilities():
+			if ability == null:
+				continue
+
+			var category := String(ability.category).to_lower()
+			var handler_id := ability.get_handler_id()
+
+			if category == "insight" and ability.trigger == "active":
+				result.append({"card": card_data, "ability": ability})
+				continue
+
+			if category == "mobility":
+				if ability.trigger == "active" or handler_id == &"tactic_flow" or handler_id == &"volley":
+					result.append({"card": card_data, "ability": ability})
+
+	return result
+
+
+func ai_can_consider_active_ability(slot: Node, ability: AbilityData) -> bool:
+	if slot == null or ability == null:
+		return false
+
+	if String(slot.get_meta("owner", "")) != "enemy":
+		return false
+
+	if bool(slot.get_meta("face_down", false)):
+		return false
+
+	var category := String(ability.category).to_lower()
+
+	if category == "mobility":
+		if used_mobility_ability_keys.has(get_mobility_usage_key(slot, ability)):
+			return false
+
+		var used_turns: Dictionary = slot.get_meta("used_mobility_turns", {}).duplicate()
+
+		if int(used_turns.get(String(ability.ability_id), -1)) == turn_number:
+			return false
+
+		return true
+
+	if category == "insight":
+		if used_active_insight_ability_keys.has(get_active_insight_usage_key(slot, ability)):
+			return false
+
+		return true
+
+	return false
+
+
+func ai_add_active_mobility_actions(actions: Array[Dictionary], current_lane_name: String, source_slot: Node, ability: AbilityData) -> void:
+	if source_slot == null or ability == null:
+		return
+
+	var handler_id := ability.get_handler_id()
+	var source_lane := get_slot_lane(source_slot)
+
+	match handler_id:
+		&"lane_shift", &"mobilize":
+			for lane in get_adjacent_lanes(source_lane):
+				var target_slot := find_slot_by_owner_row_lane("enemy", "front", lane)
+
+				if target_slot != null and get_slot_card_data(target_slot) == null:
+					actions.append({
+						"type": "move",
+						"source_slot": source_slot,
+						"target_slot": target_slot,
+						"ability": ability
+					})
+
+		&"tactic_flow":
+			for lane in ["left", "right"]:
+				var target_slot := find_slot_by_owner_row_lane("enemy", "front", lane)
+
+				if target_slot != null and target_slot != source_slot and get_slot_card_data(target_slot) == null:
+					actions.append({
+						"type": "move",
+						"source_slot": source_slot,
+						"target_slot": target_slot,
+						"ability": ability
+					})
+
+		&"flank_swap":
+			for other_slot in ai_get_enemy_face_up_front_slots():
+				if other_slot == source_slot:
+					continue
+
+				actions.append({
+					"type": "swap",
+					"source_slot": source_slot,
+					"target_slot": other_slot,
+					"ability": ability
+				})
+
+		&"imperial_decree":
+			for lane in ["left", "middle", "right"]:
+				var target_slot := find_slot_by_owner_row_lane("player", "front", lane)
+				var target_card := get_slot_card_data(target_slot)
+
+				if is_unit_card(target_card) and get_slot_combat_ap(target_slot) <= 6:
+					actions.append({
+						"type": "destroy_low_ap",
+						"source_slot": source_slot,
+						"target_slot": target_slot,
+						"ability": ability
+					})
+
+		&"vortex":
+			if ai_count_front_units("enemy") >= 2:
+				actions.append({
+					"type": "vortex",
+					"source_slot": source_slot,
+					"ability": ability
+				})
+
+		_:
+			pass
+
+
+func ai_add_active_insight_actions(actions: Array[Dictionary], current_lane_name: String, source_slot: Node, ability: AbilityData) -> void:
+	if source_slot == null or ability == null:
+		return
+
+	var handler_id := ability.get_handler_id()
+
+	if handler_id != &"true_sight" and handler_id != &"vantage" and handler_id != &"intuition":
+		return
+
+	var source_lane := get_slot_lane(source_slot)
+
+	if source_lane != current_lane_name:
+		return
+
+	var player_back_slot := find_slot_by_owner_row_lane("player", "back", current_lane_name)
+	var player_back_card := get_slot_card_data(player_back_slot)
+	var player_back_is_face_down := player_back_card != null and player_back_slot != null and bool(player_back_slot.get_meta("face_down", false))
+
+	if not player_back_is_face_down:
+		return
+
+	actions.append({
+		"type": "insight_peek",
+		"source_slot": source_slot,
+		"target_slot": player_back_slot,
+		"ability": ability
+	})
+
+
+
+func ai_score_active_ability_action(action: Dictionary, current_lane_name: String) -> int:
+	var action_type := String(action.get("type", ""))
+	var source_slot := action.get("source_slot", null) as Node
+	var target_slot := action.get("target_slot", null) as Node
+	var ability := action.get("ability", null) as AbilityData
+
+	if source_slot == null or ability == null:
+		return -999999
+
+	var raw_score := 0
+
+	match action_type:
+		"move":
+			raw_score += ai_score_active_move_action(source_slot, target_slot, current_lane_name)
+
+		"swap":
+			raw_score += ai_score_active_swap_action(source_slot, target_slot)
+
+		"destroy_low_ap":
+			raw_score += ai_score_active_destroy_action(target_slot)
+
+		"vortex":
+			raw_score += ai_score_active_vortex_action(source_slot)
+
+		"insight_peek":
+			raw_score += ai_score_active_insight_peek_action(target_slot, current_lane_name)
+
+		_:
+			return -999999
+
+	var category := String(ability.category).to_lower()
+
+	if category == "mobility":
+		raw_score += 12
+	elif category == "insight":
+		raw_score += 10
+
+	raw_score += ai_tactical_noise(10)
+
+	return ai_apply_active_ability_bonus(raw_score)
+
+
+func ai_score_active_move_action(source_slot: Node, target_slot: Node, current_lane_name: String) -> int:
+	if source_slot == null or target_slot == null:
+		return -999999
+
+	var source_card := get_slot_card_data(source_slot)
+
+	if not is_unit_card(source_card):
+		return -999999
+
+	if get_slot_card_data(target_slot) != null:
+		return -999999
+
+	var source_lane := get_slot_lane(source_slot)
+	var target_lane := get_slot_lane(target_slot)
+	var current_score := ai_score_projected_lane_control(source_lane, get_slot_combat_ap(source_slot), source_card.dp, true)
+	var target_score := ai_score_projected_lane_control(target_lane, get_slot_combat_ap(source_slot), source_card.dp, true)
+	var score := target_score - current_score
+
+	if target_lane == current_lane_name:
+		score += 26
+
+	if source_lane == current_lane_name:
+		score -= 18
+
+	if target_lane == "left" or target_lane == "right":
+		score += 10
+
+	score += ai_memory_player_lane_pressure_score(target_lane)
+	score -= ai_memory_player_lane_pressure_score(source_lane) / 2
+
+	return score
+
+
+func ai_score_active_swap_action(source_slot: Node, target_slot: Node) -> int:
+	if source_slot == null or target_slot == null:
+		return -999999
+
+	var source_card := get_slot_card_data(source_slot)
+	var target_card := get_slot_card_data(target_slot)
+
+	if not is_unit_card(source_card) or not is_unit_card(target_card):
+		return -999999
+
+	var source_lane := get_slot_lane(source_slot)
+	var target_lane := get_slot_lane(target_slot)
+
+	var before_score := 0
+	before_score += ai_score_projected_lane_control(source_lane, get_slot_combat_ap(source_slot), source_card.dp, true)
+	before_score += ai_score_projected_lane_control(target_lane, get_slot_combat_ap(target_slot), target_card.dp, true)
+
+	var after_score := 0
+	after_score += ai_score_projected_lane_control(source_lane, get_slot_combat_ap(target_slot), target_card.dp, true)
+	after_score += ai_score_projected_lane_control(target_lane, get_slot_combat_ap(source_slot), source_card.dp, true)
+
+	return after_score - before_score
+
+
+func ai_score_active_destroy_action(target_slot: Node) -> int:
+	if target_slot == null:
+		return -999999
+
+	var target_card := get_slot_card_data(target_slot)
+
+	if not is_unit_card(target_card):
+		return -999999
+
+	var score := 70
+	score += ai_estimate_card_value(target_card) / 3
+	score += get_unit_defeat_aurion_reward(target_card) * 12
+	score += ai_memory_player_lane_pressure_score(get_slot_lane(target_slot))
+
+	return score
+
+
+func ai_score_active_vortex_action(source_slot: Node) -> int:
+	if source_slot == null:
+		return -999999
+
+	if ai_count_front_units("enemy") < 2:
+		return -999999
+
+	var source_card := get_slot_card_data(source_slot)
+
+	if not is_unit_card(source_card):
+		return -999999
+
+	var score := 42
+	score += ai_count_front_units("enemy") * 16
+	score += ai_memory_player_lane_pressure_score(get_slot_lane(source_slot))
+
+	return score
+
+
+func ai_score_active_insight_peek_action(target_slot: Node, current_lane_name: String) -> int:
+	if target_slot == null:
+		return -999999
+
+	var target_card := get_slot_card_data(target_slot)
+
+	if target_card == null:
+		return -999999
+
+	if not bool(target_slot.get_meta("face_down", false)):
+		return -999999
+
+	var score := 38
+	score += int(round((ai_memory_player_hidden_gambit_rate() - 0.50) * 90.0))
+	score += ai_memory_player_lane_pressure_score(current_lane_name)
+
+	if is_gambit_card(target_card):
+		score += 18
+
+	return score
+
+
+func ai_execute_active_ability_action(action: Dictionary, current_lane_name: String) -> Dictionary:
+	var action_type := String(action.get("type", ""))
+	var source_slot := action.get("source_slot", null) as Node
+	var target_slot := action.get("target_slot", null) as Node
+	var ability := action.get("ability", null) as AbilityData
+
+	if source_slot == null or ability == null:
+		return {"used": false, "result": "none"}
+
+	match action_type:
+		"move":
+			return await ai_execute_active_move_action(source_slot, target_slot, ability)
+
+		"swap":
+			return await ai_execute_active_swap_action(source_slot, target_slot, ability)
+
+		"destroy_low_ap":
+			return await ai_execute_active_destroy_action(source_slot, target_slot, ability)
+
+		"vortex":
+			return await ai_execute_active_vortex_action(source_slot, ability)
+
+		"insight_peek":
+			return await ai_execute_active_insight_peek_action(source_slot, target_slot, ability, current_lane_name)
+
+	return {"used": false, "result": "none"}
+
+
+func ai_mark_active_mobility_used(slot: Node, ability: AbilityData) -> void:
+	if slot == null or ability == null:
+		return
+
+	var used_turns: Dictionary = slot.get_meta("used_mobility_turns", {}).duplicate()
+	used_turns[String(ability.ability_id)] = turn_number
+	slot.set_meta("used_mobility_turns", used_turns)
+	used_mobility_ability_keys[get_mobility_usage_key(slot, ability)] = true
+
+
+func ai_mark_active_insight_used(slot: Node, ability: AbilityData) -> void:
+	if slot == null or ability == null:
+		return
+
+	used_active_insight_ability_keys[get_active_insight_usage_key(slot, ability)] = true
+
+
+
+func ai_execute_active_move_action(source_slot: Node, target_slot: Node, ability: AbilityData) -> Dictionary:
+	if source_slot == null or target_slot == null or ability == null:
+		return {"used": false, "result": "none"}
+
+	if get_slot_card_data(target_slot) != null:
+		return {"used": false, "result": "none"}
+
+	await show_timed_mobility_message(ability.ability_name.to_upper() + "  -  AI repositions")
+	await move_slot_contents(source_slot, target_slot)
+	ai_mark_active_mobility_used(target_slot, ability)
+	update_ai_visuals()
+
+	log_msg("AI used " + ability.ability_name + " to move into the " + get_slot_lane(target_slot) + " lane.")
+	return {"used": true, "result": "used"}
+
+
+func ai_execute_active_swap_action(source_slot: Node, target_slot: Node, ability: AbilityData) -> Dictionary:
+	if source_slot == null or target_slot == null or ability == null:
+		return {"used": false, "result": "none"}
+
+	var source_lane := get_slot_lane(source_slot)
+	var target_lane := get_slot_lane(target_slot)
+
+	await show_timed_mobility_message(ability.ability_name.to_upper() + "  -  AI swaps lanes")
+	await swap_owner_lanes("enemy", source_lane, target_lane)
+	ai_mark_active_mobility_used(find_slot_by_owner_row_lane("enemy", "front", target_lane), ability)
+	update_ai_visuals()
+
+	log_msg("AI used " + ability.ability_name + " to swap " + source_lane + " and " + target_lane + ".")
+	return {"used": true, "result": "used"}
+
+
+func ai_execute_active_destroy_action(source_slot: Node, target_slot: Node, ability: AbilityData) -> Dictionary:
+	if source_slot == null or target_slot == null or ability == null:
+		return {"used": false, "result": "none"}
+
+	var target_card := get_slot_card_data(target_slot)
+
+	if not is_unit_card(target_card):
+		return {"used": false, "result": "none"}
+
+	await show_timed_mobility_message(ability.ability_name.to_upper() + "  -  AI destroys a weak unit")
+	send_slot_card_to_discard(target_slot)
+	ai_mark_active_mobility_used(source_slot, ability)
+	update_ai_visuals()
+
+	log_msg("AI used " + ability.ability_name + " to destroy " + target_card.card_name + ".")
+	return {"used": true, "result": "used"}
+
+
+func ai_execute_active_vortex_action(source_slot: Node, ability: AbilityData) -> Dictionary:
+	if source_slot == null or ability == null:
+		return {"used": false, "result": "none"}
+
+	if ai_count_front_units("enemy") < 2:
+		return {"used": false, "result": "none"}
+
+	await show_timed_mobility_message(ability.ability_name.to_upper() + "  -  AI merges pressure")
+	var success := await resolve_vortex(ability, "enemy")
+
+	if not success:
+		return {"used": false, "result": "none"}
+
+	ai_mark_active_mobility_used(source_slot, ability)
+	update_ai_visuals()
+
+	log_msg("AI used " + ability.ability_name + ".")
+	return {"used": true, "result": "used"}
+
+
+func ai_execute_active_insight_peek_action(source_slot: Node, target_slot: Node, ability: AbilityData, current_lane_name: String) -> Dictionary:
+	if source_slot == null or target_slot == null or ability == null:
+		return {"used": false, "result": "none"}
+
+	var target_card := get_slot_card_data(target_slot)
+
+	if target_card == null or not bool(target_slot.get_meta("face_down", false)):
+		return {"used": false, "result": "none"}
+
+	await show_timed_mobility_message(ability.ability_name.to_upper() + "  -  AI reads hidden card")
+
+	if target_slot.has_method("reveal_card"):
+		target_slot.reveal_card()
+
+	ai_memory_note_player_hidden_reveal(target_card, current_lane_name, "ai_active_insight")
+	ai_mark_active_insight_used(source_slot, ability)
+
+	log_msg("AI used " + ability.ability_name + " and revealed your hidden back-row card in the " + current_lane_name + " lane.")
+
+	# Active Insight is used instead of attacking, mirroring the player's True Sight / Vantage behavior.
+	ai_passed_current_lane = true
+	await get_tree().create_timer(COMBAT_LANE_END_DELAY).timeout
+	set_lane_priority_to_player(current_lane_name, ability.ability_name + " used by AI instead of attacking.")
+
+	return {"used": true, "result": "consumed"}
+
 
 
 func resolve_ai_pass_lane_with_visuals(lane: String) -> void:
@@ -9283,7 +9903,7 @@ func get_or_create_mobility_prompt_row() -> Control:
 	label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.98))
 	label.add_theme_color_override("font_outline_color", Color(0.02, 0.025, 0.035, 0.92))
 	label.add_theme_constant_override("outline_size", 2)
-	label.add_theme_color_override("font_shadow_color", Color(1.0, 1.0, 1.0, 0.38))
+	label.add_theme_color_override("font_shadow_color", Color(0.10, 0.11, 0.14, 0.72))
 	label.add_theme_constant_override("shadow_outline_size", 5)
 	center_row.add_child(label)
 	return root
