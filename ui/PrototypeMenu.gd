@@ -13,6 +13,14 @@ const AI_DIFFICULTY_LABELS := [
 	"GRANDMASTER"
 ]
 
+const AI_DIFFICULTY_DESCRIPTIONS := [
+	"1/5",
+	"2/5",
+	"3/5",
+	"4/5",
+	"5/5"
+]
+
 const BATTLE_SCENE_PATH := "res://battlefield/battlefield_3d.tscn"
 const DECK_BUILDER_SCENE_PATH := "res://ui/deck_builder.tscn"
 
@@ -24,7 +32,7 @@ const LOGO_WIDTH_RATIO := 0.40
 const LOGO_MAX_WIDTH := 760.0
 const LOGO_ASPECT_RATIO := 16.0 / 9.0
 const BUTTONS_WIDTH := 420.0
-const BUTTONS_HEIGHT := 216.0
+const BUTTONS_HEIGHT := 236.0
 const BUTTONS_GAP_BELOW_LOGO := 4.0
 const BUTTONS_X_OFFSET := 0.0
 const BUTTONS_Y_OFFSET := 0.0
@@ -41,7 +49,7 @@ const INTRO_LOGO_ASPECT_RATIO := 16.0 / 9.0
 
 var intro_can_continue := false
 var intro_transitioning := false
-var ai_difficulty_button: Button = null
+var ai_difficulty_label: Button = null
 
 
 func _ready() -> void:
@@ -182,9 +190,8 @@ func build_menu() -> void:
 	start_button.pressed.connect(_on_start_battle_pressed)
 	menu_choices.add_child(start_button)
 
-	ai_difficulty_button = make_menu_button("AI: " + get_ai_difficulty_label())
-	ai_difficulty_button.pressed.connect(_on_ai_difficulty_pressed)
-	menu_choices.add_child(ai_difficulty_button)
+	var difficulty_row := make_difficulty_selector()
+	menu_choices.add_child(difficulty_row)
 
 	var deck_button := make_menu_button("DECK BUILDER")
 	deck_button.pressed.connect(_on_deck_builder_pressed)
@@ -200,15 +207,60 @@ func get_ai_difficulty_label() -> String:
 	return AI_DIFFICULTY_LABELS[index]
 
 
-func _on_ai_difficulty_pressed() -> void:
-	selected_ai_difficulty += 1
+func get_ai_difficulty_description() -> String:
+	var index := clampi(selected_ai_difficulty, 0, AI_DIFFICULTY_DESCRIPTIONS.size() - 1)
+	return AI_DIFFICULTY_DESCRIPTIONS[index]
 
-	if selected_ai_difficulty >= AI_DIFFICULTY_LABELS.size():
-		selected_ai_difficulty = 0
 
-	if ai_difficulty_button != null:
-		ai_difficulty_button.text = "AI: " + get_ai_difficulty_label()
+func get_ai_difficulty_display_text() -> String:
+	return "AI DIFFICULTY: " + get_ai_difficulty_label() + "  " + get_ai_difficulty_description()
 
+
+func set_ai_difficulty_by_delta(delta: int) -> void:
+	selected_ai_difficulty = clampi(
+		selected_ai_difficulty + delta,
+		0,
+		AI_DIFFICULTY_LABELS.size() - 1
+	)
+
+	refresh_ai_difficulty_label()
+
+
+func refresh_ai_difficulty_label() -> void:
+	if ai_difficulty_label != null:
+		ai_difficulty_label.text = get_ai_difficulty_display_text()
+
+
+func _on_ai_difficulty_decreased() -> void:
+	set_ai_difficulty_by_delta(-1)
+
+
+func _on_ai_difficulty_increased() -> void:
+	set_ai_difficulty_by_delta(1)
+	
+func make_difficulty_selector() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.custom_minimum_size = Vector2(420, 48)
+	row.add_theme_constant_override("separation", 8)
+
+	var left_button := make_menu_button("<")
+	left_button.custom_minimum_size = Vector2(48, 48)
+	left_button.pressed.connect(_on_ai_difficulty_decreased)
+	row.add_child(left_button)
+
+	ai_difficulty_label = make_menu_button(get_ai_difficulty_display_text())
+	ai_difficulty_label.custom_minimum_size = Vector2(300, 48)
+	ai_difficulty_label.disabled = true
+	ai_difficulty_label.mouse_default_cursor_shape = Control.CURSOR_ARROW
+	row.add_child(ai_difficulty_label)
+
+	var right_button := make_menu_button(">")
+	right_button.custom_minimum_size = Vector2(48, 48)
+	right_button.pressed.connect(_on_ai_difficulty_increased)
+	row.add_child(right_button)
+
+	return row
 
 
 func play_intro() -> void:
@@ -302,15 +354,16 @@ func make_menu_button(label_text: String) -> Button:
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	button.flat = true
+	button.pivot_offset = button.custom_minimum_size * 0.5
 
 	button.add_theme_font_size_override("font_size", 25)
 
-	button.add_theme_color_override("font_color", Color(0.90, 0.89, 0.86, 1.0))
+	button.add_theme_color_override("font_color", Color(0.86, 0.85, 0.82, 1.0))
 	button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0, 1.0))
-	button.add_theme_color_override("font_pressed_color", Color(0.92, 0.92, 0.92, 1.0))
+	button.add_theme_color_override("font_pressed_color", Color(0.94, 0.94, 0.94, 1.0))
+	button.add_theme_color_override("font_disabled_color", Color(0.86, 0.85, 0.82, 1.0))
 
-	button.add_theme_color_override("font_outline_color", Color(0.10, 0.055, 0.01, 0.9))
-	button.add_theme_constant_override("outline_size", 4)
+	button.add_theme_constant_override("outline_size", 0)
 
 	var empty_style := StyleBoxEmpty.new()
 	button.add_theme_stylebox_override("normal", empty_style)
@@ -331,21 +384,27 @@ func _center_button_pivot(button: Button) -> void:
 
 
 func _on_menu_button_hovered(button: Button) -> void:
+	if button.disabled:
+		return
+
 	Cursors.use_pointing()
 
-	button.add_theme_constant_override("outline_size", 8)
-	button.add_theme_color_override("font_outline_color", Color(1.0, 1.0, 1.0, 0.48))
+	button.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	button.add_theme_constant_override("outline_size", 0)
 
 	var tween := button.create_tween()
 	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(button, "scale", Vector2(1.045, 1.045), 0.12)
+	tween.tween_property(button, "scale", Vector2(1.035, 1.035), 0.12)
 
 
 func _on_menu_button_unhovered(button: Button) -> void:
+	if button.disabled:
+		return
+
 	Cursors.use_normal()
 
-	button.add_theme_constant_override("outline_size", 4)
-	button.add_theme_color_override("font_outline_color", Color(0.10, 0.055, 0.01, 0.9))
+	button.add_theme_color_override("font_color", Color(0.86, 0.85, 0.82, 1.0))
+	button.add_theme_constant_override("outline_size", 0)
 
 	var tween := button.create_tween()
 	tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
