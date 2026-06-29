@@ -332,8 +332,18 @@ var ai_memory_player_backrow_pressure: Dictionary = {
 
 # === Functions ===
 
+
+func apply_ai_difficulty_from_menu() -> void:
+	ai_difficulty = clampi(
+		PrototypeMenu.selected_ai_difficulty,
+		AI_DIFFICULTY_NOVICE,
+		AI_DIFFICULTY_GRANDMASTER
+	)
+
+
 func _ready() -> void:
 	randomize()
+	apply_ai_difficulty_from_menu()
 	parry_system = ParrySystem.new()
 	parry_system.name = "ParrySystem"
 	add_child(parry_system)

@@ -3,6 +3,16 @@ extends Control
 
 static var skip_intro_once := false
 
+static var selected_ai_difficulty := 2
+
+const AI_DIFFICULTY_LABELS := [
+	"NOVICE",
+	"SOLDIER",
+	"COMMANDER",
+	"WARLORD",
+	"GRANDMASTER"
+]
+
 const BATTLE_SCENE_PATH := "res://battlefield/battlefield_3d.tscn"
 const DECK_BUILDER_SCENE_PATH := "res://ui/deck_builder.tscn"
 
@@ -14,7 +24,7 @@ const LOGO_WIDTH_RATIO := 0.40
 const LOGO_MAX_WIDTH := 760.0
 const LOGO_ASPECT_RATIO := 16.0 / 9.0
 const BUTTONS_WIDTH := 420.0
-const BUTTONS_HEIGHT := 168.0
+const BUTTONS_HEIGHT := 216.0
 const BUTTONS_GAP_BELOW_LOGO := 4.0
 const BUTTONS_X_OFFSET := 0.0
 const BUTTONS_Y_OFFSET := 0.0
@@ -31,6 +41,7 @@ const INTRO_LOGO_ASPECT_RATIO := 16.0 / 9.0
 
 var intro_can_continue := false
 var intro_transitioning := false
+var ai_difficulty_button: Button = null
 
 
 func _ready() -> void:
@@ -171,6 +182,10 @@ func build_menu() -> void:
 	start_button.pressed.connect(_on_start_battle_pressed)
 	menu_choices.add_child(start_button)
 
+	ai_difficulty_button = make_menu_button("AI: " + get_ai_difficulty_label())
+	ai_difficulty_button.pressed.connect(_on_ai_difficulty_pressed)
+	menu_choices.add_child(ai_difficulty_button)
+
 	var deck_button := make_menu_button("DECK BUILDER")
 	deck_button.pressed.connect(_on_deck_builder_pressed)
 	menu_choices.add_child(deck_button)
@@ -178,6 +193,22 @@ func build_menu() -> void:
 	var quit_button := make_menu_button("QUIT")
 	quit_button.pressed.connect(_on_quit_pressed)
 	menu_choices.add_child(quit_button)
+
+
+func get_ai_difficulty_label() -> String:
+	var index := clampi(selected_ai_difficulty, 0, AI_DIFFICULTY_LABELS.size() - 1)
+	return AI_DIFFICULTY_LABELS[index]
+
+
+func _on_ai_difficulty_pressed() -> void:
+	selected_ai_difficulty += 1
+
+	if selected_ai_difficulty >= AI_DIFFICULTY_LABELS.size():
+		selected_ai_difficulty = 0
+
+	if ai_difficulty_button != null:
+		ai_difficulty_button.text = "AI: " + get_ai_difficulty_label()
+
 
 
 func play_intro() -> void:
