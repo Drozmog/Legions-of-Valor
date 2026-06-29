@@ -464,6 +464,7 @@ func update_ai_debug_panel() -> void:
 	var lane := current_combat_lane()
 	var hidden_rate := int(round(ai_memory_player_hidden_gambit_rate() * 100.0))
 	var check_rate := int(round(ai_memory_player_check_success_rate() * 100.0))
+	var profile := ai_get_difficulty_profile()
 
 	ai_debug_label.text = (
 		"AI DEBUG  [F8]\n"
@@ -526,8 +527,78 @@ func ai_get_phase_name() -> String:
 	return "Unknown"
 
 
-func ai_get_active_ability_lane_attempt_key(lane: String) -> String:
-	return str(turn_number) + ":" + lane
+func ai_get_difficulty_profile() -> Dictionary:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return {
+				"memory_weight": 0.0,
+				"randomness_multiplier": 3.0,
+				"lookahead_weight": 0.0,
+				"ability_awareness_weight": 0.0,
+				"active_ability_weight": 0.0,
+				"active_ability_threshold": 999999,
+				"max_active_ability_uses_per_turn": 0,
+				"min_deployment_score": -999999,
+			}
+
+		AI_DIFFICULTY_SOLDIER:
+			return {
+				"memory_weight": 0.35,
+				"randomness_multiplier": 2.1,
+				"lookahead_weight": 0.20,
+				"ability_awareness_weight": 0.25,
+				"active_ability_weight": 0.25,
+				"active_ability_threshold": 95,
+				"max_active_ability_uses_per_turn": 1,
+				"min_deployment_score": 0,
+			}
+
+		AI_DIFFICULTY_COMMANDER:
+			return {
+				"memory_weight": 0.65,
+				"randomness_multiplier": 1.35,
+				"lookahead_weight": 0.50,
+				"ability_awareness_weight": 0.60,
+				"active_ability_weight": 0.60,
+				"active_ability_threshold": 78,
+				"max_active_ability_uses_per_turn": 1,
+				"min_deployment_score": 12,
+			}
+
+		AI_DIFFICULTY_WARLORD:
+			return {
+				"memory_weight": 0.90,
+				"randomness_multiplier": 0.85,
+				"lookahead_weight": 0.85,
+				"ability_awareness_weight": 0.95,
+				"active_ability_weight": 0.95,
+				"active_ability_threshold": 60,
+				"max_active_ability_uses_per_turn": 2,
+				"min_deployment_score": 18,
+			}
+
+		AI_DIFFICULTY_GRANDMASTER:
+			return {
+				"memory_weight": 1.15,
+				"randomness_multiplier": 0.45,
+				"lookahead_weight": 1.15,
+				"ability_awareness_weight": 1.20,
+				"active_ability_weight": 1.20,
+				"active_ability_threshold": 45,
+				"max_active_ability_uses_per_turn": 2,
+				"min_deployment_score": 24,
+			}
+
+	return {
+		"memory_weight": 0.65,
+		"randomness_multiplier": 1.35,
+		"lookahead_weight": 0.50,
+		"ability_awareness_weight": 0.60,
+		"active_ability_weight": 0.60,
+		"active_ability_threshold": 78,
+		"max_active_ability_uses_per_turn": 1,
+		"min_deployment_score": 12,
+	}
 
 
 func ai_get_active_ability_turn_key() -> String:
@@ -535,19 +606,7 @@ func ai_get_active_ability_turn_key() -> String:
 
 
 func ai_max_active_ability_uses_per_turn() -> int:
-	match ai_difficulty:
-		AI_DIFFICULTY_NOVICE:
-			return 0
-		AI_DIFFICULTY_SOLDIER:
-			return 1
-		AI_DIFFICULTY_COMMANDER:
-			return 1
-		AI_DIFFICULTY_WARLORD:
-			return 2
-		AI_DIFFICULTY_GRANDMASTER:
-			return 2
-
-	return 1
+	return int(ai_get_difficulty_profile().get("max_active_ability_uses_per_turn", 1))
 
 
 func ai_can_try_active_ability_in_lane(lane: String) -> bool:
@@ -616,19 +675,7 @@ func ai_get_empty_legal_enemy_back_slots() -> Array[Node]:
 
 
 func ai_min_deployment_score() -> int:
-	match ai_difficulty:
-		AI_DIFFICULTY_NOVICE:
-			return -999999
-		AI_DIFFICULTY_SOLDIER:
-			return 0
-		AI_DIFFICULTY_COMMANDER:
-			return 12
-		AI_DIFFICULTY_WARLORD:
-			return 18
-		AI_DIFFICULTY_GRANDMASTER:
-			return 24
-
-	return 12
+	return int(ai_get_difficulty_profile().get("min_deployment_score", 12))
 
 
 func create_phase_tip_panel() -> void:
@@ -5359,35 +5406,11 @@ func ai_reset_memory() -> void:
 
 
 func ai_memory_weight() -> float:
-	match ai_difficulty:
-		AI_DIFFICULTY_NOVICE:
-			return 0.0
-		AI_DIFFICULTY_SOLDIER:
-			return 0.35
-		AI_DIFFICULTY_COMMANDER:
-			return 0.65
-		AI_DIFFICULTY_WARLORD:
-			return 0.90
-		AI_DIFFICULTY_GRANDMASTER:
-			return 1.15
-
-	return 0.65
+	return float(ai_get_difficulty_profile().get("memory_weight", 0.65))
 
 
 func ai_randomness_multiplier() -> float:
-	match ai_difficulty:
-		AI_DIFFICULTY_NOVICE:
-			return 3.0
-		AI_DIFFICULTY_SOLDIER:
-			return 2.1
-		AI_DIFFICULTY_COMMANDER:
-			return 1.35
-		AI_DIFFICULTY_WARLORD:
-			return 0.85
-		AI_DIFFICULTY_GRANDMASTER:
-			return 0.45
-
-	return 1.35
+	return float(ai_get_difficulty_profile().get("randomness_multiplier", 1.35))
 
 
 func ai_apply_memory_bonus(base_score: int) -> int:
@@ -5522,19 +5545,7 @@ func ai_memory_note_player_attacked_hidden(lane: String, revealed_gambit: bool) 
 
 
 func ai_lookahead_weight() -> float:
-	match ai_difficulty:
-		AI_DIFFICULTY_NOVICE:
-			return 0.0
-		AI_DIFFICULTY_SOLDIER:
-			return 0.20
-		AI_DIFFICULTY_COMMANDER:
-			return 0.50
-		AI_DIFFICULTY_WARLORD:
-			return 0.85
-		AI_DIFFICULTY_GRANDMASTER:
-			return 1.15
-
-	return 0.50
+	return float(ai_get_difficulty_profile().get("lookahead_weight", 0.50))
 
 
 func ai_apply_lookahead_bonus(base_score: int) -> int:
@@ -5846,19 +5857,7 @@ func ai_score_pass_lookahead(lane: String) -> int:
 
 
 func ai_ability_awareness_weight() -> float:
-	match ai_difficulty:
-		AI_DIFFICULTY_NOVICE:
-			return 0.0
-		AI_DIFFICULTY_SOLDIER:
-			return 0.25
-		AI_DIFFICULTY_COMMANDER:
-			return 0.60
-		AI_DIFFICULTY_WARLORD:
-			return 0.95
-		AI_DIFFICULTY_GRANDMASTER:
-			return 1.20
-
-	return 0.60
+	return float(ai_get_difficulty_profile().get("ability_awareness_weight", 0.60))
 
 
 func ai_apply_ability_awareness_bonus(base_score: int) -> int:
@@ -8676,19 +8675,7 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 
 
 func ai_active_ability_weight() -> float:
-	match ai_difficulty:
-		AI_DIFFICULTY_NOVICE:
-			return 0.0
-		AI_DIFFICULTY_SOLDIER:
-			return 0.25
-		AI_DIFFICULTY_COMMANDER:
-			return 0.60
-		AI_DIFFICULTY_WARLORD:
-			return 0.95
-		AI_DIFFICULTY_GRANDMASTER:
-			return 1.20
-
-	return 0.60
+	return float(ai_get_difficulty_profile().get("active_ability_weight", 0.60))
 
 
 func ai_apply_active_ability_bonus(base_score: int) -> int:
@@ -8783,19 +8770,7 @@ func ai_describe_active_ability_action(action: Dictionary, score: int, threshold
 
 
 func ai_active_ability_use_threshold() -> int:
-	match ai_difficulty:
-		AI_DIFFICULTY_NOVICE:
-			return 999999
-		AI_DIFFICULTY_SOLDIER:
-			return 95
-		AI_DIFFICULTY_COMMANDER:
-			return 78
-		AI_DIFFICULTY_WARLORD:
-			return 60
-		AI_DIFFICULTY_GRANDMASTER:
-			return 45
-
-	return 78
+	return int(ai_get_difficulty_profile().get("active_ability_threshold", 78))
 
 
 func ai_build_active_ability_actions(current_lane_name: String) -> Array[Dictionary]:
