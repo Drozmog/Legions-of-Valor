@@ -147,6 +147,9 @@ var save_button: Button
 var play_button: Button
 var search_box: LineEdit
 var library_sort_button: MenuButton
+var library_scroll_slider: HSlider
+var library_scroll_slider_surface: MeshInstance3D
+var library_scroll_slider_internal_update := false
 var card_detail_label: RichTextLabel
 var card_detail_name_3d: Label3D
 var card_detail_stats_3d: Label3D
@@ -514,15 +517,18 @@ func build_overlay_ui() -> void:
 		Vector3(-1.9, 0.105, 3.48),
 		Vector2(6.50, 0.555)
 	)
-	var library_ui_root: Control = library_ui["control"]
-	var deck_ui := create_tabletop_ui_surface(
-		"DeckTabletopUI",
-		Vector2i(520, 100),
-		Vector3(4.10, 0.105, 3.48),
-		Vector2(3.20, 0.555)
-	)
-	var deck_ui_root: Control = deck_ui["control"]
 	
+	var library_slider_ui := create_tabletop_ui_surface(
+		"LibraryScrollSliderUI",
+		Vector2i(1200, 54),
+		Vector3(-2.05, 0.118, 2.88),
+		Vector2(7.80, 0.255)
+	)
+	var library_slider_root: Control = library_slider_ui["control"]
+	library_scroll_slider_surface = library_slider_ui["surface"]
+
+	build_library_scroll_slider(library_slider_root)
+		
 	var ability_popup_ui := create_tabletop_ui_surface(
 		"AbilityFilterPopupUI",
 		Vector2i(390, 60),
@@ -703,6 +709,167 @@ func build_overlay_ui() -> void:
 
 	build_deck_slot_chip()
 	refresh_filter_buttons()
+
+
+func build_library_scroll_slider(parent: Control) -> void:
+	if parent == null:
+		return
+
+	parent.mouse_filter = Control.MOUSE_FILTER_PASS
+
+	var outer := PanelContainer.new()
+	outer.name = "LibraryScrollSliderGlass"
+	outer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	outer.offset_left = 28.0
+	outer.offset_right = -28.0
+	outer.offset_top = 8.0
+	outer.offset_bottom = -8.0
+	outer.mouse_filter = Control.MOUSE_FILTER_PASS
+	outer.add_theme_stylebox_override(
+		"panel",
+		make_library_scroll_glass_panel_style()
+	)
+	parent.add_child(outer)
+
+	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_PASS
+	margin.add_theme_constant_override("margin_left", 22)
+	margin.add_theme_constant_override("margin_right", 22)
+	margin.add_theme_constant_override("margin_top", 6)
+	margin.add_theme_constant_override("margin_bottom", 6)
+	outer.add_child(margin)
+
+	library_scroll_slider = HSlider.new()
+	library_scroll_slider.name = "LibraryScrollSlider"
+	library_scroll_slider.min_value = library_scroll_min
+	library_scroll_slider.max_value = maxf(library_scroll_max, 0.001)
+	library_scroll_slider.step = 0.001
+	library_scroll_slider.value = library_scroll_target
+	library_scroll_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	library_scroll_slider.custom_minimum_size = Vector2(0, 28)
+	library_scroll_slider.focus_mode = Control.FOCUS_NONE
+	library_scroll_slider.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	library_scroll_slider.value_changed.connect(_on_library_scroll_slider_changed)
+	style_library_scroll_slider(library_scroll_slider)
+	margin.add_child(library_scroll_slider)
+
+	refresh_library_scroll_slider()
+
+
+func make_library_scroll_glass_panel_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.020, 0.025, 0.035, 0.42)
+	style.border_color = Color(1.0, 1.0, 1.0, 0.16)
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(12)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
+	style.shadow_size = 6
+	style.content_margin_left = 8.0
+	style.content_margin_right = 8.0
+	style.content_margin_top = 5.0
+	style.content_margin_bottom = 5.0
+	return style
+
+
+func style_library_scroll_slider(slider: HSlider) -> void:
+	if slider == null:
+		return
+
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(0.0, 0.0, 0.0, 0.42)
+	track.border_color = Color(1.0, 1.0, 1.0, 0.16)
+	track.set_border_width_all(1)
+	track.set_corner_radius_all(8)
+	track.content_margin_top = 6.0
+	track.content_margin_bottom = 6.0
+
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color(1.0, 0.82, 0.36, 0.54)
+	fill.border_color = Color(1.0, 0.94, 0.70, 0.45)
+	fill.set_border_width_all(1)
+	fill.set_corner_radius_all(8)
+	fill.content_margin_top = 6.0
+	fill.content_margin_bottom = 6.0
+
+	var fill_hover := fill.duplicate() as StyleBoxFlat
+	fill_hover.bg_color = Color(1.0, 0.88, 0.48, 0.72)
+	fill_hover.border_color = Color(1.0, 1.0, 1.0, 0.62)
+
+	slider.add_theme_stylebox_override("slider", track)
+	slider.add_theme_stylebox_override("grabber_area", fill)
+	slider.add_theme_stylebox_override("grabber_area_highlight", fill_hover)
+
+	slider.add_theme_icon_override(
+		"grabber",
+		make_library_scroll_knob_texture(
+			26,
+			Color(1.0, 0.86, 0.42, 0.95),
+			Color(1.0, 1.0, 1.0, 0.72)
+		)
+	)
+
+	slider.add_theme_icon_override(
+		"grabber_highlight",
+		make_library_scroll_knob_texture(
+			28,
+			Color(1.0, 0.92, 0.55, 1.0),
+			Color(1.0, 1.0, 1.0, 0.92)
+		)
+	)
+
+	slider.add_theme_icon_override(
+		"grabber_disabled",
+		make_library_scroll_knob_texture(
+			22,
+			Color(0.65, 0.62, 0.55, 0.36),
+			Color(1.0, 1.0, 1.0, 0.20)
+		)
+	)
+
+
+func make_library_scroll_knob_texture(diameter: int, fill_color: Color, border_color: Color) -> Texture2D:
+	var image := Image.create(diameter, diameter, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0, 0, 0, 0))
+
+	var center := Vector2(float(diameter - 1) * 0.5, float(diameter - 1) * 0.5)
+	var radius := float(diameter) * 0.44
+	var border_radius := radius
+	var fill_radius := radius - 2.0
+
+	for y in range(diameter):
+		for x in range(diameter):
+			var distance := Vector2(float(x), float(y)).distance_to(center)
+
+			if distance <= fill_radius:
+				image.set_pixel(x, y, fill_color)
+			elif distance <= border_radius:
+				image.set_pixel(x, y, border_color)
+
+	return ImageTexture.create_from_image(image)
+	
+	
+func _on_library_scroll_slider_changed(value: float) -> void:
+	if library_scroll_slider_internal_update:
+		return
+
+	set_library_scroll(float(value))
+
+
+func refresh_library_scroll_slider() -> void:
+	if library_scroll_slider == null:
+		return
+
+	var can_scroll := library_scroll_max > 0.001
+
+	library_scroll_slider_internal_update = true
+	library_scroll_slider.min_value = library_scroll_min
+	library_scroll_slider.max_value = maxf(library_scroll_max, 0.001)
+	library_scroll_slider.value = clampf(library_scroll_target, library_scroll_min, library_scroll_max)
+	library_scroll_slider.editable = can_scroll
+	library_scroll_slider_internal_update = false
+
+	if library_scroll_slider_surface != null:
+		library_scroll_slider_surface.visible = can_scroll
 
 
 func create_tabletop_ui_surface(
@@ -1440,8 +1607,10 @@ func refresh_library() -> void:
 
 	var group_count: int = int(ceil(float(filtered_cards.size()) / float(LIBRARY_GROUP_SIZE)))
 	library_scroll_max = max(0.0, float(max(0, group_count - 1)) * LIBRARY_GROUP_SPACING)
-	library_scroll_target = clamp(library_scroll_target, library_scroll_min, library_scroll_max)
-	library_scroll = clamp(library_scroll, library_scroll_min, library_scroll_max)
+	library_scroll_target = clampf(library_scroll_target, library_scroll_min, library_scroll_max)
+	library_scroll = clampf(library_scroll, library_scroll_min, library_scroll_max)
+
+	refresh_library_scroll_slider()
 	layout_library(true)
 	set_status("Showing " + str(filtered_cards.size()) + " owned card(s). Continuous horizontal scroll is active.")
 
@@ -1477,7 +1646,6 @@ func layout_library(instant: bool = false) -> void:
 			node,
 			is_library_card_inside_interaction_window(target.x) and not copy_limit_reached
 		)
-		update_library_card_count_label_visibility(node, target.x)
 		
 		if instant:
 			node.position = target
@@ -1488,8 +1656,8 @@ func layout_library(instant: bool = false) -> void:
 
 			if node.visible:
 				set_card_alpha(node, card_alpha)
-				
-			update_library_card_count_label_visibility(node, target.x)
+
+			update_library_card_count_label_visibility(node)
 
 
 func layout_deck_rack(instant: bool = false, preview_insert_index: int = -1) -> void:
@@ -1760,10 +1928,11 @@ func animate_collection(nodes: Array[Node3D], delta: float) -> void:
 				node,
 				is_library_card_inside_interaction_window(node.position.x) and not copy_limit_reached
 			)
-			update_library_card_count_label_visibility(node, node.position.x)
 
 			if node.visible:
 				set_card_alpha(node, card_alpha)
+
+			update_library_card_count_label_visibility(node)
 
 		else:
 			apply_library_card_window_clip(node, false)
@@ -1772,11 +1941,11 @@ func animate_collection(nodes: Array[Node3D], delta: float) -> void:
 			node.set_meta("current_alpha", 1.0)
 			set_card_pickable(node, true)
 			set_card_alpha(node, 1.0)
-			update_library_card_count_label_visibility(node, node.position.x)
 
 
 func set_library_scroll(value: float) -> void:
-	library_scroll_target = clamp(value, library_scroll_min, library_scroll_max)
+	library_scroll_target = clampf(value, library_scroll_min, library_scroll_max)
+	refresh_library_scroll_slider()
 
 
 func is_library_card_inside_interaction_window(x_position: float) -> bool:
@@ -1799,33 +1968,76 @@ func get_library_edge_alpha(x_position: float) -> float:
 	return 1.0
 
 
-func is_library_count_label_inside_window(x_position: float) -> bool:
-	return (
-		x_position >= LIBRARY_VISIBLE_MIN_X + LIBRARY_COUNT_LABEL_INSET
-		and x_position <= LIBRARY_VISIBLE_MAX_X - LIBRARY_COUNT_LABEL_INSET
-	)
-
-
 func get_library_card_count_label(card_node: Node) -> Label3D:
 	if card_node == null:
 		return null
 
+	var badge := card_node.get_node_or_null("DeckCopyBadge") as Label3D
+
+	if badge != null:
+		return badge
+
 	for child in card_node.get_children():
 		if child is Label3D:
 			var label := child as Label3D
+
 			if label.text.strip_edges().ends_with("x"):
 				return label
 
 	return null
 
 
-func update_library_card_count_label_visibility(card_node: Node3D, x_position: float) -> void:
+func get_library_count_label_edge_alpha(label_world_x: float) -> float:
+	var left_alpha := smoothstep(
+		LIBRARY_VISIBLE_MIN_X,
+		LIBRARY_VISIBLE_MIN_X + LIBRARY_CARD_CLIP_FADE_WIDTH,
+		label_world_x
+	)
+
+	var right_alpha := 1.0 - smoothstep(
+		LIBRARY_VISIBLE_MAX_X - LIBRARY_CARD_CLIP_FADE_WIDTH,
+		LIBRARY_VISIBLE_MAX_X,
+		label_world_x
+	)
+
+	return clampf(minf(left_alpha, right_alpha), 0.0, 1.0)
+
+
+func update_library_card_count_label_visibility(card_node: Node3D) -> void:
 	var count_label := get_library_card_count_label(card_node)
 
 	if count_label == null:
 		return
 
-	count_label.visible = is_library_count_label_inside_window(x_position)
+	var card_data := card_node.get_meta("card_data", null) as CardData
+
+	if card_data == null:
+		count_label.visible = false
+		return
+
+	var copy_count := get_deck_copy_count(card_data)
+
+	if copy_count <= 0:
+		count_label.visible = false
+		return
+
+	count_label.text = str(copy_count) + "x"
+
+	var edge_alpha := get_library_count_label_edge_alpha(count_label.global_position.x)
+
+	if edge_alpha <= 0.01:
+		count_label.visible = false
+		return
+
+	count_label.visible = true
+
+	var label_color := count_label.modulate
+	label_color.a = edge_alpha
+	count_label.modulate = label_color
+
+	var outline_color := count_label.outline_modulate
+	outline_color.a = edge_alpha
+	count_label.outline_modulate = outline_color
 
 
 func apply_library_card_window_clip(card_node: Node3D, enabled: bool) -> void:
@@ -1888,6 +2100,9 @@ func set_card_pickable(card_node: Node3D, pickable: bool) -> void:
 
 func set_card_alpha(card_node: Node, alpha: float) -> void:
 	if card_node == null:
+		return
+		
+	if card_node is Label3D and String(card_node.name) == "DeckCopyBadge":
 		return
 
 	card_node.set_meta("current_alpha", alpha)
