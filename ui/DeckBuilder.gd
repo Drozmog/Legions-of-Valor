@@ -48,7 +48,10 @@ const LIBRARY_SCROLL_LERP_SPEED := 9.0
 # before the rack wall so even a wide card is gone before entering the rack.
 const LIBRARY_VISIBLE_MIN_X := -6.60
 const LIBRARY_VISIBLE_MAX_X := 1.78
-const LIBRARY_FADE_WIDTH    := 0.18
+
+# Card-center clipping bounds. This is a clean hard gate for now:
+# no black mask rectangles, no card edge fading.
+const LIBRARY_RENDER_SIDE_BUFFER := 0.35
 
 const CARD_PICK_LAYER_LIBRARY := 1
 const CARD_PICK_LAYER_DECK := 2
@@ -163,6 +166,7 @@ var type_buttons: Dictionary = {}
 var ability_buttons: Dictionary = {}
 var ability_filter_button: Button
 var ability_filter_panel: PanelContainer
+
 
 func _ready() -> void:
 	all_cards = CardDatabase.get_all_test_cards()
@@ -1438,11 +1442,10 @@ func refresh_library() -> void:
 func layout_library(instant: bool = false) -> void:
 	for i in range(library_nodes.size()):
 		var node := library_nodes[i]
+
 		if node == dragging_node:
 			continue
 
-		# Two-row horizontal table layout:
-		# 1-5 on top row, 6-10 on bottom row, then the strip scrolls continuously.
 		var group_index: int = int(i / LIBRARY_GROUP_SIZE)
 		var local_index: int = i % LIBRARY_GROUP_SIZE
 		var row_index: int = int(local_index / LIBRARY_COLUMNS_PER_GROUP)
@@ -1456,19 +1459,21 @@ func layout_library(instant: bool = false) -> void:
 		node.set_meta("target_scale", CARD_SCALE_LIBRARY)
 		node.set_meta("target_rotation", Vector3(0, 0, 0))
 
-		var alpha := get_library_edge_alpha(target.x)
-		node.set_meta("target_alpha", alpha)
+		var copy_limit_reached := is_library_card_at_copy_limit(node)
+		var card_alpha := 0.28 if copy_limit_reached else 1.0
+
+		node.set_meta("target_alpha", card_alpha)
+		set_card_pickable(node, is_library_card_inside_interaction_window(target.x) and not copy_limit_reached)
 
 		if instant:
 			node.position = target
 			node.scale = CARD_SCALE_LIBRARY
-			node.set_meta("current_alpha", alpha)
-			set_card_pickable(node, alpha > 0.02)
-			if alpha < 0.01:
-				node.visible = false
-			else:
-				node.visible = true
-				set_card_alpha(node, alpha)
+			node.rotation_degrees = Vector3(0, 0, 0)
+			node.set_meta("current_alpha", card_alpha)
+			node.visible = is_library_card_inside_render_window(target.x)
+
+			if node.visible:
+				set_card_alpha(node, card_alpha)
 
 
 func layout_deck_rack(instant: bool = false, preview_insert_index: int = -1) -> void:
@@ -1707,53 +1712,62 @@ func animate_collection(nodes: Array[Node3D], delta: float) -> void:
 	for node in nodes:
 		if node == null or not is_instance_valid(node):
 			continue
+
 		if node == dragging_node:
 			continue
+
 		var target_position: Vector3 = node.get_meta("target_position", node.position)
 		var target_scale: Vector3 = node.get_meta("target_scale", node.scale)
 		var target_rotation: Vector3 = node.get_meta("target_rotation", node.rotation_degrees)
 		var weight: float = clampf(delta * 10.0, 0.0, 1.0)
+
 		node.position = node.position.lerp(target_position, weight)
 		node.scale = node.scale.lerp(target_scale, weight)
 		node.rotation_degrees = node.rotation_degrees.lerp(target_rotation, weight)
 
-		# Opacity follows the card's rendered position, not its destination. Position
-		# already moves smoothly, so this remains smooth even during rapid scrolling
-		# without leaving a delayed translucent card over the rack.
 		var source_zone := String(node.get_meta("source_zone", ""))
-		var alpha := get_library_edge_alpha(node.position.x) if source_zone == "library" else 1.0
-		var copy_limit_reached := source_zone == "library" and is_library_card_at_copy_limit(node)
-		if copy_limit_reached:
-			alpha *= 0.28
-		node.set_meta("current_alpha", alpha)
-		# Every visibly rendered library card remains grabbable. Rack clicks still
-		# query only the deck collision layer, so edge cards cannot steal rack input.
-		set_card_pickable(node, source_zone != "library" or (alpha > 0.02 and not copy_limit_reached))
-		if alpha <= 0.001:
-			node.visible = false
+
+		if source_zone == "library":
+			var copy_limit_reached := is_library_card_at_copy_limit(node)
+			var card_alpha := 0.28 if copy_limit_reached else 1.0
+
+			node.set_meta("current_alpha", card_alpha)
+			node.visible = is_library_card_inside_render_window(node.position.x)
+
+			set_card_pickable(
+				node,
+				is_library_card_inside_interaction_window(node.position.x) and not copy_limit_reached
+			)
+
+			if node.visible:
+				set_card_alpha(node, card_alpha)
+
 		else:
 			node.visible = true
-			set_card_alpha(node, alpha)
+			node.set_meta("current_alpha", 1.0)
+			set_card_pickable(node, true)
+			set_card_alpha(node, 1.0)
 
 
 func set_library_scroll(value: float) -> void:
 	library_scroll_target = clamp(value, library_scroll_min, library_scroll_max)
 
 
+func is_library_card_inside_interaction_window(x_position: float) -> bool:
+	return x_position >= LIBRARY_VISIBLE_MIN_X and x_position <= LIBRARY_VISIBLE_MAX_X
+
+
+func is_library_card_inside_render_window(x_position: float) -> bool:
+	return (
+		x_position >= LIBRARY_VISIBLE_MIN_X - LIBRARY_RENDER_SIDE_BUFFER
+		and x_position <= LIBRARY_VISIBLE_MAX_X + LIBRARY_RENDER_SIDE_BUFFER
+	)
+
+
 func get_library_edge_alpha(x_position: float) -> float:
-	if x_position <= LIBRARY_VISIBLE_MIN_X or x_position >= LIBRARY_VISIBLE_MAX_X:
-		return 0.0
-	var left_alpha := smoothstep(
-		LIBRARY_VISIBLE_MIN_X,
-		LIBRARY_VISIBLE_MIN_X + LIBRARY_FADE_WIDTH,
-		x_position
-	)
-	var right_alpha := 1.0 - smoothstep(
-		LIBRARY_VISIBLE_MAX_X - LIBRARY_FADE_WIDTH,
-		LIBRARY_VISIBLE_MAX_X,
-		x_position
-	)
-	return minf(left_alpha, right_alpha)
+	# Kept so any older code path does not break.
+	# We are no longer fading cards at the carpet edge.
+	return 1.0 if is_library_card_inside_interaction_window(x_position) else 0.0
 
 
 func set_card_pickable(card_node: Node3D, pickable: bool) -> void:
