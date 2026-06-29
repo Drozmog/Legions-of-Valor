@@ -511,13 +511,15 @@ func build_overlay_ui() -> void:
 	root.add_child(card_action_menu)
 
 	tabletop_ui_surfaces.clear()
+
 	var library_ui := create_tabletop_ui_surface(
 		"LibraryTabletopUI",
 		Vector2i(1100, 100),
 		Vector3(-1.9, 0.105, 3.48),
 		Vector2(6.50, 0.555)
 	)
-	
+	var library_ui_root: Control = library_ui["control"]
+
 	var library_slider_ui := create_tabletop_ui_surface(
 		"LibraryScrollSliderUI",
 		Vector2i(1200, 54),
@@ -526,9 +528,16 @@ func build_overlay_ui() -> void:
 	)
 	var library_slider_root: Control = library_slider_ui["control"]
 	library_scroll_slider_surface = library_slider_ui["surface"]
-
 	build_library_scroll_slider(library_slider_root)
-		
+
+	var deck_ui := create_tabletop_ui_surface(
+		"DeckTabletopUI",
+		Vector2i(520, 100),
+		Vector3(4.10, 0.105, 3.48),
+		Vector2(3.20, 0.555)
+	)
+	var deck_ui_root: Control = deck_ui["control"]
+
 	var ability_popup_ui := create_tabletop_ui_surface(
 		"AbilityFilterPopupUI",
 		Vector2i(390, 60),
@@ -540,12 +549,6 @@ func build_overlay_ui() -> void:
 	# Put the popup surface first so it receives mouse input before the lower HUD.
 	var ability_surface_entry: Dictionary = tabletop_ui_surfaces.pop_back()
 	tabletop_ui_surfaces.push_front(ability_surface_entry)
-
-	var plaque_style := make_panel_style(
-		Color(0.18, 0.115, 0.065, 0.62),
-		Color(0.0, 0.0, 0.0, 0.0),
-		0
-	)
 
 	# A floating wooden plaque over the lower-left table, not a screen-wide bar.
 	var library_plaque := PanelContainer.new()
