@@ -46,12 +46,19 @@ const LIBRARY_SCROLL_LERP_SPEED := 9.0
 
 # Card-center bounds inside the red cloth. The right boundary deliberately ends
 # before the rack wall so even a wide card is gone before entering the rack.
-const LIBRARY_VISIBLE_MIN_X := -6.60
-const LIBRARY_VISIBLE_MAX_X := 1.78
+const LIBRARY_VISIBLE_MIN_X := -6.42
+const LIBRARY_VISIBLE_MAX_X := 2.20
 
-# Card-center clipping bounds. This is a clean hard gate for now:
-# no black mask rectangles, no card edge fading.
-const LIBRARY_RENDER_SIDE_BUFFER := 0.35
+# CardBody shader clipping window.
+# This clips the card texture at the carpet edges without creating black mask blocks.
+const LIBRARY_CARD_CLIP_SHADER_PATH := "res://ui/shaders/deck_builder_card_window_clip.gdshader"
+const LIBRARY_CARD_CLIP_FADE_WIDTH := 0.24
+const LIBRARY_CARD_INTERACTION_INSET := 0.58
+const LIBRARY_RENDER_SIDE_BUFFER := 1.20
+
+# Copy-count labels (like "2x") should disappear a bit before the card reaches the clip edge,
+# so they feel like they are going behind the library border too.
+const LIBRARY_COUNT_LABEL_INSET := 0.92
 
 const CARD_PICK_LAYER_LIBRARY := 1
 const CARD_PICK_LAYER_DECK := 2
@@ -1459,21 +1466,30 @@ func layout_library(instant: bool = false) -> void:
 		node.set_meta("target_scale", CARD_SCALE_LIBRARY)
 		node.set_meta("target_rotation", Vector3(0, 0, 0))
 
+		apply_library_card_window_clip(node, true)
+
 		var copy_limit_reached := is_library_card_at_copy_limit(node)
 		var card_alpha := 0.28 if copy_limit_reached else 1.0
 
 		node.set_meta("target_alpha", card_alpha)
-		set_card_pickable(node, is_library_card_inside_interaction_window(target.x) and not copy_limit_reached)
 
+		set_card_pickable(
+			node,
+			is_library_card_inside_interaction_window(target.x) and not copy_limit_reached
+		)
+		update_library_card_count_label_visibility(node, target.x)
+		
 		if instant:
 			node.position = target
 			node.scale = CARD_SCALE_LIBRARY
 			node.rotation_degrees = Vector3(0, 0, 0)
-			node.set_meta("current_alpha", card_alpha)
 			node.visible = is_library_card_inside_render_window(target.x)
+			node.set_meta("current_alpha", card_alpha)
 
 			if node.visible:
 				set_card_alpha(node, card_alpha)
+				
+			update_library_card_count_label_visibility(node, target.x)
 
 
 func layout_deck_rack(instant: bool = false, preview_insert_index: int = -1) -> void:
@@ -1566,6 +1582,9 @@ func begin_drag_from_mouse(screen_position: Vector2) -> void:
 	dragging_node = picked
 	dragging_card = card_data
 	dragging_from_library = String(picked.get_meta("source_zone", "")) == "library"
+	
+	if dragging_from_library:
+		apply_library_card_window_clip(dragging_node, false)
 	drag_rack_blend = 0.0 if dragging_from_library else 1.0
 	dragging_deck_original_index = -1
 	var grab_hit := screen_to_horizontal_plane(screen_position, picked.global_position.y)
@@ -1705,6 +1724,7 @@ func animate_library_card_home(node: Node3D) -> void:
 	if node.get_parent() != library_root:
 		node.reparent(library_root)
 	node.set_meta("source_zone", "library")
+	apply_library_card_window_clip(node, true)
 	layout_library(false)
 
 
@@ -1728,25 +1748,31 @@ func animate_collection(nodes: Array[Node3D], delta: float) -> void:
 		var source_zone := String(node.get_meta("source_zone", ""))
 
 		if source_zone == "library":
+			apply_library_card_window_clip(node, true)
+
 			var copy_limit_reached := is_library_card_at_copy_limit(node)
 			var card_alpha := 0.28 if copy_limit_reached else 1.0
 
-			node.set_meta("current_alpha", card_alpha)
 			node.visible = is_library_card_inside_render_window(node.position.x)
+			node.set_meta("current_alpha", card_alpha)
 
 			set_card_pickable(
 				node,
 				is_library_card_inside_interaction_window(node.position.x) and not copy_limit_reached
 			)
+			update_library_card_count_label_visibility(node, node.position.x)
 
 			if node.visible:
 				set_card_alpha(node, card_alpha)
 
 		else:
+			apply_library_card_window_clip(node, false)
+
 			node.visible = true
 			node.set_meta("current_alpha", 1.0)
 			set_card_pickable(node, true)
 			set_card_alpha(node, 1.0)
+			update_library_card_count_label_visibility(node, node.position.x)
 
 
 func set_library_scroll(value: float) -> void:
@@ -1754,7 +1780,10 @@ func set_library_scroll(value: float) -> void:
 
 
 func is_library_card_inside_interaction_window(x_position: float) -> bool:
-	return x_position >= LIBRARY_VISIBLE_MIN_X and x_position <= LIBRARY_VISIBLE_MAX_X
+	return (
+		x_position >= LIBRARY_VISIBLE_MIN_X + LIBRARY_CARD_INTERACTION_INSET
+		and x_position <= LIBRARY_VISIBLE_MAX_X - LIBRARY_CARD_INTERACTION_INSET
+	)
 
 
 func is_library_card_inside_render_window(x_position: float) -> bool:
@@ -1765,9 +1794,88 @@ func is_library_card_inside_render_window(x_position: float) -> bool:
 
 
 func get_library_edge_alpha(x_position: float) -> float:
-	# Kept so any older code path does not break.
-	# We are no longer fading cards at the carpet edge.
-	return 1.0 if is_library_card_inside_interaction_window(x_position) else 0.0
+	# Kept only so any old code path does not break.
+	# Visual edge clipping is handled by the CardBody shader now.
+	return 1.0
+
+
+func is_library_count_label_inside_window(x_position: float) -> bool:
+	return (
+		x_position >= LIBRARY_VISIBLE_MIN_X + LIBRARY_COUNT_LABEL_INSET
+		and x_position <= LIBRARY_VISIBLE_MAX_X - LIBRARY_COUNT_LABEL_INSET
+	)
+
+
+func get_library_card_count_label(card_node: Node) -> Label3D:
+	if card_node == null:
+		return null
+
+	for child in card_node.get_children():
+		if child is Label3D:
+			var label := child as Label3D
+			if label.text.strip_edges().ends_with("x"):
+				return label
+
+	return null
+
+
+func update_library_card_count_label_visibility(card_node: Node3D, x_position: float) -> void:
+	var count_label := get_library_card_count_label(card_node)
+
+	if count_label == null:
+		return
+
+	count_label.visible = is_library_count_label_inside_window(x_position)
+
+
+func apply_library_card_window_clip(card_node: Node3D, enabled: bool) -> void:
+	if card_node == null or not is_instance_valid(card_node):
+		return
+
+	var card_body := card_node.get_node_or_null("CardBody") as MeshInstance3D
+
+	if card_body == null:
+		return
+
+	var material := card_body.material_override
+
+	if material is ShaderMaterial and bool(card_body.get_meta("deck_builder_window_clip_material", false)):
+		var shader_material := material as ShaderMaterial
+		shader_material.set_shader_parameter("clip_enabled", enabled)
+		shader_material.set_shader_parameter("clip_min_x", LIBRARY_VISIBLE_MIN_X)
+		shader_material.set_shader_parameter("clip_max_x", LIBRARY_VISIBLE_MAX_X)
+		shader_material.set_shader_parameter("fade_width", LIBRARY_CARD_CLIP_FADE_WIDTH)
+		return
+
+	if not enabled:
+		return
+
+	var source_texture: Texture2D = null
+	var source_color := Color.WHITE
+
+	if material is BaseMaterial3D:
+		var base_material := material as BaseMaterial3D
+		source_texture = base_material.albedo_texture
+		source_color = base_material.albedo_color
+
+	var shader := load(LIBRARY_CARD_CLIP_SHADER_PATH) as Shader
+
+	if shader == null:
+		push_error("Missing library card clip shader: " + LIBRARY_CARD_CLIP_SHADER_PATH)
+		return
+
+	var clip_material := ShaderMaterial.new()
+	clip_material.shader = shader
+	clip_material.set_shader_parameter("card_texture", source_texture)
+	clip_material.set_shader_parameter("card_color", source_color)
+	clip_material.set_shader_parameter("clip_min_x", LIBRARY_VISIBLE_MIN_X)
+	clip_material.set_shader_parameter("clip_max_x", LIBRARY_VISIBLE_MAX_X)
+	clip_material.set_shader_parameter("fade_width", LIBRARY_CARD_CLIP_FADE_WIDTH)
+	clip_material.set_shader_parameter("clip_enabled", true)
+	clip_material.render_priority = 40
+
+	card_body.material_override = clip_material
+	card_body.set_meta("deck_builder_window_clip_material", true)
 
 
 func set_card_pickable(card_node: Node3D, pickable: bool) -> void:
@@ -1802,12 +1910,21 @@ func set_card_alpha(card_node: Node, alpha: float) -> void:
 
 
 func apply_mesh_alpha(mesh_instance: MeshInstance3D, alpha: float) -> void:
-	var material: Material = null
+	var material: Material = mesh_instance.material_override
+
+	if material is ShaderMaterial and bool(mesh_instance.get_meta("deck_builder_window_clip_material", false)):
+		var shader_material := material as ShaderMaterial
+		var color: Color = shader_material.get_shader_parameter("card_color")
+		color.a = alpha
+		shader_material.set_shader_parameter("card_color", color)
+		return
+
 	if mesh_instance.has_meta("deck_builder_alpha_material"):
 		material = mesh_instance.get_meta("deck_builder_alpha_material") as Material
 
 	if material == null:
 		var source_material: Material = mesh_instance.material_override
+
 		if source_material == null:
 			source_material = mesh_instance.get_active_material(0)
 
@@ -1823,6 +1940,7 @@ func apply_mesh_alpha(mesh_instance: MeshInstance3D, alpha: float) -> void:
 			if alpha >= 0.999
 			else BaseMaterial3D.TRANSPARENCY_ALPHA
 		)
+
 		var material_color := base_material.albedo_color
 		material_color.a = alpha
 		base_material.albedo_color = material_color
