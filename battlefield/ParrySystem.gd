@@ -493,6 +493,19 @@ func _refresh_prompt_text() -> void:
 		prompt_progress_label.text = "Pit DP  " + str(gathered_dp) + " / " + str(required_dp)
 
 
+func get_player_parry_card_dp(card_data: CardData) -> int:
+	if card_data == null:
+		return 0
+
+	var total := maxi(card_data.dp, 0)
+	var solidarity := bf.get_card_protection_ability(card_data, &"solidarity")
+
+	if solidarity != null:
+		total += bf.count_frontline_units("player")
+
+	return total
+
+
 func sacrifice_card(card_ui: CardUI) -> void:
 	if not active:
 		return
@@ -515,11 +528,23 @@ func sacrifice_card(card_ui: CardUI) -> void:
 
 	await bf.play_player_hand_to_node_animation(sacrificed_card, pit_root, false)
 
-	var gained_dp: int = max(0, sacrificed_card.dp)
+	var base_dp: int = maxi(sacrificed_card.dp, 0)
+	var gained_dp: int = get_player_parry_card_dp(sacrificed_card)
+
+	var solidarity := bf.get_card_protection_ability(sacrificed_card, &"solidarity")
+
+	if solidarity != null:
+		var solidarity_bonus := maxi(gained_dp - base_dp, 0)
+
+		if solidarity_bonus > 0:
+			await bf.show_protection_trigger(solidarity, "+" + str(solidarity_bonus) + " DP from frontline units")
+
 	var deflect := bf.slot_has_protection_ability(defender_slot, &"deflect")
+
 	if gathered_dp == 0 and deflect != null:
 		gained_dp += 2
 		await bf.show_protection_trigger(deflect, "First Parry card gains +2 DP")
+
 	gathered_dp += gained_dp
 
 	_add_visible_sacrifice_card(sacrificed_card)
@@ -548,6 +573,7 @@ func sacrifice_card(card_ui: CardUI) -> void:
 		+ " / "
 		+ str(parry_target_total)
 	)
+
 	_update_counter_label()
 	bf.cancel_selected_card()
 

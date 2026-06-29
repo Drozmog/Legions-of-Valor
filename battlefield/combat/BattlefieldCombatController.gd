@@ -174,41 +174,66 @@ func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defe
 	var defense_power := defender_ap if defender_ap >= 0 else defender_card.ap
 	var required: int = maxi(attack_power - defense_power, 1)
 	var available_dp := 0
+
 	for hand_card in bf.ai_hand:
 		if hand_card != null:
-			available_dp += maxi(hand_card.dp, 0)
+			available_dp += get_ai_parry_card_dp(hand_card)
+
 	if available_dp < required:
 		var destroyed := await bf.destroy_unit_with_protection(defender_slot, null, true)
+
 		if destroyed:
 			bf.log_msg("Opponent could not parry. " + defender_card.card_name + " was destroyed.")
 			bf.add_aurion("player", bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
+
 		return
 
 	bf.log_msg("Opponent opens a Parry and needs " + str(required) + " DP.")
+
 	var gathered := 0
 	var parry_cards: Array[CardData] = []
 	var parry_target := bf.get_enemy_visual_target("EnemyParryPitVisual")
+
 	while gathered < required:
 		var remaining := required - gathered
 		var hand_index := bf.find_ai_parry_card_index(remaining)
+
 		if hand_index < 0:
 			break
+
 		var sacrifice: CardData = bf.ai_hand[hand_index]
+
 		await bf.play_enemy_hand_to_node_animation(sacrifice, parry_target, false)
+
 		bf.ai_hand.pop_at(hand_index)
 		bf.ai_discard.append(sacrifice)
-		var gained_dp := maxi(sacrifice.dp, 0)
+
+		var base_dp := maxi(sacrifice.dp, 0)
+		var gained_dp := get_ai_parry_card_dp(sacrifice)
+
+		var solidarity := bf.get_card_protection_ability(sacrifice, &"solidarity")
+
+		if solidarity != null:
+			var solidarity_bonus := maxi(gained_dp - base_dp, 0)
+
+			if solidarity_bonus > 0:
+				await bf.show_protection_trigger(solidarity, "Opponent +" + str(solidarity_bonus) + " DP from frontline units")
+
 		if parry_cards.is_empty():
 			var deflect := bf.slot_has_protection_ability(defender_slot, &"deflect")
+
 			if deflect != null:
 				gained_dp += 2
 				await bf.show_protection_trigger(deflect, "First Parry card gains +2 DP")
+
 		gathered += gained_dp
 		parry_cards.append(sacrifice)
+
 		if bf.opponent_visuals != null and bf.opponent_visuals.has_method("add_parry_card"):
 			bf.opponent_visuals.add_parry_card(sacrifice)
+
 		bf.update_ai_visuals()
-		bf.log_msg("Opponent parries with " + sacrifice.card_name + " for " + str(maxi(sacrifice.dp, 0)) + " DP.")
+		bf.log_msg("Opponent parries with " + sacrifice.card_name + " for " + str(gained_dp) + " DP.")
 		await bf.get_tree().create_timer(0.28).timeout
 
 	if gathered >= required:
@@ -216,12 +241,28 @@ func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defe
 		await bf.resolve_ai_successful_parry_abilities(parry_cards)
 	else:
 		var destroyed := await bf.destroy_unit_with_protection(defender_slot, null, true)
+
 		if destroyed:
 			bf.log_msg("Opponent Parry fails. " + defender_card.card_name + " was destroyed.")
 			bf.add_aurion("player", bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
+
 	await bf.get_tree().create_timer(0.55).timeout
+
 	if bf.opponent_visuals != null and bf.opponent_visuals.has_method("clear_parry_cards"):
 		bf.opponent_visuals.clear_parry_cards()
+
+
+func get_ai_parry_card_dp(card_data: CardData) -> int:
+	if card_data == null:
+		return 0
+
+	var total := maxi(card_data.dp, 0)
+	var solidarity := bf.get_card_protection_ability(card_data, &"solidarity")
+
+	if solidarity != null:
+		total += bf.count_frontline_units("enemy")
+
+	return total
 
 
 func resolve_ai_successful_parry_abilities(parry_cards: Array[CardData]) -> void:
@@ -251,16 +292,26 @@ func find_ai_parry_card_index(remaining_dp: int) -> int:
 	var exact_or_smallest_dp := 1_000_000
 	var largest := -1
 	var largest_dp := -1
+
 	for index in range(bf.ai_hand.size()):
 		var card_data: CardData = bf.ai_hand[index]
-		if card_data == null or card_data.dp <= 0:
+
+		if card_data == null:
 			continue
-		if card_data.dp >= remaining_dp and card_data.dp < exact_or_smallest_dp:
+
+		var card_parry_dp := get_ai_parry_card_dp(card_data)
+
+		if card_parry_dp <= 0:
+			continue
+
+		if card_parry_dp >= remaining_dp and card_parry_dp < exact_or_smallest_dp:
 			exact_or_smallest = index
-			exact_or_smallest_dp = card_data.dp
-		if card_data.dp > largest_dp:
+			exact_or_smallest_dp = card_parry_dp
+
+		if card_parry_dp > largest_dp:
 			largest = index
-			largest_dp = card_data.dp
+			largest_dp = card_parry_dp
+
 	return exact_or_smallest if exact_or_smallest >= 0 else largest
 
 
@@ -275,19 +326,29 @@ func get_slot_card_data(slot: Node) -> CardData:
 
 
 func get_slot_combat_ap(slot: Node) -> int:
+	if slot == null:
+		return 0
+
 	var card_data := bf.get_slot_card_data(slot)
+
 	if not bf.is_unit_card(card_data):
 		return 0
+
 	var total := maxi(card_data.ap, 0)
-	if bf.slot_has_protection_ability(slot, &"shielded") != null and String(slot.get_meta("owner", "")) != bf.combat_priority_owner:
+	var owner_name := String(slot.get_meta("owner", ""))
+
+	if bf.slot_has_protection_ability(slot, &"shielded") != null and owner_name != bf.combat_priority_owner:
 		total += 2
-	if bf.slot_has_protection_ability(slot, &"solidarity") != null:
-		total += bf.count_frontline_units(String(slot.get_meta("owner", "")))
+
+	# Solidarity is DP-only. Do not add it to combat AP.
+
 	if slot != null and int(slot.get_meta("vortex_bonus_turn", -1)) == bf.turn_number and slot.has_method("get_stacked_unit_cards"):
 		for stacked in slot.call("get_stacked_unit_cards"):
 			var stacked_card := stacked as CardData
+
 			if stacked_card != null:
 				total += maxi(stacked_card.ap, 0)
+
 	return total
 
 

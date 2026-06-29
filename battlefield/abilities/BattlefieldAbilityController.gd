@@ -594,6 +594,9 @@ func ability_requires_choice(card_data: CardData) -> bool:
 	return ability_text_lower.contains("may ") or ability_text_lower.contains("choose")
 
 func get_slot_combat_ap_with_protection_announcements(slot: Node) -> int:
+	if slot == null:
+		return 0
+
 	var card_data := bf.get_slot_card_data(slot)
 
 	if not bf.is_unit_card(card_data):
@@ -608,14 +611,7 @@ func get_slot_combat_ap_with_protection_announcements(slot: Node) -> int:
 		total += 2
 		await bf.show_protection_trigger(shielded, "+2 AP while defending")
 
-	var solidarity := bf.slot_has_protection_ability(slot, &"solidarity")
-
-	if solidarity != null:
-		var solidarity_bonus := bf.count_frontline_units(owner_name)
-		total += solidarity_bonus
-
-		if solidarity_bonus > 0:
-			await bf.show_protection_trigger(solidarity, "+" + str(solidarity_bonus) + " AP from frontline units")
+	# Solidarity is DP-only. Do not add it to combat AP.
 
 	if slot != null and int(slot.get_meta("vortex_bonus_turn", -1)) == bf.turn_number and slot.has_method("get_stacked_unit_cards"):
 		for stacked in slot.call("get_stacked_unit_cards"):
