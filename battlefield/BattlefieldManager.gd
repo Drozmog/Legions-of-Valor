@@ -337,6 +337,8 @@ var ai_last_tribute_decision: String = "None"
 var ai_last_deployment_decision: String = "None"
 var ai_last_active_ability_decision: String = "None"
 var ai_last_combat_decision: String = "None"
+var ai_active_ability_lane_attempt_keys: Dictionary = {}
+var ai_active_ability_turn_use_counts: Dictionary = {}
 
 
 # === Functions ===
@@ -522,6 +524,111 @@ func ai_get_phase_name() -> String:
 			return "Combat"
 
 	return "Unknown"
+
+
+func ai_get_active_ability_lane_attempt_key(lane: String) -> String:
+	return str(turn_number) + ":" + lane
+
+
+func ai_get_active_ability_turn_key() -> String:
+	return str(turn_number)
+
+
+func ai_max_active_ability_uses_per_turn() -> int:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return 0
+		AI_DIFFICULTY_SOLDIER:
+			return 1
+		AI_DIFFICULTY_COMMANDER:
+			return 1
+		AI_DIFFICULTY_WARLORD:
+			return 2
+		AI_DIFFICULTY_GRANDMASTER:
+			return 2
+
+	return 1
+
+
+func ai_can_try_active_ability_in_lane(lane: String) -> bool:
+	if lane == "":
+		return false
+
+	if ai_active_ability_lane_attempt_keys.has(ai_get_active_ability_lane_attempt_key(lane)):
+		return false
+
+	var turn_key := ai_get_active_ability_turn_key()
+	var used_count := int(ai_active_ability_turn_use_counts.get(turn_key, 0))
+
+	if used_count >= ai_max_active_ability_uses_per_turn():
+		return false
+
+	return true
+
+
+func ai_mark_active_ability_lane_attempted(lane: String) -> void:
+	if lane == "":
+		return
+
+	ai_active_ability_lane_attempt_keys[ai_get_active_ability_lane_attempt_key(lane)] = true
+
+
+func ai_mark_active_ability_turn_used() -> void:
+	var turn_key := ai_get_active_ability_turn_key()
+	var used_count := int(ai_active_ability_turn_use_counts.get(turn_key, 0))
+	ai_active_ability_turn_use_counts[turn_key] = used_count + 1
+
+
+func ai_is_supported_ai_active_mobility(handler_id: StringName) -> bool:
+	match handler_id:
+		&"lane_shift", &"mobilize", &"tactic_flow", &"flank_swap", &"imperial_decree", &"vortex":
+			return true
+
+	return false
+
+
+func ai_can_place_back_row_in_lane(owner_name: String, lane: String) -> bool:
+	if lane == "":
+		return false
+
+	var front_slot := find_slot_by_owner_row_lane(owner_name, "front", lane)
+	var front_card := get_slot_card_data(front_slot)
+
+	if not is_unit_card(front_card):
+		return false
+
+	if bool(front_slot.get_meta("face_down", false)):
+		return false
+
+	return true
+
+
+func ai_get_empty_legal_enemy_back_slots() -> Array[Node]:
+	var result: Array[Node] = []
+
+	for slot in ai_get_empty_enemy_slots("back"):
+		var lane := get_slot_lane(slot)
+
+		if ai_can_place_back_row_in_lane("enemy", lane):
+			result.append(slot)
+
+	return result
+
+
+func ai_min_deployment_score() -> int:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return -999999
+		AI_DIFFICULTY_SOLDIER:
+			return 0
+		AI_DIFFICULTY_COMMANDER:
+			return 12
+		AI_DIFFICULTY_WARLORD:
+			return 18
+		AI_DIFFICULTY_GRANDMASTER:
+			return 24
+
+	return 12
 
 
 func create_phase_tip_panel() -> void:
@@ -5247,6 +5354,9 @@ func ai_reset_memory() -> void:
 		"right": 0
 	}
 
+	ai_active_ability_lane_attempt_keys.clear()
+	ai_active_ability_turn_use_counts.clear()
+
 
 func ai_memory_weight() -> float:
 	match ai_difficulty:
@@ -6482,6 +6592,17 @@ func ai_choose_deployment_action() -> Dictionary:
 			best_score = score
 			best_action = action
 
+	var minimum_score := ai_min_deployment_score()
+
+	if best_score < minimum_score:
+		ai_last_deployment_decision = (
+			"Skipped weak deployment | best "
+			+ ai_describe_deployment_action(best_action, best_score)
+			+ " | minimum "
+			+ str(minimum_score)
+		)
+		return {}
+
 	ai_last_deployment_decision = ai_describe_deployment_action(best_action, best_score)
 	return best_action
 
@@ -6579,7 +6700,7 @@ func ai_add_unit_deployment_actions(actions: Array[Dictionary], card_index: int,
 	var setup_cost: int = get_ai_face_down_card_deployment_cost(card_data, true)
 
 	if setup_cost <= ai_current_tp:
-		for back_slot in ai_get_empty_enemy_slots("back"):
+		for back_slot in ai_get_empty_legal_enemy_back_slots():
 			actions.append(ai_make_deployment_action(card_index, back_slot, "unit", true))
 
 
@@ -6598,7 +6719,7 @@ func ai_add_equipment_deployment_actions(actions: Array[Dictionary], card_index:
 	var setup_cost: int = get_ai_face_down_card_deployment_cost(card_data, true)
 
 	if setup_cost <= ai_current_tp:
-		for back_slot in ai_get_empty_enemy_slots("back"):
+		for back_slot in ai_get_empty_legal_enemy_back_slots():
 			actions.append(ai_make_deployment_action(card_index, back_slot, "equipment_setup", true))
 
 
@@ -6613,7 +6734,7 @@ func ai_add_gambit_deployment_actions(actions: Array[Dictionary], card_index: in
 		for front_slot in ai_get_empty_enemy_slots("front"):
 			actions.append(ai_make_deployment_action(card_index, front_slot, "gambit", false))
 
-		for back_slot in ai_get_empty_enemy_slots("back"):
+		for back_slot in ai_get_empty_legal_enemy_back_slots():
 			actions.append(ai_make_deployment_action(card_index, back_slot, "gambit", false))
 
 	# Face-down hidden gambit setup.
@@ -8591,11 +8712,17 @@ func ai_try_use_active_ability_before_combat(lane: String) -> Dictionary:
 		ai_last_active_ability_decision = "No AI priority"
 		return {"used": false, "result": "none"}
 
+	if not ai_can_try_active_ability_in_lane(lane):
+		ai_last_active_ability_decision = "Skipped active ability: already tried lane or turn limit reached"
+		return {"used": false, "result": "none"}
+
 	var actions: Array[Dictionary] = ai_build_active_ability_actions(lane)
 
 	if actions.is_empty():
 		ai_last_active_ability_decision = "No active ability actions in " + lane
 		return {"used": false, "result": "none"}
+
+	ai_mark_active_ability_lane_attempted(lane)
 
 	var best_action: Dictionary = {}
 	var best_score: int = -999999
@@ -8615,7 +8742,12 @@ func ai_try_use_active_ability_before_combat(lane: String) -> Dictionary:
 
 	log_msg("AI active ability score in " + lane + ": " + str(best_score) + " / threshold " + str(threshold) + ".")
 
-	return await ai_execute_active_ability_action(best_action, lane)
+	var result: Dictionary = await ai_execute_active_ability_action(best_action, lane)
+
+	if bool(result.get("used", false)):
+		ai_mark_active_ability_turn_used()
+
+	return result
 	
 	
 func ai_describe_active_ability_action(action: Dictionary, score: int, threshold: int) -> String:
@@ -8655,15 +8787,15 @@ func ai_active_ability_use_threshold() -> int:
 		AI_DIFFICULTY_NOVICE:
 			return 999999
 		AI_DIFFICULTY_SOLDIER:
-			return 85
+			return 95
 		AI_DIFFICULTY_COMMANDER:
-			return 68
+			return 78
 		AI_DIFFICULTY_WARLORD:
-			return 52
+			return 60
 		AI_DIFFICULTY_GRANDMASTER:
-			return 38
+			return 45
 
-	return 68
+	return 78
 
 
 func ai_build_active_ability_actions(current_lane_name: String) -> Array[Dictionary]:
@@ -8747,9 +8879,8 @@ func ai_get_active_ability_entries_for_slot(slot: Node) -> Array[Dictionary]:
 				result.append({"card": card_data, "ability": ability})
 				continue
 
-			if category == "mobility":
-				if ability.trigger == "active" or handler_id == &"tactic_flow" or handler_id == &"volley":
-					result.append({"card": card_data, "ability": ability})
+			if category == "mobility" and ai_is_supported_ai_active_mobility(handler_id):
+				result.append({"card": card_data, "ability": ability})
 
 	return result
 
@@ -8946,10 +9077,10 @@ func ai_score_active_move_action(source_slot: Node, target_slot: Node, current_l
 	var score := target_score - current_score
 
 	if target_lane == current_lane_name:
-		score += 26
+		score += 34
 
-	if source_lane == current_lane_name:
-		score -= 18
+	if source_lane == current_lane_name and target_lane != current_lane_name:
+		score -= 95
 
 	if target_lane == "left" or target_lane == "right":
 		score += 10
