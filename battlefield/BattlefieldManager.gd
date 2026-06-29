@@ -3698,21 +3698,15 @@ func send_slot_card_to_discard(slot: Node) -> void:
 func destroy_unit_with_protection(slot: Node, opposing_slot: Node = null, from_clash: bool = false) -> bool:
 	if slot == null or get_slot_card_data(slot) == null:
 		return false
-
 	var plated := slot_has_protection_ability(slot, &"plated")
-
 	if plated != null and discard_protection_equipment(slot, &"plated"):
 		await show_protection_trigger(plated, "Destruction prevented")
 		return false
-
 	var spiked := slot_has_protection_ability(slot, &"spiked")
-
 	send_slot_card_to_discard(slot)
-
 	if from_clash and spiked != null and opposing_slot != null and get_slot_card_data(opposing_slot) != null:
 		await show_protection_trigger(spiked, "Attacker destroyed")
 		await destroy_unit_with_protection(opposing_slot, null, false)
-
 	return true
 
 
@@ -4917,26 +4911,105 @@ func ai_offer_one_card_to_tribute() -> void:
 
 
 func ai_choose_tribute_card_index() -> int:
-	# Prefer unit/equipment for permanent TP.
+	var best_index: int = -1
+	var best_score: int = -999999
+
 	for i in range(ai_hand.size()):
 		var card_data: CardData = ai_hand[i]
 
 		if card_data == null:
 			continue
 
-		var card_type: String = get_clean_card_type(card_data)
+		var score: int = ai_score_tribute_card(i, card_data)
 
-		if card_type == "unit" or card_type == "equipment":
-			return i
+		if score > best_score:
+			best_score = score
+			best_index = i
 
-	# If no permanent option exists, use a gambit for temporary TP.
-	for i in range(ai_hand.size()):
-		var card_data: CardData = ai_hand[i]
+	return best_index
 
-		if is_gambit_card(card_data):
-			return i
 
-	return -1
+func ai_score_tribute_card(card_index: int, card_data: CardData) -> int:
+	if card_data == null:
+		return -999999
+
+	var score: int = 0
+	var card_type: String = get_clean_card_type(card_data)
+	var race: String = get_clean_card_race(card_data)
+
+	# Permanent Tribute is usually better than temporary Tribute,
+	# especially early, because it builds max TP and faction access.
+	if card_type == "unit" or card_type == "equipment":
+		score += 70
+
+		if ai_perm_tp < 3:
+			score += 35
+
+		if race != "" and race != "neutral" and not ai_card_passes_faction_gate(card_data, false):
+			score += 30
+
+	elif is_gambit_card(card_data):
+		score += 35
+
+		# Early game: avoid relying on temporary TP unless no better option exists.
+		if ai_perm_tp < 3:
+			score -= 25
+
+	# Prefer sacrificing weaker cards.
+	score -= card_data.ap * 4
+	score -= card_data.dp * 2
+	score -= card_data.tribute_cost * 2
+
+	# Duplicates are safer to sacrifice.
+	if ai_count_matching_cards_in_hand(card_data) > 1:
+		score += 24
+
+	# Do not throw away the only unit if AI has no board presence.
+	if is_unit_card(card_data):
+		if ai_count_hand_units() <= 1 and ai_count_front_units("enemy") <= 0:
+			score -= 55
+
+	# Equipment is less valuable if AI has no units to attach it to.
+	if is_equipment_card(card_data):
+		if ai_count_front_units("enemy") <= 0:
+			score += 18
+		else:
+			score -= 18
+
+	# Tiny randomness only for tie-breaking, not strategy.
+	score += randi() % 6
+
+	return score
+
+
+func ai_count_matching_cards_in_hand(card_data: CardData) -> int:
+	if card_data == null:
+		return 0
+
+	var count: int = 0
+
+	for hand_card in ai_hand:
+		var other := hand_card as CardData
+
+		if other == null:
+			continue
+
+		if other.card_name == card_data.card_name:
+			count += 1
+
+	return count
+
+
+func ai_count_hand_units() -> int:
+	var count: int = 0
+
+	for hand_card in ai_hand:
+		var card_data := hand_card as CardData
+
+		if is_unit_card(card_data):
+			count += 1
+
+	return count
 
 
 func ai_take_combat_initiative() -> void:
@@ -5206,35 +5279,23 @@ func ai_try_deploy_one_card() -> bool:
 
 
 func ai_choose_deployment_action() -> Dictionary:
-	var equipment_action: Dictionary = ai_find_equipment_action()
-	var spell_action: Dictionary = ai_find_spell_action()
-	var promotion_action: Dictionary = ai_find_promotion_action()
-	var unit_action: Dictionary = ai_find_unit_action()
+	var actions: Array[Dictionary] = ai_build_deployment_actions()
 
-	# Testing behavior:
-	# Sometimes choose spell/equipment even before full effects exist,
-	# so we can verify the board rules.
-	var roll: int = randi() % 100
+	if actions.is_empty():
+		return {}
 
-	if roll < 25 and not equipment_action.is_empty():
-		return equipment_action
+	var best_action: Dictionary = {}
+	var best_score: int = -999999
 
-	if roll < 55 and not spell_action.is_empty():
-		return spell_action
+	for action_variant in actions:
+		var action: Dictionary = action_variant
+		var score: int = ai_score_deployment_action(action)
 
-	if not promotion_action.is_empty():
-		return promotion_action
+		if score > best_score:
+			best_score = score
+			best_action = action
 
-	if not unit_action.is_empty():
-		return unit_action
-
-	if not spell_action.is_empty():
-		return spell_action
-
-	if not equipment_action.is_empty():
-		return equipment_action
-
-	return {}
+	return best_action
 
 
 func ai_make_deployment_action(card_index: int, slot: Node, action_type: String, face_down: bool) -> Dictionary:
@@ -5244,6 +5305,370 @@ func ai_make_deployment_action(card_index: int, slot: Node, action_type: String,
 		"action_type": action_type,
 		"face_down": face_down
 	}
+
+
+func ai_build_deployment_actions() -> Array[Dictionary]:
+	var actions: Array[Dictionary] = []
+
+	for card_index in range(ai_hand.size()):
+		var card_data: CardData = ai_hand[card_index]
+
+		if card_data == null:
+			continue
+
+		if is_unit_card(card_data):
+			ai_add_unit_deployment_actions(actions, card_index, card_data)
+			continue
+
+		if is_equipment_card(card_data):
+			ai_add_equipment_deployment_actions(actions, card_index, card_data)
+			continue
+
+		if is_gambit_card(card_data):
+			ai_add_gambit_deployment_actions(actions, card_index, card_data)
+			continue
+
+	return actions
+
+
+func ai_add_unit_deployment_actions(actions: Array[Dictionary], card_index: int, card_data: CardData) -> void:
+	if card_data == null:
+		return
+
+	var printed_cost: int = get_ai_face_down_card_deployment_cost(card_data, false)
+
+	# Promotion candidates.
+	if printed_cost <= ai_current_tp and ai_card_passes_faction_gate(card_data, false):
+		for lane in ["left", "middle", "right"]:
+			var promote_slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+
+			if ai_can_promote_card_to_slot(card_data, promote_slot):
+				actions.append(ai_make_deployment_action(card_index, promote_slot, "promotion", false))
+
+	# Normal front-row unit candidates.
+	if printed_cost <= ai_current_tp and ai_card_passes_faction_gate(card_data, false):
+		for front_slot in ai_get_empty_enemy_slots("front"):
+			actions.append(ai_make_deployment_action(card_index, front_slot, "unit", false))
+
+	# Face-down setup option in back row.
+	var setup_cost: int = get_ai_face_down_card_deployment_cost(card_data, true)
+
+	if setup_cost <= ai_current_tp:
+		for back_slot in ai_get_empty_enemy_slots("back"):
+			actions.append(ai_make_deployment_action(card_index, back_slot, "unit", true))
+
+
+func ai_add_equipment_deployment_actions(actions: Array[Dictionary], card_index: int, card_data: CardData) -> void:
+	if card_data == null:
+		return
+
+	var printed_cost: int = get_ai_face_down_card_deployment_cost(card_data, false)
+
+	# Attach equipment to an existing enemy unit.
+	if printed_cost <= ai_current_tp and ai_card_passes_faction_gate(card_data, false):
+		for target_slot in ai_get_enemy_equipment_target_slots():
+			actions.append(ai_make_deployment_action(card_index, target_slot, "equipment", false))
+
+	# Face-down equipment setup in back row.
+	var setup_cost: int = get_ai_face_down_card_deployment_cost(card_data, true)
+
+	if setup_cost <= ai_current_tp:
+		for back_slot in ai_get_empty_enemy_slots("back"):
+			actions.append(ai_make_deployment_action(card_index, back_slot, "equipment_setup", true))
+
+
+func ai_add_gambit_deployment_actions(actions: Array[Dictionary], card_index: int, card_data: CardData) -> void:
+	if card_data == null:
+		return
+
+	var printed_cost: int = get_ai_face_down_card_deployment_cost(card_data, false)
+
+	# Face-up gambit placement.
+	if printed_cost <= ai_current_tp and ai_card_passes_faction_gate(card_data, false):
+		for front_slot in ai_get_empty_enemy_slots("front"):
+			actions.append(ai_make_deployment_action(card_index, front_slot, "gambit", false))
+
+		for back_slot in ai_get_empty_enemy_slots("back"):
+			actions.append(ai_make_deployment_action(card_index, back_slot, "gambit", false))
+
+	# Face-down hidden gambit setup.
+	var setup_cost: int = get_ai_face_down_card_deployment_cost(card_data, true)
+
+	if setup_cost <= ai_current_tp:
+		for back_slot in ai_get_empty_enemy_slots("back"):
+			actions.append(ai_make_deployment_action(card_index, back_slot, "gambit", true))
+
+
+func ai_get_empty_enemy_slots(row: String) -> Array[Node]:
+	var result: Array[Node] = []
+
+	if board_slots == null:
+		return result
+
+	for lane in ["left", "middle", "right"]:
+		var slot: Node = find_slot_by_owner_row_lane("enemy", row, lane)
+
+		if slot == null:
+			continue
+
+		if get_slot_card_data(slot) != null:
+			continue
+
+		result.append(slot)
+
+	return result
+
+
+func ai_get_enemy_equipment_target_slots() -> Array[Node]:
+	var result: Array[Node] = []
+
+	if board_slots == null:
+		return result
+
+	for lane in ["left", "middle", "right"]:
+		var slot: Node = find_slot_by_owner_row_lane("enemy", "front", lane)
+
+		if slot == null:
+			continue
+
+		if bool(slot.get_meta("face_down", false)):
+			continue
+
+		var unit_card: CardData = get_slot_card_data(slot)
+
+		if not is_unit_card(unit_card):
+			continue
+
+		if not slot.has_method("can_attach_equipment"):
+			continue
+
+		if not slot.can_attach_equipment():
+			continue
+
+		result.append(slot)
+
+	return result
+
+
+
+func ai_score_deployment_action(action: Dictionary) -> int:
+	var card_index: int = int(action.get("card_index", -1))
+
+	if card_index < 0 or card_index >= ai_hand.size():
+		return -999999
+
+	var card_data: CardData = ai_hand[card_index]
+
+	if card_data == null:
+		return -999999
+
+	var slot: Node = action.get("slot", null) as Node
+
+	if slot == null:
+		return -999999
+
+	var action_type: String = String(action.get("action_type", ""))
+	var face_down: bool = bool(action.get("face_down", false))
+	var lane: String = get_slot_lane(slot)
+	var score: int = 0
+	var deployment_cost: int = get_ai_face_down_card_deployment_cost(card_data, face_down)
+
+	if deployment_cost > ai_current_tp:
+		return -999999
+
+	score -= deployment_cost * 6
+
+	if ai_current_tp > 1 and deployment_cost == ai_current_tp:
+		score -= 8
+
+	match action_type:
+		"promotion":
+			score += ai_score_promotion_deployment(card_data, slot)
+
+		"unit":
+			score += ai_score_unit_deployment(card_data, slot, face_down)
+
+		"equipment":
+			score += ai_score_equipment_deployment(card_data, slot)
+
+		"equipment_setup":
+			score += ai_score_equipment_setup(card_data, slot)
+
+		"gambit":
+			score += ai_score_gambit_deployment(card_data, slot, face_down)
+
+		_:
+			score -= 100
+
+	# Small randomness for tie-breaking only.
+	score += randi() % 8
+
+	return score
+
+
+func ai_score_promotion_deployment(card_data: CardData, slot: Node) -> int:
+	if card_data == null or slot == null:
+		return -999999
+
+	var old_unit: CardData = get_slot_card_data(slot)
+
+	if not is_unit_card(old_unit):
+		return -999999
+
+	var score: int = 115
+	score += maxi(0, card_data.ap - old_unit.ap) * 12
+	score += maxi(0, card_data.dp - old_unit.dp) * 6
+	score += card_data.tribute_cost * 2
+
+	var lane: String = get_slot_lane(slot)
+	var player_front: CardData = get_slot_card_data(find_slot_by_owner_row_lane("player", "front", lane))
+
+	if is_unit_card(player_front):
+		if card_data.ap >= player_front.ap:
+			score += 45
+		else:
+			score += 15
+	else:
+		score += 20
+
+	return score
+
+
+func ai_score_unit_deployment(card_data: CardData, slot: Node, face_down: bool) -> int:
+	if card_data == null or slot == null:
+		return -999999
+
+	var lane: String = get_slot_lane(slot)
+	var score: int = 0
+
+	if face_down:
+		score += 28
+		score += card_data.dp * 3
+
+		var enemy_front: CardData = get_slot_card_data(find_slot_by_owner_row_lane("enemy", "front", lane))
+
+		if is_unit_card(enemy_front):
+			score += 24
+
+		if ai_get_empty_enemy_slots("front").is_empty():
+			score += 28
+		else:
+			score -= 20
+
+		return score
+
+	score += 80
+	score += card_data.ap * 8
+	score += card_data.dp * 4
+	score += ai_score_front_slot_for_card(card_data, lane)
+
+	var player_front: CardData = get_slot_card_data(find_slot_by_owner_row_lane("player", "front", lane))
+	var player_back: CardData = get_slot_card_data(find_slot_by_owner_row_lane("player", "back", lane))
+
+	if is_unit_card(player_front):
+		score += 28
+
+		if card_data.ap >= player_front.ap:
+			score += 35
+		else:
+			score -= 10
+	else:
+		# Empty player front row means possible Monarch pressure later.
+		score += 24
+
+	if player_back != null:
+		score += 12
+
+	return score
+
+
+func ai_score_equipment_deployment(card_data: CardData, slot: Node) -> int:
+	if card_data == null or slot == null:
+		return -999999
+
+	var equipped_unit: CardData = get_slot_card_data(slot)
+
+	if not is_unit_card(equipped_unit):
+		return -999999
+
+	var lane: String = get_slot_lane(slot)
+	var player_front: CardData = get_slot_card_data(find_slot_by_owner_row_lane("player", "front", lane))
+	var score: int = 85
+
+	score += card_data.ap * 9
+	score += card_data.dp * 6
+	score += equipped_unit.ap * 2
+	score += equipped_unit.dp
+
+	if is_unit_card(player_front):
+		var before_ap: int = equipped_unit.ap
+		var after_ap: int = equipped_unit.ap + card_data.ap
+
+		if before_ap < player_front.ap and after_ap >= player_front.ap:
+			score += 55
+		elif after_ap >= player_front.ap:
+			score += 25
+
+	return score
+
+
+func ai_score_equipment_setup(card_data: CardData, slot: Node) -> int:
+	if card_data == null or slot == null:
+		return -999999
+
+	var lane: String = get_slot_lane(slot)
+	var score: int = 22
+	var enemy_front: CardData = get_slot_card_data(find_slot_by_owner_row_lane("enemy", "front", lane))
+
+	score += card_data.dp * 2
+
+	if is_unit_card(enemy_front):
+		score += 20
+	else:
+		score -= 12
+
+	return score
+
+
+func ai_score_gambit_deployment(card_data: CardData, slot: Node, face_down: bool) -> int:
+	if card_data == null or slot == null:
+		return -999999
+
+	var lane: String = get_slot_lane(slot)
+	var row: String = String(slot.get_meta("row", ""))
+	var score: int = 0
+
+	var enemy_front: CardData = get_slot_card_data(find_slot_by_owner_row_lane("enemy", "front", lane))
+	var player_front: CardData = get_slot_card_data(find_slot_by_owner_row_lane("player", "front", lane))
+	var player_back: CardData = get_slot_card_data(find_slot_by_owner_row_lane("player", "back", lane))
+
+	if face_down:
+		score += 62
+
+		if row == "back":
+			score += 20
+
+		if is_unit_card(enemy_front):
+			score += 24
+
+		if is_unit_card(player_front):
+			score += 18
+
+		if player_back != null:
+			score += 8
+	else:
+		score += 36
+
+		if row == "front":
+			score += 8
+
+		if is_unit_card(player_front):
+			score += 12
+
+	score += card_data.ap * 3
+	score += card_data.dp * 2
+
+	return score
 
 
 
