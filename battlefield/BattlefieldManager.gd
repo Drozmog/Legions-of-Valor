@@ -215,6 +215,8 @@ var ai_discard: Array[CardData] = []
 var ai_tribute: Array[CardData] = []
 
 @export var ai_max_deployments_per_phase: int = 2
+@export_enum("Novice", "Soldier", "Commander", "Warlord", "Grandmaster")
+var ai_difficulty: int = AI_DIFFICULTY_COMMANDER
 
 var ai_perm_tp: int = 0
 
@@ -286,6 +288,12 @@ const BOARD_ACTION_PASS: int = 4
 
 const BLUFF_REVEAL_DELAY: float = 0.30
 
+const AI_DIFFICULTY_NOVICE := 0
+const AI_DIFFICULTY_SOLDIER := 1
+const AI_DIFFICULTY_COMMANDER := 2
+const AI_DIFFICULTY_WARLORD := 3
+const AI_DIFFICULTY_GRANDMASTER := 4
+
 var enemy_fortified_lanes: Dictionary = {}
 
 var player_fortified_lanes: Dictionary = {}
@@ -298,6 +306,28 @@ var player_passed_current_lane: bool = false
 
 var ai_passed_current_lane: bool = false
 var used_active_insight_ability_keys: Dictionary = {}
+var ai_memory_player_hidden_cards_seen: int = 0
+var ai_memory_player_hidden_gambits_seen: int = 0
+var ai_memory_player_hidden_decoys_seen: int = 0
+
+var ai_memory_player_checks_seen: int = 0
+var ai_memory_player_successful_checks: int = 0
+var ai_memory_player_failed_checks: int = 0
+
+var ai_memory_player_attacks_into_hidden: int = 0
+var ai_memory_player_triggered_hidden_gambits: int = 0
+
+var ai_memory_player_lane_pressure: Dictionary = {
+	"left": 0,
+	"middle": 0,
+	"right": 0
+}
+
+var ai_memory_player_backrow_pressure: Dictionary = {
+	"left": 0,
+	"middle": 0,
+	"right": 0
+}
 
 
 # === Functions ===
@@ -2540,14 +2570,22 @@ func update_slot_highlights() -> void:
 func handle_card_deployed(card_data: CardData, slot: Node = null) -> void:
 	if card_data == null:
 		return
+
+	ai_memory_note_player_deployment(card_data, slot)
+
 	if await resolve_mobility_deployment(card_data, slot, "player"):
 		return
+
 	var resolved_insight := await resolve_insight_abilities(card_data, &"on_deploy")
+
 	if resolved_insight:
 		return
+
 	var ability_text_lower: String = card_data.get_ability_text().to_lower()
+
 	if ability_text_lower == "":
 		return
+
 	if ability_text_lower.contains("on deploy") or ability_text_lower.contains("when deployed"):
 		if ability_requires_choice(card_data):
 			if ability_prompt_panel != null:
@@ -2555,7 +2593,9 @@ func handle_card_deployed(card_data: CardData, slot: Node = null) -> void:
 		else:
 			log_msg("On-deploy ability triggered: " + card_data.card_name)
 			log_msg(card_data.get_ability_text())
+
 		return
+
 	log_msg("Passive ability active: " + card_data.card_name)
 
 
@@ -4819,6 +4859,8 @@ func setup_ai_deck() -> void:
 	ai_discard.clear()
 	ai_tribute.clear()
 
+	ai_reset_memory()
+
 	ai_perm_tp = 0
 	ai_current_perm_tp = 0
 	ai_temp_tp = 0
@@ -5012,6 +5054,194 @@ func ai_count_hand_units() -> int:
 	return count
 
 
+func ai_reset_memory() -> void:
+	ai_memory_player_hidden_cards_seen = 0
+	ai_memory_player_hidden_gambits_seen = 0
+	ai_memory_player_hidden_decoys_seen = 0
+
+	ai_memory_player_checks_seen = 0
+	ai_memory_player_successful_checks = 0
+	ai_memory_player_failed_checks = 0
+
+	ai_memory_player_attacks_into_hidden = 0
+	ai_memory_player_triggered_hidden_gambits = 0
+
+	ai_memory_player_lane_pressure = {
+		"left": 0,
+		"middle": 0,
+		"right": 0
+	}
+
+	ai_memory_player_backrow_pressure = {
+		"left": 0,
+		"middle": 0,
+		"right": 0
+	}
+
+
+func ai_memory_weight() -> float:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return 0.0
+		AI_DIFFICULTY_SOLDIER:
+			return 0.35
+		AI_DIFFICULTY_COMMANDER:
+			return 0.65
+		AI_DIFFICULTY_WARLORD:
+			return 0.90
+		AI_DIFFICULTY_GRANDMASTER:
+			return 1.15
+
+	return 0.65
+
+
+func ai_randomness_multiplier() -> float:
+	match ai_difficulty:
+		AI_DIFFICULTY_NOVICE:
+			return 3.0
+		AI_DIFFICULTY_SOLDIER:
+			return 2.1
+		AI_DIFFICULTY_COMMANDER:
+			return 1.35
+		AI_DIFFICULTY_WARLORD:
+			return 0.85
+		AI_DIFFICULTY_GRANDMASTER:
+			return 0.45
+
+	return 1.35
+
+
+func ai_apply_memory_bonus(base_score: int) -> int:
+	return int(round(float(base_score) * ai_memory_weight()))
+
+
+func ai_tactical_noise(max_amount: int) -> int:
+	if max_amount <= 0:
+		return 0
+
+	var adjusted_amount := maxi(1, int(round(float(max_amount) * ai_randomness_multiplier())))
+	return randi() % adjusted_amount
+
+
+func ai_memory_player_hidden_gambit_rate() -> float:
+	var total_seen := ai_memory_player_hidden_gambits_seen + ai_memory_player_hidden_decoys_seen
+
+	if total_seen <= 0:
+		return 0.50
+
+	return clampf(float(ai_memory_player_hidden_gambits_seen) / float(total_seen), 0.05, 0.95)
+
+
+func ai_memory_player_check_success_rate() -> float:
+	if ai_memory_player_checks_seen <= 0:
+		return 0.50
+
+	return clampf(float(ai_memory_player_successful_checks) / float(ai_memory_player_checks_seen), 0.05, 0.95)
+
+
+func ai_memory_player_lane_pressure_score(lane: String) -> int:
+	if lane == "":
+		return 0
+
+	return int(ai_memory_player_lane_pressure.get(lane, 0)) + int(ai_memory_player_backrow_pressure.get(lane, 0))
+
+
+func ai_memory_add_lane_pressure(lane: String, amount: int) -> void:
+	if lane == "":
+		return
+
+	var current := int(ai_memory_player_lane_pressure.get(lane, 0))
+	ai_memory_player_lane_pressure[lane] = clampi(current + amount, 0, 40)
+
+
+func ai_memory_add_backrow_pressure(lane: String, amount: int) -> void:
+	if lane == "":
+		return
+
+	var current := int(ai_memory_player_backrow_pressure.get(lane, 0))
+	ai_memory_player_backrow_pressure[lane] = clampi(current + amount, 0, 40)
+
+
+func ai_memory_note_player_deployment(card_data: CardData, slot: Node) -> void:
+	if card_data == null or slot == null:
+		return
+
+	if String(slot.get_meta("owner", "")) != "player":
+		return
+
+	var lane := get_slot_lane(slot)
+
+	if lane == "":
+		return
+
+	var row := String(slot.get_meta("row", ""))
+	var face_down := bool(slot.get_meta("face_down", false))
+
+	if row == "front":
+		var pressure_gain := 2
+
+		if is_unit_card(card_data):
+			pressure_gain += 3
+			pressure_gain += mini(maxi(card_data.ap, 0), 8)
+
+		if is_equipment_card(card_data):
+			pressure_gain += 2
+
+		ai_memory_add_lane_pressure(lane, pressure_gain)
+
+	elif row == "back":
+		var pressure_gain := 2
+
+		if face_down:
+			pressure_gain += 4
+
+		if is_gambit_card(card_data):
+			pressure_gain += 3
+
+		if is_equipment_card(card_data):
+			pressure_gain += 1
+
+		ai_memory_add_backrow_pressure(lane, pressure_gain)
+
+
+func ai_memory_note_player_hidden_reveal(card_data: CardData, lane: String, _source: String = "") -> void:
+	if card_data == null:
+		return
+
+	ai_memory_player_hidden_cards_seen += 1
+
+	if is_gambit_card(card_data):
+		ai_memory_player_hidden_gambits_seen += 1
+	else:
+		ai_memory_player_hidden_decoys_seen += 1
+
+	if lane != "":
+		var current_backrow_pressure := int(ai_memory_player_backrow_pressure.get(lane, 0))
+		ai_memory_player_backrow_pressure[lane] = clampi(current_backrow_pressure - 3, 0, 40)
+
+
+func ai_memory_note_player_check_result(lane: String, successful: bool) -> void:
+	ai_memory_player_checks_seen += 1
+
+	if successful:
+		ai_memory_player_successful_checks += 1
+	else:
+		ai_memory_player_failed_checks += 1
+
+	if lane != "":
+		ai_memory_add_backrow_pressure(lane, 2)
+
+
+func ai_memory_note_player_attacked_hidden(lane: String, revealed_gambit: bool) -> void:
+	ai_memory_player_attacks_into_hidden += 1
+
+	if revealed_gambit:
+		ai_memory_player_triggered_hidden_gambits += 1
+
+	if lane != "":
+		ai_memory_add_lane_pressure(lane, 2)
+
+
 func ai_take_combat_initiative() -> void:
 	var start_lane: String = ai_choose_combat_start_lane()
 
@@ -5074,6 +5304,7 @@ func ai_score_combat_direction(lanes: Array[String]) -> int:
 
 		var ai_card: CardData = get_slot_card_data(ai_slot)
 		var player_card: CardData = get_slot_card_data(player_slot)
+		var player_pressure := ai_memory_player_lane_pressure_score(lane)
 
 		if is_unit_card(ai_card):
 			score += ai_card.ap * weight
@@ -5081,14 +5312,20 @@ func ai_score_combat_direction(lanes: Array[String]) -> int:
 			if is_unit_card(player_card):
 				if ai_card.ap >= player_card.ap:
 					score += 20 * weight
+					score += ai_apply_memory_bonus(player_pressure * weight)
 				else:
 					score -= 10 * weight
+					score -= ai_apply_memory_bonus(player_pressure * weight)
 			else:
 				score += 12 * weight
+				score += ai_apply_memory_bonus(player_pressure)
+
+		else:
+			score -= ai_apply_memory_bonus(player_pressure)
 
 		weight -= 1
 
-	score += randi() % 10
+	score += ai_tactical_noise(10)
 	return score
 
 
@@ -6181,31 +6418,29 @@ func ai_score_front_slot_for_card(card_data: CardData, lane: String) -> int:
 
 	var player_front_card: CardData = get_slot_card_data(player_front_slot)
 	var player_back_card: CardData = get_slot_card_data(player_back_slot)
+	var lane_pressure := ai_memory_player_lane_pressure_score(lane)
 
-	# If the player has a front unit in this lane, AI likes contesting/blocking it.
 	if is_unit_card(player_front_card):
 		score += 35
 
-		# If AI can beat or match it by AP, this lane becomes very attractive.
 		if card_data.ap >= player_front_card.ap:
 			score += 35
+			score += ai_apply_memory_bonus(lane_pressure * 2)
 		else:
 			score += 15
+			score += ai_apply_memory_bonus(lane_pressure)
 
-		# Strong enemy targets attract AI attention.
 		score += min(player_front_card.ap, 10)
 
-	# If the player has no front unit, AI may still choose the open lane.
 	else:
 		score += 18
+		score += ai_apply_memory_bonus(lane_pressure)
 
-	# If the player has something hidden/backline in this lane, AI slightly cares.
 	if player_back_card != null:
 		score += 8
+		score += ai_apply_memory_bonus(int(ai_memory_player_backrow_pressure.get(lane, 0)))
 
-	# Add randomness so AI does not feel scripted.
-	score += randi() % 25
-
+	score += ai_tactical_noise(25)
 	return score
 
 
@@ -7357,6 +7592,10 @@ func ai_choose_combat_action(lane: String) -> String:
 		+ str(check_score)
 		+ ", Pass "
 		+ str(pass_score)
+		+ " | Memory: hidden Gambit rate "
+		+ str(int(round(ai_memory_player_hidden_gambit_rate() * 100.0)))
+		+ "%, lane pressure "
+		+ str(ai_memory_player_lane_pressure_score(lane))
 		+ " -> "
 		+ best_action.capitalize()
 		+ "."
@@ -7379,8 +7618,11 @@ func ai_score_combat_attack_action(lane: String) -> int:
 		return -999999
 
 	var score: int = 0
+	var hidden_gambit_memory_bias := ai_apply_memory_bonus(
+		int(round((ai_memory_player_hidden_gambit_rate() - 0.50) * 100.0))
+	)
+	var lane_pressure := ai_memory_player_lane_pressure_score(lane)
 
-	# Hidden back row must be resolved before attacking the front row or Monarch.
 	if player_back_is_face_down:
 		score += 30
 
@@ -7390,20 +7632,21 @@ func ai_score_combat_attack_action(lane: String) -> int:
 			score += 65
 		else:
 			score -= 28
+			score -= hidden_gambit_memory_bias
 
 		if player_front_card == null:
-			# Hidden card blocks an otherwise open Monarch Strike.
 			score += 35
 
-	# Open Monarch lane.
 	if player_front_card == null:
 		score += 150
 		score += get_unit_defeat_aurion_reward(ai_card) * 4
 
 		if player_back_is_face_down:
 			score -= 25
+			score -= hidden_gambit_memory_bias
 
-		return score + (randi() % 6)
+		score += ai_apply_memory_bonus(lane_pressure)
+		return score + ai_tactical_noise(6)
 
 	var ai_ap: int = get_slot_combat_ap(ai_front_slot)
 	var player_ap: int = get_slot_combat_ap(player_front_slot)
@@ -7416,8 +7659,8 @@ func ai_score_combat_attack_action(lane: String) -> int:
 		score += 82
 		score += ap_gap * 14
 		score += player_reward_value * 10
+		score += ai_apply_memory_bonus(lane_pressure)
 
-		# Player may be able to parry, so do not overvalue tiny AP wins.
 		if ap_gap == 1:
 			score -= 10
 
@@ -7426,7 +7669,6 @@ func ai_score_combat_attack_action(lane: String) -> int:
 		score += player_reward_value * 8
 		score -= ai_reward_value * 6
 
-		# Equal trades are better if the player's card is more valuable.
 		if player_reward_value > ai_reward_value:
 			score += 18
 		elif ai_reward_value > player_reward_value:
@@ -7437,14 +7679,14 @@ func ai_score_combat_attack_action(lane: String) -> int:
 		score += ap_gap * 16
 		score -= ai_reward_value * 14
 
-		# Protection can make dangerous attacks less stupid.
 		if slot_has_protection_ability(ai_front_slot, &"plated") != null:
 			score += 68
 
 		if slot_has_protection_ability(ai_front_slot, &"spiked") != null:
 			score += 54
 
-	# Side lanes matter for Dominance.
+		score -= ai_apply_memory_bonus(lane_pressure)
+
 	if lane == "left" or lane == "right":
 		score += 12
 
@@ -7453,11 +7695,11 @@ func ai_score_combat_attack_action(lane: String) -> int:
 		elif ai_ap < player_ap:
 			score -= 10
 
-	# If the player has a hidden back-row card, attacking is less clean.
 	if player_back_is_face_down and get_gambit_attack_protection(ai_front_slot) == null:
 		score -= 12
+		score -= hidden_gambit_memory_bias
 
-	score += randi() % 8
+	score += ai_tactical_noise(8)
 	return score
 
 
@@ -7478,19 +7720,23 @@ func ai_score_combat_check_action(lane: String) -> int:
 		return -999999
 
 	var score: int = 46
+	var hidden_gambit_memory_bias := ai_apply_memory_bonus(
+		int(round((ai_memory_player_hidden_gambit_rate() - 0.50) * 100.0))
+	)
+	var lane_pressure := ai_memory_player_lane_pressure_score(lane)
 
 	var ai_ap: int = get_slot_combat_ap(ai_front_slot)
 	var player_ap: int = get_slot_combat_ap(player_front_slot)
 
-	# If AI can ignore Gambits, checking is less necessary.
+	score += hidden_gambit_memory_bias
+	score += ai_apply_memory_bonus(lane_pressure)
+
 	if get_gambit_attack_protection(ai_front_slot) != null:
 		score -= 45
 
-	# If the hidden card blocks a Monarch Strike, checking is attractive.
 	if player_front_card == null:
 		score += 38
 
-	# If direct attack into the front row looks bad, checking is safer.
 	if is_unit_card(player_front_card):
 		if ai_ap < player_ap:
 			score += 32
@@ -7499,15 +7745,13 @@ func ai_score_combat_check_action(lane: String) -> int:
 		else:
 			score -= 8
 
-	# If player already passed, AI may prefer ending or attacking over risky check.
 	if player_passed_current_lane:
 		score -= 12
 
-	# If AI already failed/committed pass in this lane, avoid weird repeated checking.
 	if ai_passed_current_lane:
 		score -= 35
 
-	score += randi() % 10
+	score += ai_tactical_noise(10)
 	return score
 
 
@@ -7525,11 +7769,11 @@ func ai_score_combat_pass_action(lane: String) -> int:
 		return 80
 
 	var score: int = 8
+	var lane_pressure := ai_memory_player_lane_pressure_score(lane)
 
 	var attack_score: int = ai_score_combat_attack_action(lane)
 	var check_score: int = ai_score_combat_check_action(lane)
 
-	# If player has already passed, AI can end a dangerous lane by passing too.
 	if player_passed_current_lane:
 		score += 42
 
@@ -7539,25 +7783,24 @@ func ai_score_combat_pass_action(lane: String) -> int:
 		if check_score < 25:
 			score += 14
 
-	# Never pass an open Monarch lane unless hidden back-row danger makes it unclear.
 	if player_front_card == null and not player_back_is_face_down:
 		score -= 120
 
-	# Passing is reasonable if attacking is suicidal and checking is unavailable.
 	if attack_score < -20 and check_score < 0:
 		score += 45
 
-	# Passing while ahead usually gives the player a chance to solve the lane, so discourage it.
 	if is_unit_card(player_front_card):
 		var ai_ap: int = get_slot_combat_ap(ai_front_slot)
 		var player_ap: int = get_slot_combat_ap(player_front_slot)
 
 		if ai_ap > player_ap:
 			score -= 25
+			score -= ai_apply_memory_bonus(lane_pressure)
 		elif ai_ap < player_ap:
 			score += 18
+			score += ai_apply_memory_bonus(lane_pressure)
 
-	score += randi() % 6
+	score += ai_tactical_noise(6)
 	return score
 
 
@@ -7577,6 +7820,8 @@ func resolve_ai_check_lane_with_visuals(lane: String) -> void:
 	log_msg("AI checks your hidden back-row card in the " + lane + " lane.")
 	await get_tree().create_timer(BLUFF_REVEAL_DELAY).timeout
 
+	ai_memory_note_player_hidden_reveal(back_card, lane, "ai_check")
+
 	if is_gambit_card(back_card):
 		add_aurion("ai", 1, "Successful Check: " + back_card.card_name + " was a Gambit.")
 		log_msg("AI Check successful. Your Gambit is denied and discarded. AI keeps priority in this lane.")
@@ -7588,7 +7833,6 @@ func resolve_ai_check_lane_with_visuals(lane: String) -> void:
 
 	add_aurion("player", 1, "AI failed Check: " + back_card.card_name + " was a decoy.")
 	player_fortified_lanes[lane] = true
-	# Failed Check spends the checker’s lane action. If Player declines to attack and passes, the lane ends.
 	ai_passed_current_lane = true
 	log_msg("AI Check failed. Your decoy returns to hand. Player is fortified and gains priority in this lane.")
 	return_setup_card(back_slot, back_card, "player")
@@ -7624,6 +7868,8 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 
 		log_msg("AI attacks into your hidden back-row card in the " + lane + " lane.")
 		await get_tree().create_timer(BLUFF_REVEAL_DELAY).timeout
+
+		ai_memory_note_player_hidden_reveal(player_back_card, lane, "ai_attack")
 
 		if is_gambit_card(player_back_card):
 			var protection := get_gambit_attack_protection(ai_front_slot)
@@ -7766,6 +8012,7 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 	await get_tree().create_timer(BLUFF_REVEAL_DELAY).timeout
 
 	if is_gambit_card(back_card):
+		ai_memory_note_player_check_result(lane, true)
 		add_aurion("player", 1, "Successful Check: " + back_card.card_name + " was a Gambit.")
 		log_msg("Check successful. Gambit is denied and discarded. Player keeps priority in this lane.")
 		send_slot_card_to_discard(back_slot)
@@ -7774,9 +8021,9 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 		combat_resolution_running = false
 		return
 
+	ai_memory_note_player_check_result(lane, false)
 	add_aurion("ai", 1, "Failed Check: " + back_card.card_name + " was a decoy.")
 	enemy_fortified_lanes[lane] = true
-	# Failed Check spends the checker’s lane action. If AI declines to attack and passes, the lane ends.
 	player_passed_current_lane = true
 	log_msg("Check failed. Decoy returns to enemy hand. Enemy is fortified and gains priority in this lane.")
 	return_setup_card(back_slot, back_card, "enemy")
@@ -7872,6 +8119,8 @@ func resolve_attack_into_face_down_backrow(
 		enemy_back_slot.reveal_card()
 
 	await get_tree().create_timer(BLUFF_REVEAL_DELAY).timeout
+
+	ai_memory_note_player_attacked_hidden(lane, is_gambit_card(enemy_back_card))
 
 	if is_gambit_card(enemy_back_card):
 		var protection := get_gambit_attack_protection(find_slot_by_owner_row_lane("player", "front", lane))
