@@ -208,6 +208,7 @@ func _on_button_input_event(
 			if action_id == BOARD_ACTION_INSPECT:
 				inspect_slot_card_locally()
 			else:
+				SceneLoader.play_board_action_button(action_id)
 				action_pressed.emit(action_id, slot)
 			get_viewport().set_input_as_handled()
 
