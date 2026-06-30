@@ -4,7 +4,7 @@ const LOADING_SCREEN_PATH := "res://ui/loading_screen/loading_screen.tscn"
 const MENU_MUSIC_PATH := "res://Audio/Music/main_menu_theme.ogg"
 const MENU_SCENE_PATH := "res://ui/Menu/prototype_menu.tscn"
 const SFX_FOLDER := "res://Audio/SFX/"
-const MENU_MUSIC_START_DELAY := 1
+const MENU_MUSIC_START_DELAY := 0.5
 const MAX_SIMULTANEOUS_SFX := 8
 const MENU_MUSIC_FADE_OUT_TIME := 1.25
 const SILENT_VOLUME_DB := -40.0
@@ -289,17 +289,19 @@ func play_alert_sound() -> void:
 	play_sfx("alert_sound")
 
 
+func play_battleplan_flip() -> void:
+	play_sfx("battleplan_flip")
+
+
 func play_board_action_button(action_id: int) -> void:
 	match action_id:
-		0:
-			play_attack_button()
-		1:
-			play_check_button()
 		2:
-			play_pass_button()
+			play_attack_button()
 		3:
-			play_inspect_button()
+			play_check_button()
 		4:
-			play_select_button()
+			play_pass_button()
+		1:
+			play_inspect_button()
 		_:
-			play_menu_button()
+			play_select_button()

@@ -203,13 +203,16 @@ func _on_button_input_event(
 ) -> void:
 	if _is_modal_blocked():
 		return
+
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			SceneLoader.play_board_action_button(action_id)
+
 			if action_id == BOARD_ACTION_INSPECT:
 				inspect_slot_card_locally()
 			else:
-				SceneLoader.play_board_action_button(action_id)
 				action_pressed.emit(action_id, slot)
+
 			get_viewport().set_input_as_handled()
 
 

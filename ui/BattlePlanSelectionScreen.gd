@@ -680,6 +680,8 @@ func _on_card_input_event(
 	var entry: Dictionary = card_entries[card_index]
 	if String(entry["state"]) != "available" or revealed_indices.size() >= 3:
 		return
+	_play_battleplan_flip_sfx()
+	
 	var slot_index := revealed_indices.size()
 	revealed_indices.append(card_index)
 	entry["state"] = "moving"
@@ -865,6 +867,8 @@ func _on_action_input_event(
 	var mouse_event := event as InputEventMouseButton
 	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
 		return
+	_play_select_sfx()
+
 	if action == "select":
 		_select_plan(card_index)
 	else:
@@ -939,13 +943,23 @@ func _build_inspector_actions(card_index: int) -> void:
 	add_child(inspector_actions)
 
 	var select_button := _make_inspector_button("SELECT", select_button_texture)
-	select_button.pressed.connect(_select_plan.bind(card_index))
+	select_button.pressed.connect(_on_inspector_select_pressed.bind(card_index))
 	inspector_actions.add_child(select_button)
 
 	var back_texture := back_button_texture if back_button_texture != null else inspect_button_texture
 	var back_button := _make_inspector_button("BACK", back_texture)
-	back_button.pressed.connect(_close_battleplan_inspector)
+	back_button.pressed.connect(_on_inspector_back_pressed)
 	inspector_actions.add_child(back_button)
+
+
+func _on_inspector_select_pressed(card_index: int) -> void:
+	_play_select_sfx()
+	_select_plan(card_index)
+
+
+func _on_inspector_back_pressed() -> void:
+	_play_back_sfx()
+	_close_battleplan_inspector()
 
 
 func _make_inspector_button(caption: String, texture: Texture2D = null) -> Button:
@@ -1159,6 +1173,20 @@ func _use_cursor(method_name: StringName) -> void:
 	var cursors := get_node_or_null("/root/Cursors")
 	if cursors != null and cursors.has_method(method_name):
 		cursors.call(method_name)
+
+
+func _play_select_sfx() -> void:
+	if SceneLoader != null and SceneLoader.has_method("play_select_button"):
+		SceneLoader.play_select_button()
+		
+func _play_battleplan_flip_sfx() -> void:
+	if SceneLoader != null and SceneLoader.has_method("play_battleplan_flip"):
+		SceneLoader.play_battleplan_flip()
+
+
+func _play_back_sfx() -> void:
+	if SceneLoader != null and SceneLoader.has_method("play_back_button"):
+		SceneLoader.play_back_button()
 
 
 func _cleanup_selection_world() -> void:

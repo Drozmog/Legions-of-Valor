@@ -1597,6 +1597,9 @@ func make_button(text: String, min_size: Vector2, primary: bool = false) -> Butt
 	button.add_theme_color_override("font_pressed_color", Color.WHITE)
 	button.add_theme_color_override("font_disabled_color", Color(1.0, 1.0, 1.0, 0.32))
 	button.add_theme_font_size_override("font_size", 13)
+	
+	button.pressed.connect(play_select_sfx)
+	
 	return button
 
 
@@ -2568,6 +2571,7 @@ func get_card_sort_key(card_data: CardData) -> String:
 
 
 func _on_library_sort_selected(sort_id: int) -> void:
+	play_select_sfx()
 	var selected_mode := sort_id as LibrarySortMode
 	if selected_mode == library_sort_mode:
 		library_sort_ascending = not library_sort_ascending
@@ -2811,6 +2815,8 @@ func load_deck_slot_into_rack(slot_index: int) -> void:
 func _on_deck_slot_pressed(slot_index: int) -> void:
 	if deck_switch_in_progress or slot_index == active_deck_slot:
 		return
+
+	play_select_sfx()
 	switch_to_deck_slot(slot_index)
 
 
@@ -3061,6 +3067,11 @@ func _make_fog_image(fog_color: Color, solid_px: int, fade_px: int) -> ImageText
 		img.set_pixel(x, 0, c)
 		img.set_pixel(x, 1, c)
 	return ImageTexture.create_from_image(img)
+
+
+func play_select_sfx() -> void:
+	if SceneLoader != null and SceneLoader.has_method("play_select_button"):
+		SceneLoader.play_select_button()
 
 
 # Right-side fog: [fade_px] fading from transparent → fog_color, then [solid_px] solid.
