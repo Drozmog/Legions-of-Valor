@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://py8dgq75ugw5"]
+
+[node name="LoadingScreen" type="Control" unique_id=40202011]
+layout_mode = 3
+anchors_preset = 0
+
+[node name="Background" type="ColorRect" parent="." unique_id=1272233621]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
+
+[node name="LoadingLabel" type="Label" parent="." unique_id=1438771348]
+layout_mode = 0
+offset_left = 238.0
+offset_top = 862.0
+offset_right = 494.0
+offset_bottom = 938.0
+theme_override_font_sizes/font_size = 55
+text = "Loading..."
+
+[node name="ProgressBar" type="ProgressBar" parent="." unique_id=853266353]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="FadeRect" type="ColorRect" parent="." unique_id=1965260569]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+color = Color(0, 0, 0, 1)

@@ -1,0 +1,19 @@
+[remap]
+
+importer="oggvorbisstr"
+type="AudioStreamOggVorbis"
+uid="uid://cr8sk41mflpg8"
+path="res://.godot/imported/Deck Builder - Time Flows Ever Onward.ogg-95b399b192a375cf189d0aef00d76faf.oggvorbisstr"
+
+[deps]
+
+source_file="res://Audio/Music/Deck Builder - Time Flows Ever Onward.ogg"
+dest_files=["res://.godot/imported/Deck Builder - Time Flows Ever Onward.ogg-95b399b192a375cf189d0aef00d76faf.oggvorbisstr"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

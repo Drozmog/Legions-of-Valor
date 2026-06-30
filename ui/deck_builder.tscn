@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://d226xmh0gjdy3"]
 
 [ext_resource type="Script" uid="uid://cedl2qflls1en" path="res://ui/DeckBuilder.gd" id="1_builder"]
-[ext_resource type="Texture2D" uid="uid://c5sxw3n3uqrml" path="res://Textures/Deck Builder/heavy_wooden_deck_builder_table (2).png" id="3_lltvm"]
-[ext_resource type="Texture2D" uid="uid://mpr1xr2mh1x3" path="res://Objects/Deck_Builder/Red Leather/textures/leather_red_03_coll1_4k.png" id="4_niogi"]
+[ext_resource type="Texture2D" uid="uid://n1lrn4jiqvgl" path="res://Textures/dust_particle.png" id="2_niogi"]
+[ext_resource type="Texture2D" uid="uid://cy34hadl7kml0" path="res://Textures/Deck Builder/red_cloth.png" id="3_mn2kh"]
 [ext_resource type="PackedScene" uid="uid://cx8016v2g8wox" path="res://Objects/Deck_Builder/Longest Table/Longest Table.glb" id="4_prbbm"]
 [ext_resource type="PackedScene" uid="uid://dawy4wgke3bro" path="res://Objects/Deck_Builder/Knight Sword/Knight Sword.glb" id="5_0mkf5"]
 [ext_resource type="PackedScene" uid="uid://cvxgjufk4mjpg" path="res://Objects/Deck_Builder/Aurion/Aurion Crystal.tscn" id="5_7i4bp"]
@@ -11,28 +11,48 @@
 [ext_resource type="PackedScene" uid="uid://crj2qtv6hrwnd" path="res://Objects/Deck_Builder/Leather Book/Leather Book.glb" id="5_prbbm"]
 [ext_resource type="PackedScene" uid="uid://cim5ar5i1vlw1" path="res://Objects/Deck_Builder/Wooden Mug/Wooden Mug.glb" id="5_rh0hs"]
 [ext_resource type="PackedScene" uid="uid://cfbk1dl0gqcpb" path="res://Objects/Deck_Builder/Tray/Tray.glb" id="6_0mkf5"]
+[ext_resource type="PackedScene" uid="uid://bd1wg8evpiulr" path="res://Objects/Deck_Builder/Book Stack/book_stack.glb" id="6_7i4bp"]
+[ext_resource type="AudioStream" uid="uid://cr8sk41mflpg8" path="res://Audio/Music/Deck Builder - Time Flows Ever Onward.ogg" id="13_7um2w"]
 
 [sub_resource type="Environment" id="Environment_uy14w"]
 ambient_light_energy = 0.25
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.005
+volumetric_fog_emission_energy = 0.0
+volumetric_fog_length = 30.0
 
-[sub_resource type="BoxMesh" id="Mesh_TableTrim"]
-size = Vector3(17, 0.035, 8.35)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Gold"]
-albedo_texture = ExtResource("3_lltvm")
-roughness = 0.0
-uv1_scale = Vector3(3.02, 1.98, 1.98)
-uv1_offset = Vector3(-1.015, -0.985, -0.05)
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yex4w"]
+transparency = 1
+blend_mode = 1
+cull_mode = 2
+shading_mode = 0
+albedo_color = Color(1, 0.92156863, 0.74509805, 0.13725491)
+albedo_texture = ExtResource("2_niogi")
 texture_repeat = false
+billboard_mode = 1
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_dtglo"]
+emission_shape = 3
+emission_box_extents = Vector3(3.5, 2.5, 2.5)
+initial_velocity_min = 0.01
+initial_velocity_max = 0.049999997
+angular_velocity_min = -50.000015
+angular_velocity_max = 49.99998
+gravity = Vector3(0, -0.02, 0)
+scale_min = 0.0
+scale_max = 360.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_wt34f"]
+size = Vector2(0.025, 0.025)
 
 [sub_resource type="BoxMesh" id="Mesh_LeftSurface"]
 size = Vector3(8.9, 0.04, 5.45)
 
 [sub_resource type="StandardMaterial3D" id="Mat_Surface"]
-albedo_texture = ExtResource("4_niogi")
+albedo_texture = ExtResource("3_mn2kh")
 roughness_texture = ExtResource("5_7um2w")
 normal_enabled = true
-normal_scale = -1.2
+normal_scale = -1.93
 normal_texture = ExtResource("5_7um2w")
 uv1_scale = Vector3(2.98, 1.984, -0.445)
 uv1_offset = Vector3(-0.99, -0.99, 0)
@@ -45,43 +65,60 @@ script = ExtResource("1_builder")
 environment = SubResource("Environment_uy14w")
 
 [node name="DeckBuilderCamera" type="Camera3D" parent="." unique_id=614418254]
-transform = Transform3D(1, 0, 0, 0, 0.15988123, 0.98713624, 0, -0.98713624, 0.15988123, 0, 5.57, 1.3849998)
+transform = Transform3D(1, 0, 0, 0, 0.15988123, 0.98713624, 0, -0.98713624, 0.15988123, 0, 5.5699997, 1.3849993)
 current = true
 fov = 71.5
 
 [node name="WarmOverheadLight" type="DirectionalLight3D" parent="." unique_id=1695227764]
 transform = Transform3D(1, 0, 0, 0, -0.12360144, 0.9923319, 0, -0.9923319, -0.12360144, 0, 15.179, 5.300354)
-light_energy = 1.433
+light_energy = 0.352
 light_specular = 0.2
 shadow_enabled = true
 shadow_opacity = 0.85
 sky_mode = 1
 
-[node name="WoodenTable" type="MeshInstance3D" parent="." unique_id=4332425]
-transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.005, 0)
-visible = false
-mesh = SubResource("Mesh_TableTrim")
-surface_material_override/0 = SubResource("Mat_Gold")
+[node name="TableSpotlight" type="SpotLight3D" parent="." unique_id=1188248274]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -2.9285111, 7.9909353, -0.245)
+light_color = Color(1, 0.99215686, 0.84705883, 1)
+light_energy = 10.213
+light_volumetric_fog_energy = 3.0
+shadow_enabled = true
+spot_range = 13.56436
+spot_attenuation = 1.2
+spot_angle = 33.080242
+spot_angle_attenuation = 0.8408968
+
+[node name="TableSpotlight2" type="SpotLight3D" parent="." unique_id=996694530]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 4.0601015, 5.5724277, -0.245)
+light_color = Color(1, 0.99215686, 0.84705883, 1)
+light_energy = 10.213
+light_volumetric_fog_energy = 3.0
+shadow_enabled = true
+spot_range = 8.595768
+spot_attenuation = 1.2
+spot_angle = 47.61624
+spot_angle_attenuation = 0.8408968
+
+[node name="SpotlightDust" type="GPUParticles3D" parent="." unique_id=21987971]
+transform = Transform3D(1.95, 0, 0, 0, 1.235, 0, 0, 0, 2.095, 0, 3.2361789, -0.5)
+material_override = SubResource("StandardMaterial3D_yex4w")
+amount = 300
+lifetime = 5.0
+speed_scale = 0.5
+randomness = 0.8
+process_material = SubResource("ParticleProcessMaterial_dtglo")
+draw_pass_1 = SubResource("QuadMesh_wt34f")
 
 [node name="Longest Table" parent="." unique_id=526929406 instance=ExtResource("4_prbbm")]
 transform = Transform3D(9.15, 0, 0, 0, 9.15, 0, 0, 0, 9.15, 0.255, -6.05, -0.02)
 
 [node name="RedClothCollectionTable" type="MeshInstance3D" parent="." unique_id=1070043322]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1564276, 0.012, 0.10418761)
-visible = false
 mesh = SubResource("Mesh_LeftSurface")
 surface_material_override/0 = SubResource("Mat_Surface")
 
-[node name="RedClothCollectionTable2" type="MeshInstance3D" parent="." unique_id=2142048234]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1564276, 0.012, 0.10418761)
-mesh = SubResource("Mesh_LeftSurface")
-surface_material_override/0 = SubResource("Mat_Surface")
-
-[node name="RedClothCollectionTable2" type="MeshInstance3D" parent="RedClothCollectionTable2" unique_id=1972010427]
-transform = Transform3D(1.1, 0, 0, 0, 1, 0, 0, 0, 1, -2.611, 0.012, 0.104)
-visible = false
-mesh = SubResource("Mesh_LeftSurface")
-surface_material_override/0 = SubResource("Mat_Surface")
+[node name="BookStack" parent="." unique_id=1586676646 instance=ExtResource("6_7i4bp")]
+transform = Transform3D(-0.8831165, 0, 1.4992349, 0, 1.74, 0, -1.4992349, 0, -0.8831165, 4.07, 0, -4.23)
 
 [node name="LibraryTitle3D" type="Label3D" parent="." unique_id=770178002]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -5.8564277, 0.08, -2.5458124)
@@ -116,3 +153,7 @@ transform = Transform3D(15.2, 0, 0, 0, 8.525, 0, 0, 0, 15.2, 4.025, -0.055, 0.09
 
 [node name="DeckRackCards" type="Node3D" parent="DeckRackMover" unique_id=1633634401]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.636)
+
+[node name="MusicPlayer" type="AudioStreamPlayer" parent="." unique_id=1829786743]
+stream = ExtResource("13_7um2w")
+autoplay = true
