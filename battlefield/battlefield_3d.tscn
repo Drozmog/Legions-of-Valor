@@ -83,6 +83,11 @@ tribute_pile = NodePath("TributePile")
 player_deck = NodePath("PlayerDeck")
 
 [node name="BoardPlaneGrass" type="MeshInstance3D" parent="." unique_id=1652894338]
+visible = false
+mesh = SubResource("PlaneMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_rn43s")
+
+[node name="BoardPlaneGrass2" type="MeshInstance3D" parent="." unique_id=487335533]
 mesh = SubResource("PlaneMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_rn43s")
 

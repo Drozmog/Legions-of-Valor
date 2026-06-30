@@ -67,23 +67,14 @@ func _on_prebattle_deck_selected(slot_index: int) -> void:
 
 
 func show_ai_deck_selection() -> void:
-	if bf.deck_selection_screen == null or bf.player_deck == null:
-		bf.ai_deck_source_mode = bf.AI_DECK_SOURCE_RANDOM_SYNERGY
-		bf.ai_selected_saved_deck_slot = -1
-		bf.deck_selection_complete = true
-		bf.setup_battle_plan_flow()
-		return
-
 	bf.deck_selection_context = bf.DECK_SELECTION_CONTEXT_AI
+	bf.ai_deck_source_mode = bf.AI_DECK_SOURCE_RANDOM_SYNERGY
+	bf.ai_selected_saved_deck_slot = -1
+	bf.deck_selection_complete = true
 
-	bf.deck_selection_screen.show_selection(
-		bf.player_deck.get_saved_deck_summaries(),
-		"CHOOSE OPPONENT DECK",
-		"Let the AI build a synergistic deck, or choose one of your saved decks for it.",
-		true
-	)
+	bf.log_msg("AI deck auto-selected: " + bf.ai_get_difficulty_name() + " Random Synergy Deck.")
 
-	bf.update_phase_progress_state()
+	bf.setup_battle_plan_flow()
 
 
 func _on_ai_deck_selected(slot_index: int) -> void:

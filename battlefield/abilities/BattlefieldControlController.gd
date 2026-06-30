@@ -6,6 +6,8 @@ extends RefCounted
 
 var bf: BattlefieldManager
 
+const CONTROL_MESSAGE_DURATION := 1.9
+
 
 func _init(owner_battlefield: BattlefieldManager) -> void:
 	bf = owner_battlefield
@@ -126,7 +128,7 @@ func show_control_trigger(ability: AbilityData, detail: String = "", include_des
 		message += "\n" + ability.rules_text.strip_edges()
 	bf.log_msg("Control triggered: " + ability.ability_name + (" - " + detail if detail != "" else ""))
 	bf.show_mobility_prompt(message, bf.CONTROL_PROMPT_ICON_PATH)
-	await bf.get_tree().create_timer(0.9).timeout
+	await bf.get_tree().create_timer(CONTROL_MESSAGE_DURATION).timeout
 	await bf.hide_mobility_prompt()
 
 
