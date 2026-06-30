@@ -1,11 +1,11 @@
 extends Node
 
 const LOADING_SCREEN_PATH := "res://ui/loading_screen/loading_screen.tscn"
-const MAIN_MENU_SCENE_PATH := "res://ui/Menu/prototype_menu.tscn"
+const MAIN_MENU_MUSIC_PATH := "res://Audio/Music/main_menu_theme.ogg"
+
 const SFX_FOLDER := "res://Audio/SFX/"
 const MAX_SIMULTANEOUS_SFX := 8
 
-# Increase this if you still see gray before Deck Builder appears.
 const POST_SCENE_BLACK_HOLD_TIME := 0.85
 const POST_SCENE_FADE_TIME := 0.35
 const MENU_MUSIC_FADE_OUT_TIME := 1.0
@@ -16,9 +16,9 @@ var is_transitioning := false
 var sfx_players: Array[AudioStreamPlayer] = []
 var cached_sfx: Dictionary = {}
 
-var music_player: AudioStreamPlayer
+var menu_music_player: AudioStreamPlayer
 var music_tween: Tween
-var music_default_volume_db := -8.0
+var menu_music_volume_db := -8.0
 
 var transition_layer: CanvasLayer
 var transition_rect: ColorRect
@@ -31,9 +31,10 @@ func _ready() -> void:
 		add_child(player)
 		sfx_players.append(player)
 
-	music_player = AudioStreamPlayer.new()
-	music_player.name = "PersistentMusicPlayer"
-	add_child(music_player)
+	menu_music_player = AudioStreamPlayer.new()
+	menu_music_player.name = "PersistentMenuMusicPlayer"
+	menu_music_player.volume_db = menu_music_volume_db
+	add_child(menu_music_player)
 
 	_build_transition_overlay()
 
@@ -95,39 +96,9 @@ func fade_black_overlay_out(fade_time: float = POST_SCENE_FADE_TIME) -> void:
 	)
 
 
-func change_to_loaded_scene_with_overlay(loaded_scene: PackedScene, scene_path: String) -> void:
-	if loaded_scene == null:
-		push_error("SceneLoader received null loaded scene for: " + scene_path)
-		finish_transition()
-		return
-
-	show_black_overlay()
-
-	var error := get_tree().change_scene_to_packed(loaded_scene)
-
-	if error != OK:
-		push_error("Could not change to loaded scene: " + scene_path)
-		finish_transition()
-		fade_black_overlay_out(0.1)
-		return
-
-	finish_transition()
-
-	var timer := get_tree().create_timer(POST_SCENE_BLACK_HOLD_TIME)
-	timer.timeout.connect(_finish_post_scene_transition.bind(scene_path))
-
-
-func _finish_post_scene_transition(scene_path: String) -> void:
-	fade_black_overlay_out(POST_SCENE_FADE_TIME)
-
-	# When leaving the menu, keep menu music alive through loading,
-	# then fade it after the next scene has appeared.
-	if scene_path != MAIN_MENU_SCENE_PATH:
-		fade_persistent_music_out(MENU_MUSIC_FADE_OUT_TIME)
-
-
 func go_to_scene(scene_path: String, sfx_name: String = "menu_button") -> void:
 	if is_transitioning:
+		push_warning("Scene transition already running. Ignored request for: " + scene_path)
 		return
 
 	if sfx_name != "":
@@ -151,56 +122,76 @@ func go_to_scene(scene_path: String, sfx_name: String = "menu_button") -> void:
 		is_transitioning = false
 
 
+func change_to_loaded_scene_with_overlay(loaded_scene: PackedScene, scene_path: String) -> void:
+	if loaded_scene == null:
+		push_error("SceneLoader received null loaded scene for: " + scene_path)
+		finish_transition()
+		return
+
+	show_black_overlay()
+
+	var error := get_tree().change_scene_to_packed(loaded_scene)
+
+	if error != OK:
+		push_error("Could not change to loaded scene: " + scene_path)
+		finish_transition()
+		fade_black_overlay_out(0.1)
+		return
+
+	finish_transition()
+
+	var timer := get_tree().create_timer(POST_SCENE_BLACK_HOLD_TIME)
+	timer.timeout.connect(_finish_post_scene_transition)
+
+
+func _finish_post_scene_transition() -> void:
+	fade_black_overlay_out(POST_SCENE_FADE_TIME)
+	fade_menu_music_out(MENU_MUSIC_FADE_OUT_TIME)
+
+
 func finish_transition() -> void:
 	is_transitioning = false
 
 
-func take_over_music_from_player(scene_music_player: AudioStreamPlayer) -> void:
-	if scene_music_player == null:
+func play_menu_music() -> void:
+	if menu_music_player == null:
 		return
 
-	if scene_music_player.stream == null:
+	if not ResourceLoader.exists(MAIN_MENU_MUSIC_PATH):
+		push_warning("Missing menu music file: " + MAIN_MENU_MUSIC_PATH)
 		return
 
 	if music_tween != null and music_tween.is_valid():
 		music_tween.kill()
 
-	var start_position := 0.0
+	if menu_music_player.stream == null:
+		menu_music_player.stream = load(MAIN_MENU_MUSIC_PATH) as AudioStream
 
-	if scene_music_player.playing:
-		start_position = scene_music_player.get_playback_position()
-
-	music_default_volume_db = scene_music_player.volume_db
-
-	# Stop the scene-owned player so we don't hear duplicate music.
-	scene_music_player.stop()
-
-	# If the persistent player is already playing the same stream, keep it going.
-	if music_player.stream == scene_music_player.stream and music_player.playing:
-		music_player.volume_db = music_default_volume_db
+	if menu_music_player.stream == null:
+		push_warning("Could not load menu music: " + MAIN_MENU_MUSIC_PATH)
 		return
 
-	music_player.stream = scene_music_player.stream
-	music_player.bus = scene_music_player.bus
-	music_player.volume_db = music_default_volume_db
-	music_player.play(start_position)
+	menu_music_player.volume_db = menu_music_volume_db
+
+	if not menu_music_player.playing:
+		menu_music_player.play()
 
 
-func fade_persistent_music_out(fade_time: float = MENU_MUSIC_FADE_OUT_TIME) -> void:
-	if music_player == null:
+func fade_menu_music_out(fade_time: float = MENU_MUSIC_FADE_OUT_TIME) -> void:
+	if menu_music_player == null:
 		return
 
-	if not music_player.playing:
+	if not menu_music_player.playing:
 		return
 
 	if music_tween != null and music_tween.is_valid():
 		music_tween.kill()
 
 	music_tween = create_tween()
-	music_tween.tween_property(music_player, "volume_db", -80.0, fade_time)
+	music_tween.tween_property(menu_music_player, "volume_db", -80.0, fade_time)
 	music_tween.tween_callback(func() -> void:
-		music_player.stop()
-		music_player.volume_db = music_default_volume_db
+		menu_music_player.stop()
+		menu_music_player.volume_db = menu_music_volume_db
 	)
 
 

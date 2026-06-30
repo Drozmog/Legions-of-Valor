@@ -4,7 +4,6 @@
 [ext_resource type="Texture2D" uid="uid://bcw2yvuqgn2qu" path="res://ui/Menu/Artwork/castle_warm.png" id="2_pogxh"]
 [ext_resource type="Texture2D" uid="uid://djcpomh1n3euu" path="res://ui/Menu/Artwork/full_logo_white.png" id="3_bl5mb"]
 [ext_resource type="Texture2D" uid="uid://cusjf6ipe8p56" path="res://ui/Menu/Artwork/full_logo.png" id="4_bl5mb"]
-[ext_resource type="AudioStream" uid="uid://7ux7ya7x48dx" path="res://Audio/Music/menu_OST.ogg" id="5_qyfcl"]
 
 [node name="PrototypeMenu" type="Control" unique_id=1415191127]
 layout_mode = 3
@@ -47,7 +46,3 @@ offset_bottom = 40.0
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 23.0
-
-[node name="MenuMusicPlayer" type="AudioStreamPlayer" parent="." unique_id=1342917276]
-stream = ExtResource("5_qyfcl")
-autoplay = true

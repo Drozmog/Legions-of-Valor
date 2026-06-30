@@ -49,7 +49,6 @@ const INTRO_LOGO_ASPECT_RATIO := 16.0 / 9.0
 @onready var menu_choices: VBoxContainer = $MenuChoices
 @onready var intro_curtain: ColorRect = $IntroCurtain
 @onready var continue_prompt: Label = $PressAnyButton
-@onready var menu_music_player: AudioStreamPlayer = get_node_or_null("MenuMusicPlayer") as AudioStreamPlayer
 
 var intro_can_continue := false
 var intro_transitioning := false
@@ -66,7 +65,7 @@ func _ready() -> void:
 	_apply_node_order()
 	_apply_layout()
 	build_menu()
-	SceneLoader.take_over_music_from_player(menu_music_player)
+	SceneLoader.play_menu_music()
 	if skip_intro:
 		show_main_menu_immediately()
 	else:
@@ -429,7 +428,7 @@ func _on_menu_button_unhovered(button: Button) -> void:
 
 
 func _on_start_battle_pressed() -> void:
-	SceneLoader.go_to_scene(BATTLE_SCENE_PATH)
+	SceneLoader.go_to_scene(BATTLE_SCENE_PATH, "menu_button")
 
 
 func _on_back_pressed() -> void:
@@ -438,7 +437,7 @@ func _on_back_pressed() -> void:
 
 
 func _on_deck_builder_pressed() -> void:
-	SceneLoader.go_to_scene(DECK_BUILDER_SCENE_PATH)
+	SceneLoader.go_to_scene(DECK_BUILDER_SCENE_PATH, "menu_button")
 
 
 func _on_quit_pressed() -> void:
