@@ -697,7 +697,11 @@ func destroy_unit_with_protection(
 		await bf.show_protection_trigger(plated, "Destruction prevented")
 		return false
 	var spiked := bf.slot_has_protection_ability(slot, &"spiked") if not ignore_protection else null
+	var defeated_card := bf.get_slot_card_data(slot)
+	var defeated_owner := String(slot.get_meta("owner", ""))
+	var winner_owner := String(opposing_slot.get_meta("owner", "")) if opposing_slot != null else ("enemy" if defeated_owner == "player" else "player")
 	bf.send_slot_card_to_discard(slot)
+	bf.battleplan_objective_controller.note_unit_defeated(defeated_owner, defeated_card, winner_owner)
 	if from_clash and spiked != null and opposing_slot != null and bf.get_slot_card_data(opposing_slot) != null:
 		await bf.show_protection_trigger(spiked, "Attacker destroyed")
 		await bf.destroy_unit_with_protection(opposing_slot, null, false, false)
@@ -1239,6 +1243,7 @@ func resolve_player_attack_lane_from_specific_attacker(lane: String, attacker_sl
 		bf.log_msg(ability_name + ": the chosen attacker is no longer a unit.")
 		bf.combat_resolution_running = false
 		return false
+	bf.battleplan_objective_controller.note_attack("player")
 	var infiltrator := bf.slot_has_protection_ability(attacker_slot, &"infiltrator")
 	if enemy_back_is_face_down and infiltrator != null:
 		await bf.show_protection_trigger(infiltrator, "Backline bypassed")

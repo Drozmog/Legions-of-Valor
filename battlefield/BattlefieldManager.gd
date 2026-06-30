@@ -271,6 +271,7 @@ var combat_controller: BattlefieldCombatController = null
 var ability_controller: BattlefieldAbilityController = null
 var control_controller: BattlefieldControlController = null
 var volley_controller: BattlefieldVolleyController = null
+var battleplan_objective_controller: BattlefieldBattleplanObjectiveController = null
 var deployment_controller: BattlefieldDeploymentController = null
 
 @onready var opponent_visuals: OpponentVisuals = get_node_or_null("OpponentVisuals") as OpponentVisuals
@@ -381,6 +382,7 @@ func _ready() -> void:
 	ability_controller = BattlefieldAbilityController.new(self)
 	control_controller = BattlefieldControlController.new(self)
 	volley_controller = BattlefieldVolleyController.new(self)
+	battleplan_objective_controller = BattlefieldBattleplanObjectiveController.new(self)
 	deployment_controller = BattlefieldDeploymentController.new(self)
 	ai_controller = BattlefieldAIController.new(self)
 	apply_ai_difficulty_from_menu()

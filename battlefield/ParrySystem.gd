@@ -605,6 +605,7 @@ func _complete_success() -> void:
 		+ "."
 	)
 	await _resolve_successful_parry_abilities()
+	bf.battleplan_objective_controller.note_parry_success("player", lane, sacrifice_cards.size())
 
 	_end_prompt()
 	await bf.advance_combat_lane_after_resolution()
@@ -621,6 +622,7 @@ func _on_let_die_pressed() -> void:
 	if defender_card != null and destroyed:
 		bf.log_msg("You let " + defender_card.card_name + " die.")
 		bf.add_aurion("ai", bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
+		bf.battleplan_objective_controller.note_clash_win("enemy", attacker_card, attacker_ap - defender_ap)
 
 	_end_prompt()
 	await bf.advance_combat_lane_after_resolution()

@@ -87,6 +87,11 @@ func resolve_directed_clash(
 ) -> void:
 	if attacker_card == null or defender_card == null:
 		return
+	var interception := await choose_center_interceptor(lane, _attacker_slot, defender_slot)
+	var used_interception := not interception.is_empty()
+	if used_interception:
+		defender_slot = interception.get("slot") as Node
+		defender_card = interception.get("card") as CardData
 	if await bf.resolve_vanish_when_targeted(defender_slot, defender_card, not player_is_attacker):
 		return
 
@@ -149,6 +154,7 @@ func resolve_directed_clash(
 			if destroyed:
 				var scorer := "player" if player_is_attacker else "ai"
 				bf.add_aurion(scorer, bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " with an unparryable attack.")
+				bf.battleplan_objective_controller.note_clash_win("player" if player_is_attacker else "enemy", attacker_card, attacker_ap - defender_ap)
 			return
 		if not player_is_attacker:
 			bf.parry_system.begin(lane, _attacker_slot, attacker_card, defender_slot, defender_card, attacker_ap, defender_ap, ignores_protection)
@@ -159,7 +165,10 @@ func resolve_directed_clash(
 
 	# The attacker knowingly chose to fight into a stronger unit.
 	# Voluntary lower-AP attacks are suicide and do not open the Parry Chain.
-	await bf.destroy_unit_with_protection(_attacker_slot, defender_slot, true)
+	var attacker_destroyed := await bf.destroy_unit_with_protection(_attacker_slot, defender_slot, true)
+	if not attacker_destroyed:
+		return
+	bf.battleplan_objective_controller.note_clash_win("enemy" if player_is_attacker else "player", defender_card, defender_ap - attacker_ap, used_interception, false)
 	bf.log_msg(
 		"Suicide attack: "
 		+ attacker_label
@@ -179,6 +188,34 @@ func resolve_directed_clash(
 	var defender_score_owner: String = "ai" if player_is_attacker else "player"
 	bf.add_aurion(defender_score_owner, bf.get_unit_defeat_aurion_reward(attacker_card), "Destroyed " + attacker_card.card_name + " after it knowingly attacked a higher-AP unit.")
 	return
+
+
+func choose_center_interceptor(lane: String, attacker_slot: Node, original_defender_slot: Node) -> Dictionary:
+	if lane == "middle" or lane not in ["left", "right"]:
+		return {}
+	var attacker := bf.get_slot_card_data(attacker_slot)
+	var siege := bf.slot_has_mobility_ability(attacker_slot, &"siege")
+	if siege != null:
+		await bf.show_timed_mobility_message("SIEGE  -  Centre interception blocked")
+		return {}
+	var defender_owner := String(original_defender_slot.get_meta("owner", ""))
+	var center := bf.find_slot_by_owner_row_lane(defender_owner, "front", "middle")
+	var center_card := bf.get_slot_card_data(center)
+	if center == null or center == original_defender_slot or not bf.is_unit_card(center_card) or bf.is_unit_chained_down(center):
+		return {}
+	var intercept := true
+	if defender_owner == "player":
+		intercept = await bf.prompt_mobility_choice(
+			"CENTER INTERCEPTION  -  Protect the " + lane.capitalize() + " lane with " + center_card.card_name + "?",
+			"INTERCEPT",
+			"DECLINE"
+		)
+	else:
+		intercept = bf.get_slot_combat_ap(center) >= bf.get_slot_combat_ap(original_defender_slot)
+	if not intercept:
+		return {}
+	await bf.show_timed_mobility_message("CENTER INTERCEPTION  -  " + center_card.card_name + " protects the " + lane.capitalize() + " lane")
+	return {"slot": center, "card": center_card, "attacker": attacker}
 
 
 func award_mutual_clash_aurion(
@@ -219,6 +256,7 @@ func resolve_ai_parry_attempt(
 		if destroyed:
 			bf.log_msg("Opponent could not parry. " + defender_card.card_name + " was destroyed.")
 			bf.add_aurion("player", bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
+			bf.battleplan_objective_controller.note_clash_win("player", attacker_card, attack_power - defense_power)
 
 		return
 
@@ -273,12 +311,14 @@ func resolve_ai_parry_attempt(
 	if gathered >= required:
 		bf.log_msg("Opponent Parry succeeds. " + defender_card.card_name + " survives.")
 		await bf.resolve_ai_successful_parry_abilities(parry_cards)
+		bf.battleplan_objective_controller.note_parry_success("enemy", bf.get_slot_lane(defender_slot), parry_cards.size())
 	else:
 		var destroyed := await bf.destroy_unit_with_protection(defender_slot, null, true, ignore_protection)
 
 		if destroyed:
 			bf.log_msg("Opponent Parry fails. " + defender_card.card_name + " was destroyed.")
 			bf.add_aurion("player", bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
+			bf.battleplan_objective_controller.note_clash_win("player", attacker_card, attack_power - defense_power)
 
 	await bf.get_tree().create_timer(0.55).timeout
 
@@ -485,6 +525,10 @@ func promote_slot_unit_preserving_equipment(slot: Node, new_unit: CardData, slot
 			continue
 
 		slot.attach_equipment(bf.TEST_CARD_SCENE, equipment_card)
+	var inherited_count := 0
+	if slot.has_method("get_equipment_cards"):
+		inherited_count = (slot.call("get_equipment_cards") as Array).size()
+	bf.battleplan_objective_controller.note_promotion(slot_owner, new_unit, inherited_count)
 
 	bf.update_ai_visuals()
 	return true
@@ -743,6 +787,7 @@ func resolve_monarch_strike(lane: String, attacker_card: CardData) -> void:
 		return
 
 	bf.add_aurion("player", 1, "Monarch Strike through the " + lane + " lane by " + attacker_card.card_name + ".")
+	bf.battleplan_objective_controller.note_monarch_strike("player")
 	bf.log_msg(lane.capitalize() + " lane: Player Monarch Strike successful.")
 
 
@@ -751,6 +796,7 @@ func resolve_ai_monarch_strike(lane: String, attacker_card: CardData) -> void:
 		return
 
 	bf.add_aurion("ai", 1, "Monarch Strike through the " + lane + " lane by " + attacker_card.card_name + ".")
+	bf.battleplan_objective_controller.note_monarch_strike("enemy")
 	bf.log_msg(lane.capitalize() + " lane: AI Monarch Strike successful.")
 
 
@@ -785,6 +831,7 @@ func resolve_player_attack_lane_with_visuals(lane: String) -> void:
 		bf.log_msg(lane.capitalize() + " lane: you have no front-row unit to attack with. Use Pass instead.")
 		bf.combat_resolution_running = false
 		return
+	bf.battleplan_objective_controller.note_attack("player")
 
 	if bf.get_slot_lane(player_front_slot) != lane:
 		await bf.show_timed_mobility_message("VOLLEY  -  Diagonal attack")
@@ -840,6 +887,7 @@ func resolve_player_pass_lane_with_visuals(lane: String) -> void:
 
 	bf.set_active_combat_lane_highlight(lane)
 	bf.player_passed_current_lane = true
+	bf.battleplan_objective_controller.note_pass("player", lane)
 	bf.log_msg("Player passes priority in the " + lane + " lane.")
 	await bf.get_tree().create_timer(bf.COMBAT_LANE_START_DELAY).timeout
 
@@ -933,6 +981,7 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 func resolve_ai_pass_lane_with_visuals(lane: String) -> void:
 	bf.set_active_combat_lane_highlight(lane)
 	bf.ai_passed_current_lane = true
+	bf.battleplan_objective_controller.note_pass("enemy", lane)
 	bf.log_msg("AI passes priority in the " + lane + " lane.")
 	await bf.get_tree().create_timer(bf.COMBAT_LANE_START_DELAY).timeout
 
@@ -954,6 +1003,7 @@ func resolve_ai_check_lane_with_visuals(lane: String) -> void:
 		return
 
 	back_slot.set_meta("interacted_this_round", true)
+	bf.battleplan_objective_controller.note_face_down_probed("player")
 
 	if back_slot.has_method("reveal_card"):
 		back_slot.reveal_card()
@@ -964,6 +1014,7 @@ func resolve_ai_check_lane_with_visuals(lane: String) -> void:
 	bf.ai_memory_note_player_hidden_reveal(back_card, lane, "ai_check")
 
 	if bf.is_gambit_card(back_card):
+		bf.battleplan_objective_controller.note_check("enemy", true)
 		bf.add_aurion("ai", 1, "Successful Check: " + back_card.card_name + " was a Gambit.")
 		bf.log_msg("AI Check successful. Your Gambit is denied and discarded. AI keeps priority in this lane.")
 		bf.send_slot_card_to_discard(back_slot)
@@ -972,6 +1023,7 @@ func resolve_ai_check_lane_with_visuals(lane: String) -> void:
 		await bf.resolve_ai_current_priority_lane(lane)
 		return
 
+	bf.battleplan_objective_controller.note_check("enemy", false)
 	bf.add_aurion("player", 1, "AI failed Check: " + back_card.card_name + " was a decoy.")
 	var ai_feint := bf.slot_has_control_ability(checking_slot, &"feint")
 	if ai_feint != null:
@@ -999,6 +1051,7 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 	if not bf.is_unit_card(ai_card):
 		await bf.resolve_ai_pass_lane_with_visuals(lane)
 		return
+	bf.battleplan_objective_controller.note_attack("enemy")
 	var infiltrator := bf.slot_has_protection_ability(ai_front_slot, &"infiltrator")
 	if player_back_is_face_down and infiltrator != null:
 		await bf.show_protection_trigger(infiltrator, "Backline bypassed")
@@ -1158,6 +1211,7 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 		return
 
 	back_slot.set_meta("interacted_this_round", true)
+	bf.battleplan_objective_controller.note_face_down_probed("enemy")
 
 	if back_slot.has_method("reveal_card"):
 		back_slot.reveal_card()
@@ -1165,6 +1219,7 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 	await bf.get_tree().create_timer(bf.BLUFF_REVEAL_DELAY).timeout
 
 	if bf.is_gambit_card(back_card):
+		bf.battleplan_objective_controller.note_check("player", true)
 		bf.ai_memory_note_player_check_result(lane, true)
 		bf.add_aurion("player", 1, "Successful Check: " + back_card.card_name + " was a Gambit.")
 		bf.log_msg("Check successful. Gambit is denied and discarded. Player keeps priority in this lane.")
@@ -1174,6 +1229,7 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 		bf.combat_resolution_running = false
 		return
 
+	bf.battleplan_objective_controller.note_check("player", false)
 	bf.ai_memory_note_player_check_result(lane, false)
 	bf.add_aurion("ai", 1, "Failed Check: " + back_card.card_name + " was a decoy.")
 	var checking_slot := bf.find_slot_by_owner_row_lane("player", "front", lane)
@@ -1210,10 +1266,12 @@ func resolve_player_check_lane_from_specific_attacker(lane: String, checking_slo
 	bf.log_msg(ability_name + ": checking the " + lane + " backline from the " + source_lane + " lane.")
 	await bf.get_tree().create_timer(bf.COMBAT_LANE_START_DELAY).timeout
 	back_slot.set_meta("interacted_this_round", true)
+	bf.battleplan_objective_controller.note_face_down_probed("enemy")
 	back_slot.reveal_card()
 	await bf.get_tree().create_timer(bf.BLUFF_REVEAL_DELAY).timeout
 
 	if bf.is_gambit_card(back_card):
+		bf.battleplan_objective_controller.note_check("player", true)
 		bf.ai_memory_note_player_check_result(lane, true)
 		bf.add_aurion("player", 1, "Successful " + ability_name + " Check: " + back_card.card_name + " was a Gambit.")
 		bf.log_msg(ability_name + " Check succeeded. The Gambit is discarded; Volley keeps priority.")
@@ -1223,6 +1281,7 @@ func resolve_player_check_lane_from_specific_attacker(lane: String, checking_slo
 		bf.combat_resolution_running = false
 		return true
 
+	bf.battleplan_objective_controller.note_check("player", false)
 	bf.ai_memory_note_player_check_result(lane, false)
 	bf.add_aurion("ai", 1, "Failed " + ability_name + " Check: " + back_card.card_name + " was a decoy.")
 	var feint := bf.slot_has_control_ability(checking_slot, &"feint")

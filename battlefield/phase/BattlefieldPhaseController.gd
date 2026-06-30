@@ -173,6 +173,7 @@ func _on_battle_plan_selected(plan: Dictionary) -> void:
 		bf.battle_plan_manager.select_battle_plan(plan)
 
 	bf.choose_opponent_battle_plan()
+	bf.battleplan_objective_controller.reset_round(plan, bf.opponent_battle_plan)
 
 	if bf.battle_plan_panel != null:
 		bf.battle_plan_panel.set_battle_plan(plan)
@@ -707,16 +708,18 @@ func _on_next_phase_pressed() -> void:
 					else:
 						bf.log_msg("Resolving the AI Deployment turn.")
 					await bf.run_ai_deployment_turn_if_needed()
+			bf.battleplan_objective_controller.capture_deployment_end()
 			bf.set_phase(bf.BattlePhase.COMBAT)
 
 func start_next_round() -> void:
 	bf.phase_transition_busy = true
 	bf.clear_active_combat_lane_highlight()
-	bf.reset_face_down_gambit_setup_counters()
 	if bf.parry_system.active:
 		bf.log_msg("Resolve the parry prompt before ending combat.")
 		bf.phase_transition_busy = false
 		return
+	bf.battleplan_objective_controller.resolve_end_of_round()
+	bf.reset_face_down_gambit_setup_counters()
 	bf.queue_surviving_stealth_deployments()
 	await bf.resolve_pending_stealth_deployments()
 

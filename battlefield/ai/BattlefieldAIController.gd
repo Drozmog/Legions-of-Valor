@@ -248,6 +248,7 @@ func ai_offer_one_card_to_tribute() -> void:
 
 	bf.ai_hand.pop_at(tribute_index)
 	bf.ai_tribute.append(tribute_card)
+	bf.battleplan_objective_controller.note_tribute("enemy", tribute_card)
 	bf.ai_tribute_used_this_turn = true
 
 	var card_type: String = bf.get_clean_card_type(tribute_card)

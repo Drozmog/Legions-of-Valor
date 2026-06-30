@@ -103,6 +103,7 @@ func try_sacrifice_selected_card_to_tribute() -> bool:
 
 	if not bf.tribute_manager.offer_card_to_tribute(bf.selected_card_data):
 		return false
+	bf.battleplan_objective_controller.note_tribute("player", bf.selected_card_data)
 
 	if offered_card_type == "gambit":
 		bf.log_msg("Offered " + offered_card_name + " for temporary Tribute. +2 TP this turn.")
