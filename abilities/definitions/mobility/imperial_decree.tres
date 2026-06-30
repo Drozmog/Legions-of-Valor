@@ -9,6 +9,6 @@ ability_id = &"imperial_decree"
 ability_name = "Imperial Decree"
 category = "mobility"
 point_cost = 8.0
-rules_text = "Discard an enemy unit with 5 AP or more from the Frontline."
+rules_text = "Discard all enemy units with 5 AP or more from the Frontline."
 icon = ExtResource("1_2oty7")
 handler_id = &"imperial_decree"

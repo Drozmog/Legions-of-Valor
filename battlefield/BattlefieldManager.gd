@@ -270,6 +270,7 @@ var interaction_controller: BattlefieldInteractionController = null
 var combat_controller: BattlefieldCombatController = null
 var ability_controller: BattlefieldAbilityController = null
 var control_controller: BattlefieldControlController = null
+var volley_controller: BattlefieldVolleyController = null
 var deployment_controller: BattlefieldDeploymentController = null
 
 @onready var opponent_visuals: OpponentVisuals = get_node_or_null("OpponentVisuals") as OpponentVisuals
@@ -379,6 +380,7 @@ func _ready() -> void:
 	combat_controller = BattlefieldCombatController.new(self)
 	ability_controller = BattlefieldAbilityController.new(self)
 	control_controller = BattlefieldControlController.new(self)
+	volley_controller = BattlefieldVolleyController.new(self)
 	deployment_controller = BattlefieldDeploymentController.new(self)
 	ai_controller = BattlefieldAIController.new(self)
 	apply_ai_difficulty_from_menu()
@@ -426,6 +428,14 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		if cancel_active_ability_targeting():
+			get_viewport().set_input_as_handled()
+			return
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		if cancel_active_ability_targeting():
+			get_viewport().set_input_as_handled()
+			return
 	if event is InputEventKey:
 		var key_event := event as InputEventKey
 
@@ -863,6 +873,21 @@ func choose_mobility_slot(
 	mobility_selection_active = false
 	await hide_mobility_prompt()
 	return chosen
+
+
+func cancel_active_ability_targeting() -> bool:
+	if volley_controller != null and volley_controller.cancel():
+		return true
+	if mobility_selection_active:
+		mobility_slot_chosen.emit(null)
+		return true
+	if insight_gambit_selection_active:
+		insight_gambit_slot_chosen.emit(null)
+		return true
+	if mobility_choice_panel != null:
+		mobility_choice_made.emit(false)
+		return true
+	return false
 
 
 func show_mobility_prompt(text: String, icon_path: String = MOBILITY_PROMPT_ICON_PATH) -> void:
@@ -2778,6 +2803,11 @@ func refresh_board_slot_action_buttons() -> void:
 		if rail == null:
 			continue
 		var actions: Array[int] = []
+		if volley_controller != null and volley_controller.active:
+			if String(slot.get_meta("owner", "")) == "enemy" and String(slot.get_meta("row", "")) == "front" and get_slot_lane(slot) == volley_controller.target_lane:
+				actions = volley_controller.get_target_actions()
+			rail.set_actions(actions)
+			continue
 		if not controls_blocked:
 			var lane := get_slot_lane(slot)
 			var can_pass := can_player_pass_lane_from_menu(lane)
@@ -2804,6 +2834,8 @@ func refresh_board_slot_action_buttons() -> void:
 
 func _on_board_slot_action_button_pressed(action_id: int, slot: Node) -> void:
 	if slot == null or game_over or phase_transition_busy:
+		return
+	if volley_controller != null and volley_controller.submit_action(action_id, slot):
 		return
 	board_action_target_slot = slot
 	await _on_board_slot_action_selected(action_id)
@@ -3393,16 +3425,20 @@ func resolve_volley_from_slot(source_slot: Node, ability: AbilityData) -> bool:
 	return await ability_controller.resolve_volley_from_slot(source_slot, ability)
 
 
-func resolve_player_attack_lane_from_specific_attacker(lane: String, attacker_slot: Node, ability_name: String = "Volley") -> void:
-	await ability_controller.resolve_player_attack_lane_from_specific_attacker(lane, attacker_slot, ability_name)
+func resolve_player_attack_lane_from_specific_attacker(lane: String, attacker_slot: Node, ability_name: String = "Volley") -> bool:
+	return await ability_controller.resolve_player_attack_lane_from_specific_attacker(lane, attacker_slot, ability_name)
+
+
+func resolve_player_check_lane_from_specific_attacker(lane: String, attacker_slot: Node, ability_name: String = "Volley") -> bool:
+	return await combat_controller.resolve_player_check_lane_from_specific_attacker(lane, attacker_slot, ability_name)
 
 
 func prepare_player_volley_lane_action(source_lane: String, target_lane: String) -> bool:
 	return ability_controller.prepare_player_volley_lane_action(source_lane, target_lane)
 
 
-func resolve_volley_attack_into_face_down_backrow(lane: String, enemy_back_slot: Node, enemy_back_card: CardData, ability_name: String = "Volley") -> void:
-	await ability_controller.resolve_volley_attack_into_face_down_backrow(lane, enemy_back_slot, enemy_back_card, ability_name)
+func resolve_volley_attack_into_face_down_backrow(lane: String, enemy_back_slot: Node, enemy_back_card: CardData, ability_name: String = "Volley") -> bool:
+	return await ability_controller.resolve_volley_attack_into_face_down_backrow(lane, enemy_back_slot, enemy_back_card, ability_name)
 
 
 func _mark_and_polish_tree(node: Node) -> void:

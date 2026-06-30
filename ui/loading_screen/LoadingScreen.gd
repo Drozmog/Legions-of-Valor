@@ -13,26 +13,39 @@ func _ready() -> void:
 
 	if target_scene_path == "":
 		loading_label.text = "No scene selected."
+		SceneLoader.finish_transition()
 		return
 
-	# Start with black screen, then fade into the loading screen.
+	if not ResourceLoader.exists(target_scene_path):
+		loading_label.text = "Scene does not exist."
+		push_error("Target scene does not exist: " + target_scene_path)
+		SceneLoader.finish_transition()
+		return
+
+	progress_bar.min_value = 0
+	progress_bar.max_value = 100
+	progress_bar.value = 0
+
+	fade_rect.color = Color.BLACK
 	fade_rect.modulate.a = 1.0
+
 	var fade_in := create_tween()
-	fade_in.tween_property(fade_rect, "modulate:a", 0.0, 0.25)
+	fade_in.tween_property(fade_rect, "modulate:a", 0.0, 0.20)
 
 	start_loading()
 
 
 func start_loading() -> void:
 	loading_started = true
-	progress_bar.value = 0
 	loading_label.text = "Loading..."
 
 	var error := ResourceLoader.load_threaded_request(target_scene_path)
 
 	if error != OK:
+		loading_started = false
 		loading_label.text = "Failed to start loading."
 		push_error("Could not start threaded loading for: " + target_scene_path)
+		SceneLoader.finish_transition()
 
 
 func _process(_delta: float) -> void:
@@ -51,35 +64,38 @@ func _process(_delta: float) -> void:
 
 		ResourceLoader.THREAD_LOAD_LOADED:
 			loading_started = false
-			progress_bar.value = 100
+			progress_bar.value = 100.0
 			transition_to_loaded_scene()
 
 		ResourceLoader.THREAD_LOAD_FAILED:
 			loading_started = false
 			loading_label.text = "Loading failed."
 			push_error("Failed to load scene: " + target_scene_path)
+			SceneLoader.finish_transition()
 
 		ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
 			loading_started = false
 			loading_label.text = "Invalid scene."
 			push_error("Invalid scene path: " + target_scene_path)
+			SceneLoader.finish_transition()
 
 
 func transition_to_loaded_scene() -> void:
 	loading_label.text = "Ready"
 
-	# Tiny pause so the player actually sees the completed loading state.
-	await get_tree().create_timer(0.15).timeout
+	await get_tree().create_timer(0.10).timeout
 
-	# Fade to black before changing scene.
 	var fade_out := create_tween()
-	fade_out.tween_property(fade_rect, "modulate:a", 1.0, 0.25)
+	fade_out.tween_property(fade_rect, "modulate:a", 1.0, 0.20)
 	await fade_out.finished
 
-	var loaded_scene := ResourceLoader.load_threaded_get(target_scene_path)
+	var loaded_scene := ResourceLoader.load_threaded_get(target_scene_path) as PackedScene
 
 	if loaded_scene == null:
 		loading_label.text = "Could not open loaded scene."
+		push_error("Loaded scene was null: " + target_scene_path)
+		SceneLoader.finish_transition()
 		return
 
+	SceneLoader.finish_transition()
 	get_tree().change_scene_to_packed(loaded_scene)

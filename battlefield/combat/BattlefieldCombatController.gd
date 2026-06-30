@@ -99,8 +99,9 @@ func resolve_directed_clash(
 	var equalizer := bf.slot_has_protection_ability(defender_slot, &"equalizer") if not ignores_protection else null
 	if equalizer != null and attacker_ap == defender_ap + 1:
 		await bf.show_protection_trigger(equalizer, "Both units defeated")
-		await bf.destroy_unit_with_protection(defender_slot, _attacker_slot, true, ignores_protection)
-		await bf.destroy_unit_with_protection(_attacker_slot, defender_slot, true)
+		var defender_destroyed := await bf.destroy_unit_with_protection(defender_slot, _attacker_slot, true, ignores_protection)
+		var attacker_destroyed := await bf.destroy_unit_with_protection(_attacker_slot, defender_slot, true)
+		award_mutual_clash_aurion(attacker_card, defender_card, player_is_attacker, attacker_destroyed, defender_destroyed)
 		return
 
 	var attacker_label: String = "Player" if player_is_attacker else "Opponent"
@@ -123,8 +124,9 @@ func resolve_directed_clash(
 	)
 
 	if attacker_ap == defender_ap:
-		await bf.destroy_unit_with_protection(defender_slot, _attacker_slot, true, ignores_protection)
-		await bf.destroy_unit_with_protection(_attacker_slot, defender_slot, true)
+		var defender_destroyed := await bf.destroy_unit_with_protection(defender_slot, _attacker_slot, true, ignores_protection)
+		var attacker_destroyed := await bf.destroy_unit_with_protection(_attacker_slot, defender_slot, true)
+		award_mutual_clash_aurion(attacker_card, defender_card, player_is_attacker, attacker_destroyed, defender_destroyed)
 
 		bf.log_msg(
 			lane.capitalize()
@@ -177,6 +179,21 @@ func resolve_directed_clash(
 	var defender_score_owner: String = "ai" if player_is_attacker else "player"
 	bf.add_aurion(defender_score_owner, bf.get_unit_defeat_aurion_reward(attacker_card), "Destroyed " + attacker_card.card_name + " after it knowingly attacked a higher-AP unit.")
 	return
+
+
+func award_mutual_clash_aurion(
+	attacker_card: CardData,
+	defender_card: CardData,
+	player_is_attacker: bool,
+	attacker_destroyed: bool,
+	defender_destroyed: bool
+) -> void:
+	if defender_destroyed:
+		var attacker_owner := "player" if player_is_attacker else "ai"
+		bf.add_aurion(attacker_owner, bf.get_unit_defeat_aurion_reward(defender_card), "Mutual clash defeated " + defender_card.card_name + ".")
+	if attacker_destroyed:
+		var defender_owner := "ai" if player_is_attacker else "player"
+		bf.add_aurion(defender_owner, bf.get_unit_defeat_aurion_reward(attacker_card), "Mutual clash defeated " + attacker_card.card_name + ".")
 
 
 func resolve_ai_parry_attempt(
@@ -773,6 +790,10 @@ func resolve_player_attack_lane_with_visuals(lane: String) -> void:
 		await bf.show_timed_mobility_message("VOLLEY  -  Diagonal attack")
 	if bf.get_slot_lane(player_front_slot) != "middle" and bf.slot_has_mobility_ability(player_front_slot, &"siege") != null:
 		await bf.show_timed_mobility_message("SIEGE  -  Centre interception blocked")
+	var infiltrator := bf.slot_has_protection_ability(player_front_slot, &"infiltrator")
+	if enemy_back_is_face_down and infiltrator != null:
+		await bf.show_protection_trigger(infiltrator, "Backline bypassed")
+		enemy_back_is_face_down = false
 
 	if enemy_back_is_face_down:
 		# Attacking a lane with a hidden enemy back-row card always resolves the bluff first.
@@ -978,6 +999,10 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 	if not bf.is_unit_card(ai_card):
 		await bf.resolve_ai_pass_lane_with_visuals(lane)
 		return
+	var infiltrator := bf.slot_has_protection_ability(ai_front_slot, &"infiltrator")
+	if player_back_is_face_down and infiltrator != null:
+		await bf.show_protection_trigger(infiltrator, "Backline bypassed")
+		player_back_is_face_down = false
 
 	# Hidden back-row cards must be resolved before AI can hit the Monarch.
 	if player_back_is_face_down:
@@ -1165,6 +1190,54 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 	bf.set_lane_priority_to_ai(lane)
 	await bf.resolve_ai_current_priority_lane(lane)
 	bf.combat_resolution_running = false
+
+
+func resolve_player_check_lane_from_specific_attacker(lane: String, checking_slot: Node, ability_name: String = "Volley") -> bool:
+	if bf.combat_resolution_running or checking_slot == null:
+		return false
+	var source_lane := bf.get_slot_lane(checking_slot)
+	if not bf.prepare_player_volley_lane_action(source_lane, lane):
+		return false
+	var back_slot := bf.find_slot_by_owner_row_lane("enemy", "back", lane)
+	var back_card := bf.get_slot_card_data(back_slot)
+	if back_slot == null or back_card == null or not bool(back_slot.get_meta("face_down", false)):
+		bf.log_msg(ability_name + ": no face-down back-row card to Check in the " + lane + " lane.")
+		return true
+
+	bf.combat_resolution_running = true
+	bf.player_passed_current_lane = false
+	bf.set_active_combat_lane_highlight(lane)
+	bf.log_msg(ability_name + ": checking the " + lane + " backline from the " + source_lane + " lane.")
+	await bf.get_tree().create_timer(bf.COMBAT_LANE_START_DELAY).timeout
+	back_slot.set_meta("interacted_this_round", true)
+	back_slot.reveal_card()
+	await bf.get_tree().create_timer(bf.BLUFF_REVEAL_DELAY).timeout
+
+	if bf.is_gambit_card(back_card):
+		bf.ai_memory_note_player_check_result(lane, true)
+		bf.add_aurion("player", 1, "Successful " + ability_name + " Check: " + back_card.card_name + " was a Gambit.")
+		bf.log_msg(ability_name + " Check succeeded. The Gambit is discarded; Volley keeps priority.")
+		bf.send_slot_card_to_discard(back_slot)
+		await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
+		bf.combat_priority_owner = "player"
+		bf.combat_resolution_running = false
+		return true
+
+	bf.ai_memory_note_player_check_result(lane, false)
+	bf.add_aurion("ai", 1, "Failed " + ability_name + " Check: " + back_card.card_name + " was a decoy.")
+	var feint := bf.slot_has_control_ability(checking_slot, &"feint")
+	if feint != null:
+		await bf.show_control_trigger(feint, "Wrong Check AP penalty ignored")
+	else:
+		checking_slot.set_meta("control_wrong_check_penalty_turn", bf.turn_number)
+	bf.enemy_fortified_lanes[lane] = true
+	bf.player_passed_current_lane = true
+	bf.return_setup_card(back_slot, back_card, "enemy")
+	await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
+	bf.set_lane_priority_to_ai(source_lane, ability_name + " Check failed; priority passes to AI.")
+	await bf.resolve_ai_current_priority_lane(source_lane)
+	bf.combat_resolution_running = false
+	return false
 
 func prepare_player_lane_action(lane: String) -> bool:
 	if lane == "":

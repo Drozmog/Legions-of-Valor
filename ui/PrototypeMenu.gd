@@ -427,15 +427,16 @@ func _on_menu_button_unhovered(button: Button) -> void:
 
 
 func _on_start_battle_pressed() -> void:
-	SceneLoader.go_to_scene("res://Scenes/BattleScene.tscn")
+	SceneLoader.go_to_scene(BATTLE_SCENE_PATH)
 
 
 func _on_back_pressed() -> void:
-	SceneLoader.go_to_scene("res://Scenes/MainMenu.tscn", "back_button")
+	PrototypeMenu.skip_intro_once = true
+	SceneLoader.go_to_scene("res://ui/Menu/prototype_menu.tscn", "back_button")
 
 
 func _on_deck_builder_pressed() -> void:
-	SceneLoader.go_to_scene("res://Scenes/DeckBuilder.tscn")
+	SceneLoader.go_to_scene(DECK_BUILDER_SCENE_PATH)
 
 
 func _on_quit_pressed() -> void:

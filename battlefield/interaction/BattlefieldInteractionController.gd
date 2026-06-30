@@ -509,6 +509,8 @@ func _on_slot_clicked(slot: Node) -> void:
 
 
 func _on_slot_right_clicked(slot: Node) -> void:
+	if bf.cancel_active_ability_targeting():
+		return
 	if bf.is_prebattle_modal_open():
 		return
 	bf.show_board_slot_action_menu(slot)

@@ -101,22 +101,18 @@ func resolve_mobility_gambit_effect(ability: AbilityData, caster_owner: String) 
 
 func resolve_imperial_decree(ability: AbilityData, caster_owner: String) -> bool:
 	var target_owner := "enemy" if caster_owner == "player" else "player"
-	var candidates: Array[Node] = []
+	var targets: Array[Node] = []
 	for lane in ["left", "middle", "right"]:
 		var slot := bf.find_slot_by_owner_row_lane(target_owner, "front", lane)
 		var card := bf.get_slot_card_data(slot)
-		if bf.is_unit_card(card) and bf.get_slot_combat_ap(slot) <= 6:
-			candidates.append(slot)
-	if candidates.is_empty():
+		if bf.is_unit_card(card) and bf.get_slot_combat_ap(slot) >= 5:
+			targets.append(slot)
+	if targets.is_empty():
 		await bf.show_timed_mobility_message(ability.ability_name + "  -  No legal target")
 		return false
-	if caster_owner != "player":
-		bf.send_slot_card_to_discard(candidates.pick_random())
-		return true
-	var target := await bf.choose_mobility_slot(candidates, ability.ability_name + "  -  Choose a unit with 6 AP or less")
-	if target == null:
-		return false
-	bf.send_slot_card_to_discard(target)
+	await bf.show_timed_mobility_message(ability.ability_name + "  -  Discarding " + str(targets.size()) + " unit(s) with 5+ AP")
+	for target in targets:
+		bf.send_slot_card_to_discard(target)
 	return true
 
 
@@ -563,6 +559,9 @@ func present_hidden_enemy_gambit_choice(ability: AbilityData) -> Dictionary:
 			slot.call("set_insight_highlight", false, Color.WHITE)
 		bf.insight_gambit_selection_active = false
 		bf.insight_presentation_active = false
+		if chosen_slot == null:
+			bf.insight_gambit_candidate_slots.clear()
+			return {"success": false, "reason": "cancelled"}
 		var card_data := bf.get_slot_card_data(chosen_slot)
 		if card_data != null:
 			cards_seen.append(card_data)
@@ -653,9 +652,6 @@ func get_card_protection_ability(card_data: CardData, ability_id: StringName) ->
 func get_gambit_attack_protection(attacker_slot: Node) -> AbilityData:
 	if bf.slot_has_control_ability(attacker_slot, &"precision") != null:
 		return null
-	var infiltrator := bf.slot_has_protection_ability(attacker_slot, &"infiltrator")
-	if infiltrator != null:
-		return infiltrator
 	return bf.slot_has_protection_ability(attacker_slot, &"spell_shield")
 
 
@@ -1216,24 +1212,16 @@ func get_volley_target_slots_for_slot(source_slot: Node) -> Array[Node]:
 	return result
 
 func resolve_volley_from_slot(source_slot: Node, ability: AbilityData) -> bool:
-	var candidates := bf.get_volley_target_slots_for_slot(source_slot)
-	var target_slot := await bf.choose_mobility_slot(candidates, ability.ability_name + "  -  Choose enemy lane to attack")
-	if target_slot == null:
-		return false
-	var target_lane := bf.get_slot_lane(target_slot)
-	if target_lane == "":
-		return false
-	await bf.resolve_player_attack_lane_from_specific_attacker(target_lane, source_slot, ability.ability_name)
-	return true
+	return await bf.volley_controller.resolve(source_slot, ability)
 
-func resolve_player_attack_lane_from_specific_attacker(lane: String, attacker_slot: Node, ability_name: String = "Volley") -> void:
+func resolve_player_attack_lane_from_specific_attacker(lane: String, attacker_slot: Node, ability_name: String = "Volley") -> bool:
 	if bf.combat_resolution_running:
-		return
+		return false
 	bf.combat_resolution_running = true
 	var attacker_lane := bf.get_slot_lane(attacker_slot)
 	if not bf.prepare_player_volley_lane_action(attacker_lane, lane):
 		bf.combat_resolution_running = false
-		return
+		return false
 	bf.player_passed_current_lane = false
 	bf.set_active_combat_lane_highlight(lane)
 	if attacker_lane == lane:
@@ -1250,24 +1238,29 @@ func resolve_player_attack_lane_from_specific_attacker(lane: String, attacker_sl
 	if not bf.is_unit_card(player_card):
 		bf.log_msg(ability_name + ": the chosen attacker is no longer a unit.")
 		bf.combat_resolution_running = false
-		return
+		return false
+	var infiltrator := bf.slot_has_protection_ability(attacker_slot, &"infiltrator")
+	if enemy_back_is_face_down and infiltrator != null:
+		await bf.show_protection_trigger(infiltrator, "Backline bypassed")
+		enemy_back_is_face_down = false
 	if enemy_back_is_face_down:
-		await bf.resolve_volley_attack_into_face_down_backrow(lane, enemy_back_slot, enemy_back_card, ability_name)
+		var follow_up := await bf.resolve_volley_attack_into_face_down_backrow(lane, enemy_back_slot, enemy_back_card, ability_name)
 		bf.combat_resolution_running = false
-		return
+		return follow_up
 	if enemy_front_card == null:
 		bf.resolve_monarch_strike(lane, player_card)
 		await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
 		await bf.advance_combat_lane_after_resolution()
 		bf.combat_resolution_running = false
-		return
+		return false
 	await bf.resolve_directed_clash(lane, attacker_slot, player_card, enemy_front_slot, enemy_front_card, true)
 	if bf.parry_system.active:
 		bf.combat_resolution_running = false
-		return
+		return false
 	await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
 	await bf.advance_combat_lane_after_resolution()
 	bf.combat_resolution_running = false
+	return false
 
 func prepare_player_volley_lane_action(source_lane: String, target_lane: String) -> bool:
 	if source_lane == "" or target_lane == "":
@@ -1295,9 +1288,9 @@ func prepare_player_volley_lane_action(source_lane: String, target_lane: String)
 		return false
 	return true
 
-func resolve_volley_attack_into_face_down_backrow(lane: String, enemy_back_slot: Node, enemy_back_card: CardData, ability_name: String = "Volley") -> void:
+func resolve_volley_attack_into_face_down_backrow(lane: String, enemy_back_slot: Node, enemy_back_card: CardData, ability_name: String = "Volley") -> bool:
 	if enemy_back_slot == null or enemy_back_card == null:
-		return
+		return false
 	enemy_back_slot.set_meta("interacted_this_round", true)
 	if enemy_back_slot.has_method("reveal_card"):
 		enemy_back_slot.reveal_card()
@@ -1309,14 +1302,15 @@ func resolve_volley_attack_into_face_down_backrow(lane: String, enemy_back_slot:
 			bf.send_slot_card_to_discard(enemy_back_slot)
 		await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
 		await bf.advance_combat_lane_after_resolution()
-		return
+		return false
 	if bf.resolve_stealth_hidden_decoy(enemy_back_slot, enemy_back_card, "enemy", lane):
-		bf.log_msg(ability_name + " is spent. No follow-up attack is available this lane.")
+		bf.log_msg(ability_name + " revealed a hidden unit. A follow-up action is available.")
 		await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
-		await bf.advance_combat_lane_after_resolution()
-		return
+		bf.combat_priority_owner = "player"
+		return true
 	bf.add_aurion("player", 1, "Successful " + ability_name + " read: " + enemy_back_card.card_name + " was not a Gambit.")
-	bf.log_msg(ability_name + " read correctly: " + enemy_back_card.card_name + " was not a Gambit. Decoy is discarded and the attack is spent.")
+	bf.log_msg(ability_name + " read correctly: " + enemy_back_card.card_name + " was not a Gambit. Decoy is discarded; choose a follow-up action.")
 	bf.send_slot_card_to_discard(enemy_back_slot)
 	await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
-	await bf.advance_combat_lane_after_resolution()
+	bf.combat_priority_owner = "player"
+	return true

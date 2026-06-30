@@ -1,10 +1,11 @@
 extends Node
 
-const LOADING_SCREEN_PATH := "res://Scenes/LoadingScreen.tscn"
+const LOADING_SCREEN_PATH := "res://ui/loading_screen/loading_screen.tscn"
 const SFX_FOLDER := "res://Audio/SFX/"
 const MAX_SIMULTANEOUS_SFX := 8
 
 var target_scene_path: String = ""
+var is_transitioning := false
 
 var sfx_players: Array[AudioStreamPlayer] = []
 var cached_sfx: Dictionary = {}
@@ -18,15 +19,29 @@ func _ready() -> void:
 
 
 func go_to_scene(scene_path: String, sfx_name: String = "menu_button") -> void:
+	if is_transitioning:
+		return
+
+	is_transitioning = true
 	target_scene_path = scene_path
 
 	if sfx_name != "":
 		play_sfx(sfx_name)
 
+	if not ResourceLoader.exists(LOADING_SCREEN_PATH):
+		push_error("Missing loading screen scene: " + LOADING_SCREEN_PATH)
+		is_transitioning = false
+		return
+
 	var error := get_tree().change_scene_to_file(LOADING_SCREEN_PATH)
 
 	if error != OK:
 		push_error("Could not open loading screen: " + LOADING_SCREEN_PATH)
+		is_transitioning = false
+
+
+func finish_transition() -> void:
+	is_transitioning = false
 
 
 func play_sfx(sfx_name: String) -> void:
@@ -98,15 +113,13 @@ func play_select_button() -> void:
 
 func play_board_action_button(action_id: int) -> void:
 	match action_id:
-		0:
-			play_attack_button()
-		1:
-			play_check_button()
 		2:
-			play_pass_button()
+			play_attack_button()
 		3:
-			play_inspect_button()
+			play_check_button()
 		4:
-			play_select_button()
+			play_pass_button()
+		1:
+			play_inspect_button()
 		_:
 			play_menu_button()

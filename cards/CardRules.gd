@@ -44,7 +44,9 @@ static func get_deck_copy_limit(card_data: CardData) -> int:
 
 
 static func get_defeat_aurion_reward(card_data: CardData) -> int:
-	if is_unit_card(card_data) and is_elite_card(card_data):
+	# Diamond units are normal (+1). Every star-tier unit is elite (+2).
+	# Crown rarity remains worth the elite reward as well.
+	if is_unit_card(card_data) and card_data.get_rarity_rank() >= 3:
 		return 2
 	return 1
 
