@@ -83,10 +83,8 @@ func _process(_delta: float) -> void:
 func transition_to_loaded_scene() -> void:
 	loading_label.text = "Ready"
 
-	await get_tree().create_timer(0.10).timeout
-
 	var fade_out := create_tween()
-	fade_out.tween_property(fade_rect, "modulate:a", 1.0, 0.20)
+	fade_out.tween_property(fade_rect, "modulate:a", 1.0, 0.18)
 	await fade_out.finished
 
 	var loaded_scene := ResourceLoader.load_threaded_get(target_scene_path) as PackedScene
@@ -97,5 +95,4 @@ func transition_to_loaded_scene() -> void:
 		SceneLoader.finish_transition()
 		return
 
-	SceneLoader.finish_transition()
-	get_tree().change_scene_to_packed(loaded_scene)
+	SceneLoader.change_to_loaded_scene_with_overlay(loaded_scene, target_scene_path)
