@@ -1,25 +1,20 @@
 extends Node
 
+const LOADING_SCREEN_PATH := "res://ui/loading_screen/loading_screen.tscn"
 const MENU_MUSIC_PATH := "res://Audio/Music/main_menu_theme.ogg"
+const SFX_FOLDER := "res://Audio/SFX/"
+const MAX_SIMULTANEOUS_SFX := 8
 
-const SFX_PATHS := {
-	"menu_button": "res://Audio/SFX/menu_button.wav",
-	"back_button": "res://Audio/SFX/back_button.wav",
-	"initial_menu_button": "res://Audio/SFX/initial_menu_button.wav",
-
-	"select_button": "res://Audio/SFX/select_button.wav",
-	"attack_button": "res://Audio/SFX/attack_button.wav",
-	"check_button": "res://Audio/SFX/check_button.wav",
-	"pass_button": "res://Audio/SFX/pass_button.wav",
-	"inspect_button": "res://Audio/SFX/inspect_button.wav",
-	"alert_sound": "res://Audio/SFX/alert_sound.wav",
-}
+var target_scene_path: String = ""
 
 var music_player: AudioStreamPlayer = null
+var sfx_players: Array[AudioStreamPlayer] = []
+var cached_sfx: Dictionary = {}
 
 
 func _ready() -> void:
 	_ensure_music_player()
+	_ensure_sfx_players()
 
 
 func _ensure_music_player() -> void:
@@ -33,6 +28,18 @@ func _ensure_music_player() -> void:
 
 	if not music_player.finished.is_connected(_on_music_finished):
 		music_player.finished.connect(_on_music_finished)
+
+
+func _ensure_sfx_players() -> void:
+	if not sfx_players.is_empty():
+		return
+
+	for i in range(MAX_SIMULTANEOUS_SFX):
+		var player := AudioStreamPlayer.new()
+		player.name = "SFXPlayer_" + str(i)
+		player.bus = _get_audio_bus_name("SFX")
+		add_child(player)
+		sfx_players.append(player)
 
 
 func _get_audio_bus_name(preferred_bus: String) -> String:
@@ -80,51 +87,74 @@ func _on_music_finished() -> void:
 	music_player.play()
 
 
-func play_sfx(sfx_id: String) -> void:
-	if sfx_id == "":
+func go_to_scene(scene_path: String, sfx_name: String = "menu_button") -> void:
+	target_scene_path = scene_path
+
+	if sfx_name != "":
+		play_sfx(sfx_name)
+
+	var error := get_tree().change_scene_to_file(LOADING_SCREEN_PATH)
+
+	if error != OK:
+		push_error("Could not open loading screen: " + LOADING_SCREEN_PATH + " | Error: " + str(error))
+
+
+func play_sfx(sfx_name: String) -> void:
+	_ensure_sfx_players()
+
+	var stream := get_sfx(sfx_name)
+
+	if stream == null:
 		return
 
-	if not SFX_PATHS.has(sfx_id):
-		push_warning("Missing SFX id in SceneLoader: " + sfx_id)
-		return
+	var player := get_free_sfx_player()
+	player.stream = stream
+	player.play()
 
-	var path: String = String(SFX_PATHS[sfx_id])
+
+func get_sfx(sfx_name: String) -> AudioStream:
+	if sfx_name == "":
+		return null
+
+	if cached_sfx.has(sfx_name):
+		return cached_sfx[sfx_name]
+
+	var path := SFX_FOLDER + sfx_name + ".wav"
 
 	if not ResourceLoader.exists(path):
 		push_warning("Missing SFX file: " + path)
-		return
+		return null
 
 	var stream := load(path) as AudioStream
 
 	if stream == null:
 		push_warning("Could not load SFX file: " + path)
-		return
+		return null
 
-	var player := AudioStreamPlayer.new()
-	player.name = "SFX_" + sfx_id
-	player.stream = stream
-	player.bus = _get_audio_bus_name("SFX")
-	player.volume_db = 0.0
-	add_child(player)
+	cached_sfx[sfx_name] = stream
+	return stream
 
-	player.finished.connect(player.queue_free)
-	player.play()
+
+func get_free_sfx_player() -> AudioStreamPlayer:
+	_ensure_sfx_players()
+
+	for player in sfx_players:
+		if player != null and not player.playing:
+			return player
+
+	return sfx_players[0]
 
 
 func play_menu_button() -> void:
 	play_sfx("menu_button")
 
 
-func play_back_button() -> void:
-	play_sfx("back_button")
-
-
 func play_initial_menu_button() -> void:
 	play_sfx("initial_menu_button")
 
 
-func play_select_button() -> void:
-	play_sfx("select_button")
+func play_back_button() -> void:
+	play_sfx("back_button")
 
 
 func play_attack_button() -> void:
@@ -143,19 +173,25 @@ func play_inspect_button() -> void:
 	play_sfx("inspect_button")
 
 
+func play_select_button() -> void:
+	play_sfx("select_button")
+
+
 func play_alert_sound() -> void:
 	play_sfx("alert_sound")
 
 
-func go_to_scene(scene_path: String, sfx_id: String = "") -> void:
-	if sfx_id != "":
-		play_sfx(sfx_id)
-
-	call_deferred("_change_scene_deferred", scene_path)
-
-
-func _change_scene_deferred(scene_path: String) -> void:
-	var error := get_tree().change_scene_to_file(scene_path)
-
-	if error != OK:
-		push_warning("Could not change scene to: " + scene_path + " | Error: " + str(error))
+func play_board_action_button(action_id: int) -> void:
+	match action_id:
+		0:
+			play_attack_button()
+		1:
+			play_check_button()
+		2:
+			play_pass_button()
+		3:
+			play_inspect_button()
+		4:
+			play_select_button()
+		_:
+			play_menu_button()
