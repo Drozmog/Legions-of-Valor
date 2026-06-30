@@ -268,7 +268,28 @@ func can_attach_equipment() -> bool:
 	if bool(get_meta("face_down", false)):
 		return false
 
+	if has_burdened_equipment_lock():
+		return false
+
 	return equipment_cards.size() < MAX_EQUIPMENT_PER_UNIT
+
+
+func card_has_ability_id(card_data: CardData, ability_id: StringName) -> bool:
+	if card_data == null:
+		return false
+	for ability in card_data.get_abilities():
+		if ability != null and ability.ability_id == ability_id:
+			return true
+	return false
+
+
+func has_burdened_equipment_lock() -> bool:
+	if card_has_ability_id(get_placed_card_data(), &"burdened"):
+		return true
+	for equipment in equipment_cards:
+		if card_has_ability_id(equipment, &"burdened"):
+			return true
+	return false
 	
 
 func add_equipment_click_area(equipment_node: Node3D, equipment_card: CardData) -> void:
@@ -308,6 +329,10 @@ func _on_equipment_input_event(
 
 
 func attach_equipment(card_scene: PackedScene, card_data: CardData, force: bool = false) -> bool:
+	# Burdened is an absolute lock once active. `force` is reserved for
+	# bypassing the normal capacity check, not for bypassing card rules.
+	if has_burdened_equipment_lock():
+		return false
 	if not force and not can_attach_equipment():
 		return false
 	if force and (not occupied or placed_card == null or bool(get_meta("face_down", false))):
@@ -393,7 +418,7 @@ func restore_slot_snapshot(card_scene: PackedScene, snapshot: Dictionary) -> boo
 	if not place_card(card_scene, card, bool(snapshot.get("face_down", false))):
 		return false
 	for equipment in snapshot.get("equipment", []):
-		attach_equipment(card_scene, equipment as CardData)
+		attach_equipment(card_scene, equipment as CardData, true)
 	for stacked in snapshot.get("stacked_units", []):
 		add_stacked_unit(card_scene, stacked as CardData)
 	set_meta("vortex_bonus_turn", int(snapshot.get("vortex_bonus_turn", -1)))

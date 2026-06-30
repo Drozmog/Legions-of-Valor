@@ -112,7 +112,6 @@ var library_nodes: Array[Node3D] = []
 
 var library_root: Node3D
 var rack_root: Node3D
-var rack_root_home_position := Vector3.ZERO
 var rack_assembly_root: Node3D
 var rack_assembly_home_position := Vector3.ZERO
 var dragging_node: Node3D = null
@@ -344,37 +343,37 @@ func build_3d_scene() -> void:
 		library_root.name = "LibraryCards"
 		add_child(library_root)
 
-	rack_root = get_node_or_null("DeckRackCards") as Node3D
-	if rack_root == null:
-		rack_root = Node3D.new()
-		rack_root.name = "DeckRackCards"
-		add_child(rack_root)
-	rack_root_home_position = rack_root.position
 	setup_rack_assembly()
 
 	build_tabletop_ui_labels()
 
 
 func setup_rack_assembly() -> void:
-	rack_assembly_root = get_node_or_null("DeckRackAssembly") as Node3D
+	# The authored scene owns one mover containing both the imported tray and
+	# its cards. Keeping this hierarchy intact makes deck swaps move as a unit.
+	rack_assembly_root = get_node_or_null("DeckRackMover") as Node3D
 	if rack_assembly_root == null:
 		rack_assembly_root = Node3D.new()
-		rack_assembly_root.name = "DeckRackAssembly"
+		rack_assembly_root.name = "DeckRackMover"
 		add_child(rack_assembly_root)
 
-	# The rack shell and its cards move as one physical object during deck swaps.
-	for node_name in [
-		"RightPhysicalDeckRack",
-		"RackLeftWall",
-		"RackRightWall",
-		"RackTopWall",
-		"RackBottomWall",
-		"RackTitle3D",
-		"DeckRackCards",
-	]:
-		var rack_piece := get_node_or_null(node_name) as Node3D
-		if rack_piece != null and rack_piece.get_parent() != rack_assembly_root:
-			rack_piece.reparent(rack_assembly_root, true)
+	rack_root = rack_assembly_root.get_node_or_null("DeckRackCards") as Node3D
+	if rack_root == null:
+		# Migrate an older root-level card container without changing its world pose.
+		rack_root = get_node_or_null("DeckRackCards") as Node3D
+		if rack_root == null:
+			rack_root = Node3D.new()
+			rack_root.name = "DeckRackCards"
+		if rack_root.get_parent() == null:
+			rack_assembly_root.add_child(rack_root)
+		else:
+			rack_root.reparent(rack_assembly_root, true)
+
+	# Legacy scenes kept the rack light at the scene root. It belongs to the
+	# moving assembly, while the authored WoodenTray is already its child.
+	var rack_glow := get_node_or_null("RackWarmGlow") as Node3D
+	if rack_glow != null and rack_glow.get_parent() != rack_assembly_root:
+		rack_glow.reparent(rack_assembly_root, true)
 
 	rack_assembly_home_position = rack_assembly_root.position
 
@@ -426,88 +425,6 @@ func make_tabletop_label(
 	return label
 
 
-func create_table_mesh() -> void:
-	var table := MeshInstance3D.new()
-	table.name = "HeavyWoodenDeckBuilderTable"
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(14.8, 0.18, 6.45)
-	table.mesh = mesh
-	table.position = Vector3(0.0, -0.12, 0.0)
-	table.material_override = make_mat(Color(0.30, 0.17, 0.075, 1.0), 0.80, 0.0)
-	add_child(table)
-
-	var table_trim := MeshInstance3D.new()
-	table_trim.name = "GoldTableTrim"
-	var trim_mesh := BoxMesh.new()
-	trim_mesh.size = Vector3(14.95, 0.035, 6.60)
-	table_trim.mesh = trim_mesh
-	table_trim.position = Vector3(0.0, -0.005, 0.0)
-	table_trim.material_override = make_mat(Color(0.48, 0.34, 0.10, 1.0), 0.52, 0.0)
-	add_child(table_trim)
-
-
-func create_left_library_surface() -> void:
-	var surface := MeshInstance3D.new()
-	surface.name = "LeftCollectionTableSurface"
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(8.9, 0.04, 5.45)
-	surface.mesh = mesh
-	surface.position = Vector3(-2.05, 0.012, 0.10)
-	surface.material_override = make_mat(Color(0.18, 0.105, 0.052, 1.0), 0.88, 0.0)
-	add_child(surface)
-
-	var title := Label3D.new()
-	title.name = "LibraryTitle3D"
-	title.text = "OWNED CARD LIBRARY"
-	title.font_size = 34
-	title.pixel_size = 0.010
-	title.position = Vector3(-5.75, 0.075, -2.55)
-	title.rotation_degrees = Vector3(-90, 0, 0)
-	title.modulate = Color(0.96, 0.79, 0.34, 1.0)
-	add_child(title)
-
-
-func create_right_rack_surface() -> void:
-	var rack_base := MeshInstance3D.new()
-	rack_base.name = "RightPhysicalDeckRack"
-	var mesh := BoxMesh.new()
-	mesh.size = Vector3(3.55, 0.12, 5.60)
-	rack_base.mesh = mesh
-	rack_base.position = Vector3(5.10, 0.035, 0.0)
-	rack_base.material_override = make_mat(Color(0.16, 0.080, 0.038, 1.0), 0.82, 0.0)
-	add_child(rack_base)
-
-	var left_wall := make_rack_wall("RackLeftWall", Vector3(3.25, 0.22, 0), Vector3(0.08, 0.42, 5.72))
-	add_child(left_wall)
-	var right_wall := make_rack_wall("RackRightWall", Vector3(6.95, 0.22, 0), Vector3(0.08, 0.42, 5.72))
-	add_child(right_wall)
-	var top_wall := make_rack_wall("RackTopWall", Vector3(5.10, 0.22, -2.86), Vector3(3.70, 0.42, 0.08))
-	add_child(top_wall)
-	var bottom_wall := make_rack_wall("RackBottomWall", Vector3(5.10, 0.22, 2.86), Vector3(3.70, 0.42, 0.08))
-	add_child(bottom_wall)
-
-	var title := Label3D.new()
-	title.name = "RackTitle3D"
-	title.text = "DECK RACK"
-	title.font_size = 44
-	title.pixel_size = 0.010
-	title.position = Vector3(4.10, 0.16, -2.55)
-	title.rotation_degrees = Vector3(-90, 0, 0)
-	title.modulate = Color(0.96, 0.79, 0.34, 1.0)
-	add_child(title)
-
-
-func make_rack_wall(node_name: String, wall_position: Vector3, wall_size: Vector3) -> MeshInstance3D:
-	var wall := MeshInstance3D.new()
-	wall.name = node_name
-	var mesh := BoxMesh.new()
-	mesh.size = wall_size
-	wall.mesh = mesh
-	wall.position = wall_position
-	wall.material_override = make_mat(Color(0.22, 0.115, 0.055, 1.0), 0.70, 0.0)
-	return wall
-
-
 func build_overlay_ui() -> void:
 	ui_layer = CanvasLayer.new()
 	ui_layer.name = "DeckBuilderOverlay"
@@ -545,7 +462,7 @@ func build_overlay_ui() -> void:
 	var library_slider_ui := create_tabletop_ui_surface(
 		"LibraryScrollSliderUI",
 		Vector2i(1200, 54),
-		Vector3(-2.05, 0.118, 2.88),
+		Vector3(-2.05, 0.118, 2.6),
 		Vector2(7.80, 0.255)
 	)
 	var library_slider_root: Control = library_slider_ui["control"]

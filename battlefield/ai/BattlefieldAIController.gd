@@ -955,6 +955,42 @@ func ai_score_card_ability_value(card_data: CardData, slot: Node = null, context
 			"insight":
 				score += bf.ai_score_insight_ability_value(ability, card_data, slot, context, face_down)
 
+			"control":
+				score += ai_score_control_ability_value(ability, card_data, slot, context, face_down)
+
+	return score
+
+
+func ai_score_control_ability_value(ability: AbilityData, _card_data: CardData, slot: Node, context: String, face_down: bool) -> int:
+	if ability == null:
+		return 0
+
+	var score := 10
+	var lane := bf.get_slot_lane(slot) if slot != null else ""
+	match ability.get_handler_id():
+		&"lockdown", &"dampen":
+			score += 34
+			if lane != "" and bf.get_slot_card_data(bf.find_slot_by_owner_row_lane("player", "front", lane)) != null:
+				score += 18
+		&"halt":
+			score += 28
+		&"dominance", &"swift":
+			score += 26
+		&"precision":
+			score += 30
+		&"chain_down", &"order", &"siren":
+			score += 28
+		&"fog_of_war", &"handicap":
+			score += 24
+		&"ambush":
+			score += 22
+		&"burdened", &"feint":
+			score += 18
+		_:
+			score += 10
+
+	if face_down and context == "gambit":
+		score += 12
 	return score
 
 
@@ -1485,7 +1521,7 @@ func ai_try_deploy_one_card() -> bool:
 		if success:
 			bf.ai_hand.pop_at(card_index)
 			bf.ai_spend_tp(card_data.tribute_cost)
-			await bf.resolve_mobility_deployment(card_data, target_slot, "enemy")
+			await ai_resolve_deployment_abilities(card_data, target_slot)
 
 			var equipped_unit: CardData = bf.get_slot_card_data(target_slot)
 			var equipped_unit_name: String = "unit"
@@ -1512,6 +1548,7 @@ func ai_try_deploy_one_card() -> bool:
 		if success:
 			bf.ai_hand.pop_at(card_index)
 			bf.ai_spend_tp(card_data.tribute_cost)
+			await ai_resolve_deployment_abilities(card_data, target_slot)
 			bf.log_msg("AI promoted " + old_unit.card_name + " into " + card_data.card_name + " for full cost: " + str(card_data.tribute_cost) + " TP.")
 			bf.log_msg("AI TP after promotion: " + str(bf.ai_current_tp) + "/" + str(bf.ai_perm_tp) + " Temp +" + str(bf.ai_temp_tp))
 			bf.update_ai_visuals()
@@ -1538,11 +1575,26 @@ func ai_try_deploy_one_card() -> bool:
 
 			bf.log_msg("AI placed " + card_data.card_name + " " + visibility_text + " in enemy " + row_text + " row.")
 			bf.log_msg("AI spent " + str(deployment_cost) + " TP " + cost_text + ". AI TP after deployment: " + str(bf.ai_current_tp) + "/" + str(bf.ai_perm_tp) + " Temp +" + str(bf.ai_temp_tp))
-			await bf.resolve_mobility_deployment(card_data, target_slot, "enemy")
+			await ai_resolve_deployment_abilities(card_data, target_slot)
 			bf.update_ai_visuals()
 			return true
 
 	return false
+
+
+func ai_resolve_deployment_abilities(card_data: CardData, slot: Node) -> void:
+	if card_data == null or slot == null or bool(slot.get_meta("face_down", false)):
+		return
+	if bf.is_equipment_card(card_data) and bf.is_equipment_suppressed(slot):
+		var dampen := bf.control_controller.face_up_control_source("player", &"dampen", bf.get_slot_lane(slot))
+		await bf.show_control_trigger(dampen.get("ability") as AbilityData, card_data.card_name + " suppressed")
+		return
+	if bf.is_ability_suppressed_by_lockdown(slot, "on_deploy"):
+		var lockdown := bf.control_controller.get_lockdown_source_against(slot)
+		await bf.show_control_trigger(lockdown.get("ability") as AbilityData, card_data.card_name + " On-Deploy abilities suppressed")
+		return
+	await bf.resolve_control_deployment(card_data, slot, "enemy")
+	await bf.resolve_mobility_deployment(card_data, slot, "enemy")
 
 
 func ai_choose_deployment_action() -> Dictionary:
@@ -2565,6 +2617,10 @@ func ai_get_active_ability_entries_for_slot(slot: Node) -> Array[Dictionary]:
 func ai_can_consider_active_ability(slot: Node, ability: AbilityData) -> bool:
 	if slot == null or ability == null:
 		return false
+	if bf.is_ability_suppressed_by_lockdown(slot, "active") or bf.is_unit_chained_down(slot):
+		return false
+	if ability.get_handler_id() == &"volley" and not bf.get_control_halt_source_against("enemy").is_empty():
+		return false
 
 	if String(slot.get_meta("owner", "")) != "enemy":
 		return false
@@ -2995,6 +3051,9 @@ func ai_execute_active_insight_peek_action(source_slot: Node, target_slot: Node,
 
 
 func ai_choose_combat_action(lane: String) -> String:
+	var ai_front_slot := bf.find_slot_by_owner_row_lane("enemy", "front", lane)
+	if bf.control_unit_must_attack(ai_front_slot) and not bf.is_unit_chained_down(ai_front_slot) and not bf.control_lane_attack_is_disabled("enemy", lane):
+		return "attack"
 	var attack_base: int = bf.ai_score_combat_attack_action(lane)
 	var check_base: int = bf.ai_score_combat_check_action(lane)
 	var pass_base: int = bf.ai_score_combat_pass_action(lane)
@@ -3008,6 +3067,8 @@ func ai_choose_combat_action(lane: String) -> String:
 	var pass_ability: int = bf.ai_score_combat_ability_awareness(lane, "pass")
 
 	var attack_score: int = attack_base + attack_lookahead + attack_ability
+	if bf.is_unit_chained_down(ai_front_slot) or bf.control_lane_attack_is_disabled("enemy", lane):
+		attack_score = -999999
 	var check_score: int = check_base + check_lookahead + check_ability
 	var pass_score: int = pass_base + pass_lookahead + pass_ability
 

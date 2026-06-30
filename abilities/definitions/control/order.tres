@@ -10,6 +10,6 @@ ability_name = "Order"
 category = "control"
 point_cost = 10.0
 trigger = "active"
-rules_text = "One opponent lane cannot attack this turn"
+rules_text = "Choose an opponent lane. That lane cannot attack for the whole Combat Phase."
 icon = ExtResource("1_546q4")
 handler_id = &"order"

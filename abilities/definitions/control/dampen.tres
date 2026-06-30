@@ -9,6 +9,6 @@ ability_id = &"dampen"
 ability_name = "Dampen"
 category = "control"
 point_cost = 4.0
-rules_text = "Enemy units in this lane lose all bonuses from Equipment."
+rules_text = "Enemy Equipment in this lane is fully suppressed. Its abilities cannot be used."
 icon = ExtResource("1_0f0ek")
 handler_id = &"dampen"

@@ -44,6 +44,7 @@ const ABILITY_TOOLTIP_OFFSET := Vector2(-370.0, -122.0)
 const ABILITY_TOOLTIP_SCREEN_MARGIN := 12.0
 const MOBILITY_PROMPT_ICON_PATH := "res://ui/ability_icons/mobility.png"
 const PROTECTION_PROMPT_ICON_PATH := "res://ui/ability_icons/protection.png"
+const CONTROL_PROMPT_ICON_PATH := "res://ui/ability_icons/control.png"
 const MOBILITY_PROMPT_CENTER_Y: float = 0.385
 const MOBILITY_CHOICE_PANEL_WIDTH := 360.0
 const MOBILITY_CHOICE_PANEL_HEIGHT := 58.0
@@ -268,6 +269,7 @@ var phase_controller: BattlefieldPhaseController = null
 var interaction_controller: BattlefieldInteractionController = null
 var combat_controller: BattlefieldCombatController = null
 var ability_controller: BattlefieldAbilityController = null
+var control_controller: BattlefieldControlController = null
 var deployment_controller: BattlefieldDeploymentController = null
 
 @onready var opponent_visuals: OpponentVisuals = get_node_or_null("OpponentVisuals") as OpponentVisuals
@@ -322,6 +324,10 @@ var player_passed_current_lane: bool = false
 
 var ai_passed_current_lane: bool = false
 var used_active_insight_ability_keys: Dictionary = {}
+var used_active_control_ability_keys: Dictionary = {}
+var control_disabled_lane_turns: Dictionary = {}
+var control_no_parry_turns: Dictionary = {}
+var control_handicap_turns: Dictionary = {}
 var ai_memory_player_hidden_cards_seen: int = 0
 var ai_memory_player_hidden_gambits_seen: int = 0
 var ai_memory_player_hidden_decoys_seen: int = 0
@@ -372,6 +378,7 @@ func _ready() -> void:
 	interaction_controller = BattlefieldInteractionController.new(self)
 	combat_controller = BattlefieldCombatController.new(self)
 	ability_controller = BattlefieldAbilityController.new(self)
+	control_controller = BattlefieldControlController.new(self)
 	deployment_controller = BattlefieldDeploymentController.new(self)
 	ai_controller = BattlefieldAIController.new(self)
 	apply_ai_difficulty_from_menu()
@@ -831,7 +838,12 @@ func _finish_phase_title_interaction_lock() -> void:
 	set_blurred_modal_input_blocked(false)
 
 
-func choose_mobility_slot(candidates: Array[Node], prompt: String) -> Node:
+func choose_mobility_slot(
+	candidates: Array[Node],
+	prompt: String,
+	icon_path: String = MOBILITY_PROMPT_ICON_PATH,
+	description: String = ""
+) -> Node:
 	if candidates.is_empty():
 		return null
 	mobility_candidate_slots = candidates.duplicate()
@@ -839,7 +851,10 @@ func choose_mobility_slot(candidates: Array[Node], prompt: String) -> Node:
 	for slot in mobility_candidate_slots:
 		if slot != null and slot.has_method("set_mobility_highlight"):
 			slot.call("set_mobility_highlight", true)
-	show_mobility_prompt(prompt)
+	var display_text := prompt
+	if description.strip_edges() != "":
+		display_text += "\n" + description.strip_edges()
+	show_mobility_prompt(display_text, icon_path)
 	var chosen: Node = await mobility_slot_chosen
 	for slot in mobility_candidate_slots:
 		if slot != null and slot.has_method("set_mobility_highlight"):
@@ -867,7 +882,8 @@ func show_mobility_prompt(text: String, icon_path: String = MOBILITY_PROMPT_ICON
 		row_icon.texture = load(icon_path) as Texture2D
 	if row_label != null:
 		row_label.text = text
-		row_label.add_theme_font_size_override("font_size", 32 if text.length() > 24 else 44)
+		var multiline := text.contains("\n")
+		row_label.add_theme_font_size_override("font_size", 22 if multiline else (32 if text.length() > 24 else 44))
 	row_root.visible = true
 	row_root.modulate.a = 0.0
 	phase_title_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
@@ -1438,6 +1454,78 @@ func ability_requires_choice(card_data: CardData) -> bool:
 	return ability_controller.ability_requires_choice(card_data)
 
 
+func get_card_control_ability(card_data: CardData, ability_id: StringName) -> AbilityData:
+	return control_controller.get_card_control_ability(card_data, ability_id)
+
+
+func slot_has_control_ability(slot: Node, ability_id: StringName, include_equipment: bool = true) -> AbilityData:
+	return control_controller.slot_has_control_ability(slot, ability_id, include_equipment)
+
+
+func is_ability_suppressed_by_lockdown(slot: Node, trigger_name: String) -> bool:
+	return control_controller.is_ability_suppressed_by_lockdown(slot, trigger_name)
+
+
+func is_equipment_suppressed(slot: Node) -> bool:
+	return control_controller.is_equipment_suppressed(slot)
+
+
+func get_control_halt_source_against(owner_name: String) -> Dictionary:
+	return control_controller.get_halt_source_against(owner_name)
+
+
+func is_unit_chained_down(slot: Node) -> bool:
+	return control_controller.is_unit_chained_down(slot)
+
+
+func control_unit_must_attack(slot: Node) -> bool:
+	return control_controller.unit_must_attack(slot)
+
+
+func control_lane_attack_is_disabled(owner_name: String, lane: String) -> bool:
+	return control_controller.lane_attack_is_disabled(owner_name, lane)
+
+
+func control_owner_has_handicap(owner_name: String) -> bool:
+	return control_controller.owner_has_handicap(owner_name)
+
+
+func show_control_trigger(ability: AbilityData, detail: String = "", include_description: bool = false) -> void:
+	await control_controller.show_control_trigger(ability, detail, include_description)
+
+
+func resolve_control_deployment(card_data: CardData, slot: Node, owner_name: String = "player") -> bool:
+	return await control_controller.resolve_control_deployment(card_data, slot, owner_name)
+
+
+func resolve_hidden_control_gambit(card_data: CardData, owner_name: String, lane: String) -> bool:
+	return await control_controller.resolve_hidden_control_gambit(card_data, owner_name, lane)
+
+
+func add_active_control_actions_to_board_menu(slot: Node) -> void:
+	control_controller.add_active_control_actions_to_board_menu(slot)
+
+
+func can_activate_control_ability(slot: Node, ability: AbilityData) -> bool:
+	return control_controller.can_activate_control_ability(slot, ability)
+
+
+func activate_control_ability(slot: Node, ability: AbilityData, ai_owner: bool = false) -> bool:
+	return await control_controller.activate_control_ability(slot, ability, ai_owner)
+
+
+func ai_try_activate_control(lane: String) -> bool:
+	return await control_controller.ai_try_activate_control(lane)
+
+
+func control_can_parry(attacker_slot: Node, defender_slot: Node, attacker_ap: int, defender_ap: int) -> bool:
+	return await control_controller.control_can_parry(attacker_slot, defender_slot, attacker_ap, defender_ap)
+
+
+func resolve_ambush_from_parry(parry_cards: Array[CardData], owner_name: String) -> bool:
+	return await control_controller.resolve_ambush_from_parry(parry_cards, owner_name)
+
+
 func set_combat_lane_order_from_left() -> void:
 	combat_controller.set_combat_lane_order_from_left()
 
@@ -1461,8 +1549,15 @@ func resolve_directed_clash(
 	await combat_controller.resolve_directed_clash(lane, _attacker_slot, attacker_card, defender_slot, defender_card, player_is_attacker)
 
 
-func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defender_card: CardData, attacker_ap: int = -1, defender_ap: int = -1) -> void:
-	await combat_controller.resolve_ai_parry_attempt(attacker_card, defender_slot, defender_card, attacker_ap, defender_ap)
+func resolve_ai_parry_attempt(
+	attacker_card: CardData,
+	defender_slot: Node,
+	defender_card: CardData,
+	attacker_ap: int = -1,
+	defender_ap: int = -1,
+	ignore_protection: bool = false
+) -> void:
+	await combat_controller.resolve_ai_parry_attempt(attacker_card, defender_slot, defender_card, attacker_ap, defender_ap, ignore_protection)
 
 
 func resolve_ai_successful_parry_abilities(parry_cards: Array[CardData]) -> void:
@@ -1477,12 +1572,12 @@ func get_slot_card_data(slot: Node) -> CardData:
 	return combat_controller.get_slot_card_data(slot)
 
 
-func get_slot_combat_ap(slot: Node) -> int:
-	return combat_controller.get_slot_combat_ap(slot)
+func get_slot_combat_ap(slot: Node, ignore_protection: bool = false) -> int:
+	return combat_controller.get_slot_combat_ap(slot, ignore_protection)
 
 
-func get_slot_combat_ap_with_protection_announcements(slot: Node) -> int:
-	return await ability_controller.get_slot_combat_ap_with_protection_announcements(slot)
+func get_slot_combat_ap_with_protection_announcements(slot: Node, ignore_protection: bool = false) -> int:
+	return await ability_controller.get_slot_combat_ap_with_protection_announcements(slot, ignore_protection)
 
 
 func get_card_protection_ability(card_data: CardData, ability_id: StringName) -> AbilityData:
@@ -1529,8 +1624,13 @@ func send_slot_card_to_discard(slot: Node) -> void:
 	combat_controller.send_slot_card_to_discard(slot)
 
 
-func destroy_unit_with_protection(slot: Node, opposing_slot: Node = null, from_clash: bool = false) -> bool:
-	return await ability_controller.destroy_unit_with_protection(slot, opposing_slot, from_clash)
+func destroy_unit_with_protection(
+	slot: Node,
+	opposing_slot: Node = null,
+	from_clash: bool = false,
+	ignore_protection: bool = false
+) -> bool:
+	return await ability_controller.destroy_unit_with_protection(slot, opposing_slot, from_clash, ignore_protection)
 
 
 func discard_protection_equipment(slot: Node, ability_id: StringName) -> bool:
@@ -1950,15 +2050,19 @@ func refresh_player_usable_ability_icons() -> void:
 			var visual := entry.get("visual") as Node
 			var usable_ids: Array[StringName] = []
 			if is_player_slot and card_data != null and not is_face_down and not phase_transition_busy:
-				for ability in card_data.get_abilities():
-					if ability == null:
-						continue
-					var category := ability.category.to_lower()
-					var handler_id := ability.get_handler_id()
-					if category == "insight" and ability.trigger == "active" and can_activate_insight_ability(slot, ability):
-						usable_ids.append(ability.ability_id)
-					elif category == "mobility" and (ability.trigger == "active" or handler_id == &"tactic_flow" or handler_id == &"volley") and can_activate_mobility_ability(slot, ability):
-						usable_ids.append(ability.ability_id)
+				var equipment_blocked := card_data != get_slot_card_data(slot) and is_equipment_suppressed(slot)
+				if not equipment_blocked:
+					for ability in card_data.get_abilities():
+						if ability == null:
+							continue
+						var category := ability.category.to_lower()
+						var handler_id := ability.get_handler_id()
+						if category == "insight" and ability.trigger == "active" and can_activate_insight_ability(slot, ability):
+							usable_ids.append(ability.ability_id)
+						elif category == "mobility" and (ability.trigger == "active" or handler_id == &"tactic_flow" or handler_id == &"volley") and can_activate_mobility_ability(slot, ability):
+							usable_ids.append(ability.ability_id)
+						elif category == "control" and ability.trigger == "active" and can_activate_control_ability(slot, ability):
+							usable_ids.append(ability.ability_id)
 			if visual != null and visual.has_method("set_usable_ability_ids"):
 				visual.call("set_usable_ability_ids", usable_ids)
 			connect_card_ability_icon_signals(slot, visual)
@@ -1988,6 +2092,12 @@ func connect_card_ability_icon_signals(slot: Node, supplied_visual: Node = null)
 func _on_card_ability_icon_pressed(_card_visual: Node, ability: AbilityData, slot: Node) -> void:
 	if ability != null and ability.category.to_lower() == "mobility":
 		await activate_mobility_ability_from_slot(slot, ability)
+	elif ability != null and ability.category.to_lower() == "control":
+		if await activate_control_ability(slot, ability):
+			var lane := get_slot_lane(slot)
+			player_passed_current_lane = true
+			set_lane_priority_to_ai(lane, ability.ability_name + " used instead of attacking.")
+			await resolve_ai_current_priority_lane(lane)
 	else:
 		await activate_insight_ability_from_slot(slot, ability)
 
@@ -2747,6 +2857,7 @@ func show_board_slot_action_menu(slot: Node) -> void:
 		board_action_menu.add_item("Inspect", BOARD_ACTION_INSPECT)
 		add_active_insight_actions_to_board_menu(slot, card_data)
 		add_active_mobility_actions_to_board_menu(slot)
+		add_active_control_actions_to_board_menu(slot)
 	elif not added_action:
 		board_action_menu.add_item("Empty Slot", BOARD_ACTION_CANCEL)
 		var empty_index: int = board_action_menu.get_item_count() - 1
@@ -2764,6 +2875,12 @@ func _on_board_slot_action_selected(action_id: int) -> void:
 		var ability := board_action_ability_map.get(action_id) as AbilityData
 		if ability != null and ability.category.to_lower() == "mobility":
 			await activate_mobility_ability_from_slot(board_action_target_slot, ability)
+		elif ability != null and ability.category.to_lower() == "control":
+			if await activate_control_ability(board_action_target_slot, ability):
+				var lane := get_slot_lane(board_action_target_slot)
+				player_passed_current_lane = true
+				set_lane_priority_to_ai(lane, ability.ability_name + " used instead of attacking.")
+				await resolve_ai_current_priority_lane(lane)
 		else:
 			await activate_insight_from_board_action(action_id, board_action_target_slot)
 		board_action_target_slot = null
@@ -3364,6 +3481,8 @@ func get_or_create_mobility_prompt_row() -> Control:
 	label.name = "PromptLabel"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.custom_minimum_size = Vector2(760.0, 0.0)
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size", 36)
 	label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 0.98))

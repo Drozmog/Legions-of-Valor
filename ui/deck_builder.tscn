@@ -2,11 +2,14 @@
 
 [ext_resource type="Script" uid="uid://cedl2qflls1en" path="res://ui/DeckBuilder.gd" id="1_builder"]
 [ext_resource type="Texture2D" uid="uid://c5sxw3n3uqrml" path="res://Textures/Deck Builder/heavy_wooden_deck_builder_table (2).png" id="3_lltvm"]
-[ext_resource type="Texture2D" uid="uid://cy34hadl7kml0" path="res://Textures/Deck Builder/red_cloth.png" id="3_mn2kh"]
-[ext_resource type="Texture2D" uid="uid://dnkwi7uhean6a" path="res://Textures/Deck Builder/rack_surface.png" id="4_mn2kh"]
+[ext_resource type="Texture2D" uid="uid://mpr1xr2mh1x3" path="res://Objects/Deck_Builder/Red Leather/textures/leather_red_03_coll1_4k.png" id="4_niogi"]
 [ext_resource type="PackedScene" uid="uid://cx8016v2g8wox" path="res://Objects/Deck_Builder/Longest Table/Longest Table.glb" id="4_prbbm"]
 [ext_resource type="PackedScene" uid="uid://dawy4wgke3bro" path="res://Objects/Deck_Builder/Knight Sword/Knight Sword.glb" id="5_0mkf5"]
-[ext_resource type="Texture2D" uid="uid://ye7aq3rbl0p3" path="res://Textures/Deck Builder/rack_sidewalls.png" id="5_1vvxd"]
+[ext_resource type="PackedScene" uid="uid://cvxgjufk4mjpg" path="res://Objects/Deck_Builder/Aurion/Aurion Crystal.tscn" id="5_7i4bp"]
+[ext_resource type="Texture2D" uid="uid://dbnfl1qddhfvr" path="res://Objects/Deck_Builder/Red Leather/textures/leather_red_03_rough_4k.exr" id="5_7um2w"]
+[ext_resource type="PackedScene" uid="uid://cp2s8ft06ppui" path="res://Objects/Deck_Builder/Roman Coins/roman_coins.glb" id="5_niogi"]
+[ext_resource type="PackedScene" uid="uid://crj2qtv6hrwnd" path="res://Objects/Deck_Builder/Leather Book/Leather Book.glb" id="5_prbbm"]
+[ext_resource type="PackedScene" uid="uid://cim5ar5i1vlw1" path="res://Objects/Deck_Builder/Wooden Mug/Wooden Mug.glb" id="5_rh0hs"]
 [ext_resource type="PackedScene" uid="uid://cfbk1dl0gqcpb" path="res://Objects/Deck_Builder/Tray/Tray.glb" id="6_0mkf5"]
 
 [sub_resource type="Environment" id="Environment_uy14w"]
@@ -26,50 +29,14 @@ texture_repeat = false
 size = Vector3(8.9, 0.04, 5.45)
 
 [sub_resource type="StandardMaterial3D" id="Mat_Surface"]
-albedo_texture = ExtResource("3_mn2kh")
-roughness = 0.0
+albedo_texture = ExtResource("4_niogi")
+roughness_texture = ExtResource("5_7um2w")
+normal_enabled = true
+normal_scale = -1.2
+normal_texture = ExtResource("5_7um2w")
 uv1_scale = Vector3(2.98, 1.984, -0.445)
 uv1_offset = Vector3(-0.99, -0.99, 0)
 texture_repeat = false
-
-[sub_resource type="BoxMesh" id="Mesh_RackBase"]
-size = Vector3(3.025, 0.12, 5.665)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Rack"]
-albedo_texture = ExtResource("4_mn2kh")
-roughness = 0.0
-uv1_scale = Vector3(2.99, 2, 1)
-uv1_offset = Vector3(-0.995, 0, 0)
-
-[sub_resource type="BoxMesh" id="Mesh_RackWallLong"]
-size = Vector3(0.08, 0.42, 5.72)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i8q6e"]
-albedo_texture = ExtResource("5_1vvxd")
-roughness = 0.0
-uv1_scale = Vector3(3.03, 2.01, 1)
-uv1_offset = Vector3(-0.005, 0, 0)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_7s2lj"]
-albedo_texture = ExtResource("5_1vvxd")
-roughness = 0.0
-uv1_scale = Vector3(3.03, 2.01, 1)
-uv1_offset = Vector3(-0.005, 0, 0)
-
-[sub_resource type="BoxMesh" id="Mesh_RackWallShort"]
-size = Vector3(3.16, 0.42, 0.08)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1vvxd"]
-albedo_texture = ExtResource("5_1vvxd")
-roughness = 0.0
-uv1_scale = Vector3(2.98, 2.01, 1)
-uv1_offset = Vector3(0.005, 0, 0)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_0mkf5"]
-albedo_texture = ExtResource("5_1vvxd")
-roughness = 0.0
-uv1_scale = Vector3(2.98, 2.01, 1)
-uv1_offset = Vector3(0.005, 0, 0)
 
 [node name="DeckBuilder" type="Node3D" unique_id=120904735]
 script = ExtResource("1_builder")
@@ -83,23 +50,12 @@ current = true
 fov = 71.5
 
 [node name="WarmOverheadLight" type="DirectionalLight3D" parent="." unique_id=1695227764]
-transform = Transform3D(0.8480481, 0.44939706, -0.28081444, 0, 0.52991927, 0.8480481, 0.52991927, -0.7191856, 0.449397, 0, 15.179, 5.300354)
-light_color = Color(1.129, 1.129, 1.129, 1)
+transform = Transform3D(1, 0, 0, 0, -0.12360144, 0.9923319, 0, -0.9923319, -0.12360144, 0, 15.179, 5.300354)
 light_energy = 1.433
-light_specular = 0.352
+light_specular = 0.2
 shadow_enabled = true
 shadow_opacity = 0.85
 sky_mode = 1
-
-[node name="SoftTableGlow" type="OmniLight3D" parent="." unique_id=851797473]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.5800055, 3.4658313, 0.24974799)
-visible = false
-light_energy = 1.15
-omni_range = 9.0
-
-[node name="RackWarmGlow" type="OmniLight3D" parent="." unique_id=2003527016]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.9987092, 1.3682015, 0.14557919)
-light_energy = 0.7
 
 [node name="WoodenTable" type="MeshInstance3D" parent="." unique_id=4332425]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 0, -0.005, 0)
@@ -112,6 +68,18 @@ transform = Transform3D(9.15, 0, 0, 0, 9.15, 0, 0, 0, 9.15, 0.255, -6.05, -0.02)
 
 [node name="RedClothCollectionTable" type="MeshInstance3D" parent="." unique_id=1070043322]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1564276, 0.012, 0.10418761)
+visible = false
+mesh = SubResource("Mesh_LeftSurface")
+surface_material_override/0 = SubResource("Mat_Surface")
+
+[node name="RedClothCollectionTable2" type="MeshInstance3D" parent="." unique_id=2142048234]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1564276, 0.012, 0.10418761)
+mesh = SubResource("Mesh_LeftSurface")
+surface_material_override/0 = SubResource("Mat_Surface")
+
+[node name="RedClothCollectionTable2" type="MeshInstance3D" parent="RedClothCollectionTable2" unique_id=1972010427]
+transform = Transform3D(1.1, 0, 0, 0, 1, 0, 0, 0, 1, -2.611, 0.012, 0.104)
+visible = false
 mesh = SubResource("Mesh_LeftSurface")
 surface_material_override/0 = SubResource("Mat_Surface")
 
@@ -123,58 +91,28 @@ outline_modulate = Color(0, 0, 0, 0)
 text = "OWNED CARD LIBRARY"
 font_size = 34
 
+[node name="Aurion Crystal" parent="." unique_id=1636965381 instance=ExtResource("5_7i4bp")]
+transform = Transform3D(0.017541364, -0.26428902, 0.008282687, 0.0013738311, -0.008209686, -0.2648692, 0.2644152, 0.017575651, 0.00082671474, 2.425, 0.25, -3.205)
+
+[node name="Coins" parent="." unique_id=1040945268 instance=ExtResource("5_niogi")]
+transform = Transform3D(-2.2258925, 0, -6.65249, 0, 7.015, 0, 6.65249, 0, -2.2258925, -6.45, 0, 3.855)
+
+[node name="Leather Book" parent="." unique_id=336374824 instance=ExtResource("5_prbbm")]
+transform = Transform3D(-10.192732, 0, 2.3485641, 0, 10.38, 0, -1.9628096, 0, -12.195928, -7.297, 0, -1.538)
+
+[node name="Wooden Mug" parent="." unique_id=2140582409 instance=ExtResource("5_rh0hs")]
+transform = Transform3D(-1.6490195, 0, 4.899963, 0, 5.17, 0, -4.899963, 0, -1.6490195, 6.465, 0, -2.888)
+
 [node name="Knight Sword2" parent="." unique_id=119836561 instance=ExtResource("5_0mkf5")]
-transform = Transform3D(0.34858698, 0, 5.69935, 0, 5.71, 0, -5.69935, 0, 0.34858698, -1.221, 0, -3.102)
-
-[node name="Tray" parent="." unique_id=1797907727 instance=ExtResource("6_0mkf5")]
-transform = Transform3D(15.2, 0, 0, 0, 8.525, 0, 0, 0, 15.2, 4.025, -0.055, 0.095)
-
-[node name="RightPhysicalDeckRack" type="MeshInstance3D" parent="." unique_id=1694474229]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 3.979156, 0.034999996, 0.092237115)
-visible = false
-mesh = SubResource("Mesh_RackBase")
-surface_material_override/0 = SubResource("Mat_Rack")
-metadata/_edit_group_ = true
-
-[node name="RackLeftWall" type="MeshInstance3D" parent="." unique_id=711139567]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 2.456284, 0.22, 0.092237115)
-visible = false
-mesh = SubResource("Mesh_RackWallLong")
-surface_material_override/0 = SubResource("StandardMaterial3D_i8q6e")
-metadata/_edit_group_ = true
-
-[node name="RackRightWall" type="MeshInstance3D" parent="." unique_id=1624099856]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 5.5360518, 0.22, 0.092237115)
-visible = false
-mesh = SubResource("Mesh_RackWallLong")
-surface_material_override/0 = SubResource("StandardMaterial3D_7s2lj")
-metadata/_edit_group_ = true
-
-[node name="RackTopWall" type="MeshInstance3D" parent="." unique_id=1857012900]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 3.996, 0.22, -2.6026287)
-visible = false
-mesh = SubResource("Mesh_RackWallShort")
-surface_material_override/0 = SubResource("StandardMaterial3D_1vvxd")
-metadata/_edit_group_ = true
-
-[node name="RackBottomWall" type="MeshInstance3D" parent="." unique_id=1734884484]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 0.94226074, 3.996, 0.22, 2.7871027)
-visible = false
-mesh = SubResource("Mesh_RackWallShort")
-surface_material_override/0 = SubResource("StandardMaterial3D_0mkf5")
-metadata/_edit_group_ = true
-
-[node name="RackTitle3D" type="Label3D" parent="." unique_id=1968342843]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 3.306284, 0.16, -2.5458124)
-visible = false
-pixel_size = 0.01
-offset = Vector2(69.125, -22.29)
-modulate = Color(0.96, 0.79, 0.34, 1)
-text = "DECK RACK"
-font_size = 44
+transform = Transform3D(0.44800138, 0, 5.692398, 0, 5.71, 0, -5.692398, 0, 0.44800138, -2.681, 0, -3.102)
 
 [node name="LibraryCards" type="Node3D" parent="." unique_id=1014809837]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.48592496)
 
-[node name="DeckRackCards" type="Node3D" parent="." unique_id=1633634401]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.48592496)
+[node name="DeckRackMover" type="Node3D" parent="." unique_id=49241805]
+
+[node name="WoodenTray" parent="DeckRackMover" unique_id=1797907727 instance=ExtResource("6_0mkf5")]
+transform = Transform3D(15.2, 0, 0, 0, 8.525, 0, 0, 0, 15.2, 4.025, -0.055, 0.095)
+
+[node name="DeckRackCards" type="Node3D" parent="DeckRackMover" unique_id=1633634401]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.636)

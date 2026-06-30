@@ -10,6 +10,6 @@ ability_name = "Lockdown"
 category = "control"
 point_cost = 5.0
 trigger = "active"
-rules_text = "While on the Frontline, enemy units in this lane cannot trigger their \"On-Deploy\" or \"Active\" abilities."
+rules_text = "Automatic aura: While this card is face up, enemy units in this lane cannot trigger their \"On-Deploy\" or \"Active\" abilities."
 icon = ExtResource("1_ow3ex")
 handler_id = &"lockdown"

@@ -90,12 +90,16 @@ func resolve_directed_clash(
 	if await bf.resolve_vanish_when_targeted(defender_slot, defender_card, not player_is_attacker):
 		return
 
+	var precision := bf.slot_has_control_ability(_attacker_slot, &"precision")
+	var ignores_protection := precision != null
+	if precision != null:
+		await bf.show_control_trigger(precision, "Defender's Protection abilities ignored")
 	var attacker_ap: int = await bf.get_slot_combat_ap_with_protection_announcements(_attacker_slot)
-	var defender_ap: int = await bf.get_slot_combat_ap_with_protection_announcements(defender_slot)
-	var equalizer := bf.slot_has_protection_ability(defender_slot, &"equalizer")
+	var defender_ap: int = await bf.get_slot_combat_ap_with_protection_announcements(defender_slot, ignores_protection)
+	var equalizer := bf.slot_has_protection_ability(defender_slot, &"equalizer") if not ignores_protection else null
 	if equalizer != null and attacker_ap == defender_ap + 1:
 		await bf.show_protection_trigger(equalizer, "Both units defeated")
-		await bf.destroy_unit_with_protection(defender_slot, _attacker_slot, true)
+		await bf.destroy_unit_with_protection(defender_slot, _attacker_slot, true, ignores_protection)
 		await bf.destroy_unit_with_protection(_attacker_slot, defender_slot, true)
 		return
 
@@ -119,7 +123,7 @@ func resolve_directed_clash(
 	)
 
 	if attacker_ap == defender_ap:
-		await bf.destroy_unit_with_protection(defender_slot, _attacker_slot, true)
+		await bf.destroy_unit_with_protection(defender_slot, _attacker_slot, true, ignores_protection)
 		await bf.destroy_unit_with_protection(_attacker_slot, defender_slot, true)
 
 		bf.log_msg(
@@ -138,11 +142,17 @@ func resolve_directed_clash(
 		return
 
 	if attacker_ap > defender_ap:
+		if not await bf.control_can_parry(_attacker_slot, defender_slot, attacker_ap, defender_ap):
+			var destroyed := await bf.destroy_unit_with_protection(defender_slot, _attacker_slot, true, ignores_protection)
+			if destroyed:
+				var scorer := "player" if player_is_attacker else "ai"
+				bf.add_aurion(scorer, bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " with an unparryable attack.")
+			return
 		if not player_is_attacker:
-			bf.parry_system.begin(lane, _attacker_slot, attacker_card, defender_slot, defender_card, attacker_ap, defender_ap)
+			bf.parry_system.begin(lane, _attacker_slot, attacker_card, defender_slot, defender_card, attacker_ap, defender_ap, ignores_protection)
 			return
 
-		await bf.resolve_ai_parry_attempt(attacker_card, defender_slot, defender_card, attacker_ap, defender_ap)
+		await bf.resolve_ai_parry_attempt(attacker_card, defender_slot, defender_card, attacker_ap, defender_ap, ignores_protection)
 		return
 
 	# The attacker knowingly chose to fight into a stronger unit.
@@ -169,7 +179,14 @@ func resolve_directed_clash(
 	return
 
 
-func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defender_card: CardData, attacker_ap: int = -1, defender_ap: int = -1) -> void:
+func resolve_ai_parry_attempt(
+	attacker_card: CardData,
+	defender_slot: Node,
+	defender_card: CardData,
+	attacker_ap: int = -1,
+	defender_ap: int = -1,
+	ignore_protection: bool = false
+) -> void:
 	var attack_power := attacker_ap if attacker_ap >= 0 else attacker_card.ap
 	var defense_power := defender_ap if defender_ap >= 0 else defender_card.ap
 	var required: int = maxi(attack_power - defense_power, 1)
@@ -180,7 +197,7 @@ func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defe
 			available_dp += get_ai_parry_card_dp(hand_card)
 
 	if available_dp < required:
-		var destroyed := await bf.destroy_unit_with_protection(defender_slot, null, true)
+		var destroyed := await bf.destroy_unit_with_protection(defender_slot, null, true, ignore_protection)
 
 		if destroyed:
 			bf.log_msg("Opponent could not parry. " + defender_card.card_name + " was destroyed.")
@@ -240,7 +257,7 @@ func resolve_ai_parry_attempt(attacker_card: CardData, defender_slot: Node, defe
 		bf.log_msg("Opponent Parry succeeds. " + defender_card.card_name + " survives.")
 		await bf.resolve_ai_successful_parry_abilities(parry_cards)
 	else:
-		var destroyed := await bf.destroy_unit_with_protection(defender_slot, null, true)
+		var destroyed := await bf.destroy_unit_with_protection(defender_slot, null, true, ignore_protection)
 
 		if destroyed:
 			bf.log_msg("Opponent Parry fails. " + defender_card.card_name + " was destroyed.")
@@ -277,14 +294,14 @@ func resolve_ai_successful_parry_abilities(parry_cards: Array[CardData]) -> void
 		if last_stand != null:
 			trigger = last_stand
 			draw_count += 3
-	if trigger == null or draw_count == 0:
-		return
-	await bf.show_protection_trigger(trigger, "Opponent draws %d cards" % draw_count)
-	for i in range(draw_count):
-		if bf.ai_deck.is_empty():
-			break
-		bf.ai_hand.append(bf.ai_deck.pop_back() as CardData)
-	bf.update_ai_visuals()
+	if trigger != null and draw_count > 0:
+		await bf.show_protection_trigger(trigger, "Opponent draws %d cards" % draw_count)
+		for i in range(draw_count):
+			if bf.ai_deck.is_empty():
+				break
+			bf.ai_hand.append(bf.ai_deck.pop_back() as CardData)
+		bf.update_ai_visuals()
+	await bf.resolve_ambush_from_parry(parry_cards, "enemy")
 
 
 func find_ai_parry_card_index(remaining_dp: int) -> int:
@@ -325,7 +342,7 @@ func get_slot_card_data(slot: Node) -> CardData:
 	return null
 
 
-func get_slot_combat_ap(slot: Node) -> int:
+func get_slot_combat_ap(slot: Node, ignore_protection: bool = false) -> int:
 	if slot == null:
 		return 0
 
@@ -337,8 +354,13 @@ func get_slot_combat_ap(slot: Node) -> int:
 	var total := maxi(card_data.ap, 0)
 	var owner_name := String(slot.get_meta("owner", ""))
 
-	if bf.slot_has_protection_ability(slot, &"shielded") != null and owner_name != bf.combat_priority_owner:
+	if not ignore_protection and bf.slot_has_protection_ability(slot, &"shielded") != null and owner_name != bf.combat_priority_owner:
 		total += 2
+
+	if bf.control_owner_has_handicap(owner_name):
+		total -= 1
+	if int(slot.get_meta("control_wrong_check_penalty_turn", -1)) == bf.turn_number:
+		total -= 2
 
 	# Solidarity is DP-only. Do not add it to combat AP.
 
@@ -349,7 +371,7 @@ func get_slot_combat_ap(slot: Node) -> int:
 			if stacked_card != null:
 				total += maxi(stacked_card.ap, 0)
 
-	return total
+	return maxi(total, 0)
 
 
 func count_frontline_units(owner_name: String) -> int:
@@ -531,13 +553,15 @@ func skip_empty_combat_lanes_with_pause() -> void:
 func can_player_attack_lane_from_menu(lane: String) -> bool:
 	if not bf.can_player_take_priority_action_in_lane(lane):
 		return false
+	if bf.control_lane_attack_is_disabled("player", lane):
+		return false
 	return not bf.get_player_attackers_for_lane(lane).is_empty()
 
 
 func get_player_attackers_for_lane(target_lane: String) -> Array[Node]:
 	var attackers: Array[Node] = []
 	var direct := bf.find_slot_by_owner_row_lane("player", "front", target_lane)
-	if bf.is_unit_card(bf.get_slot_card_data(direct)):
+	if bf.is_unit_card(bf.get_slot_card_data(direct)) and not bf.is_unit_chained_down(direct):
 		attackers.append(direct)
 	return attackers
 
@@ -547,13 +571,20 @@ func can_player_check_lane_from_menu(lane: String) -> bool:
 
 	var player_front_slot: Node = bf.find_slot_by_owner_row_lane("player", "front", lane)
 	var player_card: CardData = bf.get_slot_card_data(player_front_slot)
+	if bf.control_unit_must_attack(player_front_slot):
+		return false
 
 	# Checking a hidden back-row card requires your front-row unit in that lane.
 	return bf.is_unit_card(player_card)
 
 
 func can_player_pass_lane_from_menu(lane: String) -> bool:
-	return bf.can_player_take_priority_action_in_lane(lane)
+	if not bf.can_player_take_priority_action_in_lane(lane):
+		return false
+	var player_slot := bf.find_slot_by_owner_row_lane("player", "front", lane)
+	if bf.control_unit_must_attack(player_slot) and bf.can_player_attack_lane_from_menu(lane):
+		return false
+	return true
 
 
 func can_player_take_priority_action_in_lane(lane: String) -> bool:
@@ -840,6 +871,9 @@ func resolve_ai_current_priority_lane(lane: String) -> void:
 		await bf.resolve_ai_pass_lane_with_visuals(lane)
 		return
 
+	if await bf.ai_try_activate_control(lane):
+		return
+
 	var active_result: Dictionary = await bf.ai_try_use_active_ability_before_combat(lane)
 
 	if String(active_result.get("result", "")) == "consumed":
@@ -890,6 +924,7 @@ func resolve_ai_pass_lane_with_visuals(lane: String) -> void:
 
 
 func resolve_ai_check_lane_with_visuals(lane: String) -> void:
+	var checking_slot: Node = bf.find_slot_by_owner_row_lane("enemy", "front", lane)
 	var back_slot: Node = bf.find_slot_by_owner_row_lane("player", "back", lane)
 	var back_card: CardData = bf.get_slot_card_data(back_slot)
 
@@ -917,6 +952,11 @@ func resolve_ai_check_lane_with_visuals(lane: String) -> void:
 		return
 
 	bf.add_aurion("player", 1, "AI failed Check: " + back_card.card_name + " was a decoy.")
+	var ai_feint := bf.slot_has_control_ability(checking_slot, &"feint")
+	if ai_feint != null:
+		await bf.show_control_trigger(ai_feint, "Wrong Check AP penalty ignored")
+	elif checking_slot != null:
+		checking_slot.set_meta("control_wrong_check_penalty_turn", bf.turn_number)
 	bf.player_fortified_lanes[lane] = true
 	bf.ai_passed_current_lane = true
 	bf.log_msg("AI Check failed. Your decoy returns to hand. Player is fortified and gains priority in this lane.")
@@ -957,6 +997,9 @@ func resolve_ai_attack_lane_with_visuals(lane: String) -> void:
 		bf.ai_memory_note_player_hidden_reveal(player_back_card, lane, "ai_attack")
 
 		if bf.is_gambit_card(player_back_card):
+			var precision := bf.slot_has_control_ability(ai_front_slot, &"precision")
+			if precision != null:
+				await bf.show_control_trigger(precision, "Gambit Protection ignored")
 			var protection := bf.get_gambit_attack_protection(ai_front_slot)
 			if protection != null:
 				await bf.show_protection_trigger(protection, "Gambit ignored")
@@ -1108,6 +1151,12 @@ func resolve_player_check_lane_with_visuals(lane: String) -> void:
 
 	bf.ai_memory_note_player_check_result(lane, false)
 	bf.add_aurion("ai", 1, "Failed Check: " + back_card.card_name + " was a decoy.")
+	var checking_slot := bf.find_slot_by_owner_row_lane("player", "front", lane)
+	var feint := bf.slot_has_control_ability(checking_slot, &"feint")
+	if feint != null:
+		await bf.show_control_trigger(feint, "Wrong Check AP penalty ignored")
+	elif checking_slot != null:
+		checking_slot.set_meta("control_wrong_check_penalty_turn", bf.turn_number)
 	bf.enemy_fortified_lanes[lane] = true
 	bf.player_passed_current_lane = true
 	bf.log_msg("Check failed. Decoy returns to enemy hand. Enemy is fortified and gains priority in this lane.")
@@ -1186,7 +1235,11 @@ func resolve_attack_into_face_down_backrow(
 	bf.ai_memory_note_player_attacked_hidden(lane, bf.is_gambit_card(enemy_back_card))
 
 	if bf.is_gambit_card(enemy_back_card):
-		var protection := bf.get_gambit_attack_protection(bf.find_slot_by_owner_row_lane("player", "front", lane))
+		var attacker_slot := bf.find_slot_by_owner_row_lane("player", "front", lane)
+		var precision := bf.slot_has_control_ability(attacker_slot, &"precision")
+		if precision != null:
+			await bf.show_control_trigger(precision, "Gambit Protection ignored")
+		var protection := bf.get_gambit_attack_protection(attacker_slot)
 		if protection != null:
 			await bf.show_protection_trigger(protection, "Gambit ignored")
 			bf.send_slot_card_to_discard(enemy_back_slot)

@@ -21,13 +21,23 @@ func handle_card_deployed(card_data: CardData, slot: Node = null) -> void:
 	# eligible only when the card is revealed or when it is placed face up.
 	if slot != null and bool(slot.get_meta("face_down", false)):
 		return
-
-	if await bf.resolve_mobility_deployment(card_data, slot, "player"):
+	if slot != null and bf.is_equipment_card(card_data) and bf.is_equipment_suppressed(slot):
+		var dampen := bf.control_controller.face_up_control_source(
+			bf.control_controller.opposite_owner(String(slot.get_meta("owner", ""))),
+			&"dampen",
+			bf.get_slot_lane(slot)
+		)
+		await bf.show_control_trigger(dampen.get("ability") as AbilityData, card_data.card_name + " suppressed")
+		return
+	if slot != null and bf.is_ability_suppressed_by_lockdown(slot, "on_deploy"):
+		var lockdown := bf.control_controller.get_lockdown_source_against(slot)
+		await bf.show_control_trigger(lockdown.get("ability") as AbilityData, card_data.card_name + " On-Deploy abilities suppressed")
 		return
 
+	var resolved_control := await bf.resolve_control_deployment(card_data, slot, "player")
+	var resolved_mobility := await bf.resolve_mobility_deployment(card_data, slot, "player")
 	var resolved_insight := await bf.resolve_insight_abilities(card_data, &"on_deploy")
-
-	if resolved_insight:
+	if resolved_control or resolved_mobility or resolved_insight:
 		return
 
 	var ability_text_lower: String = card_data.get_ability_text().to_lower()
@@ -593,7 +603,7 @@ func ability_requires_choice(card_data: CardData) -> bool:
 	var ability_text_lower: String = card_data.get_ability_text().to_lower()
 	return ability_text_lower.contains("may ") or ability_text_lower.contains("choose")
 
-func get_slot_combat_ap_with_protection_announcements(slot: Node) -> int:
+func get_slot_combat_ap_with_protection_announcements(slot: Node, ignore_protection: bool = false) -> int:
 	if slot == null:
 		return 0
 
@@ -605,13 +615,21 @@ func get_slot_combat_ap_with_protection_announcements(slot: Node) -> int:
 	var total := maxi(card_data.ap, 0)
 	var owner_name := String(slot.get_meta("owner", ""))
 
-	var shielded := bf.slot_has_protection_ability(slot, &"shielded")
+	var shielded := bf.slot_has_protection_ability(slot, &"shielded") if not ignore_protection else null
 
 	if shielded != null and owner_name != bf.combat_priority_owner:
 		total += 2
 		await bf.show_protection_trigger(shielded, "+2 AP while defending")
 
 	# Solidarity is DP-only. Do not add it to combat AP.
+
+	if bf.control_owner_has_handicap(owner_name):
+		total -= 1
+		var handicap := bf.control_controller.find_active_control_ability(&"handicap", "enemy" if owner_name == "player" else "player")
+		if handicap != null:
+			await bf.show_control_trigger(handicap, "-1 AP")
+	if int(slot.get_meta("control_wrong_check_penalty_turn", -1)) == bf.turn_number:
+		total -= 2
 
 	if slot != null and int(slot.get_meta("vortex_bonus_turn", -1)) == bf.turn_number and slot.has_method("get_stacked_unit_cards"):
 		for stacked in slot.call("get_stacked_unit_cards"):
@@ -620,7 +638,7 @@ func get_slot_combat_ap_with_protection_announcements(slot: Node) -> int:
 			if stacked_card != null:
 				total += maxi(stacked_card.ap, 0)
 
-	return total
+	return maxi(total, 0)
 
 
 func get_card_protection_ability(card_data: CardData, ability_id: StringName) -> AbilityData:
@@ -633,6 +651,8 @@ func get_card_protection_ability(card_data: CardData, ability_id: StringName) ->
 
 
 func get_gambit_attack_protection(attacker_slot: Node) -> AbilityData:
+	if bf.slot_has_control_ability(attacker_slot, &"precision") != null:
+		return null
 	var infiltrator := bf.slot_has_protection_ability(attacker_slot, &"infiltrator")
 	if infiltrator != null:
 		return infiltrator
@@ -645,7 +665,7 @@ func slot_has_protection_ability(slot: Node, ability_id: StringName) -> AbilityD
 	var ability := bf.get_card_protection_ability(bf.get_slot_card_data(slot), ability_id)
 	if ability != null:
 		return ability
-	if slot.has_method("get_equipment_cards"):
+	if slot.has_method("get_equipment_cards") and not bf.is_equipment_suppressed(slot):
 		for equipment in slot.call("get_equipment_cards"):
 			ability = bf.get_card_protection_ability(equipment as CardData, ability_id)
 			if ability != null:
@@ -668,18 +688,23 @@ func show_protection_trigger(ability: AbilityData, detail: String = "") -> void:
 	await bf.hide_mobility_prompt()
 
 
-func destroy_unit_with_protection(slot: Node, opposing_slot: Node = null, from_clash: bool = false) -> bool:
+func destroy_unit_with_protection(
+	slot: Node,
+	opposing_slot: Node = null,
+	from_clash: bool = false,
+	ignore_protection: bool = false
+) -> bool:
 	if slot == null or bf.get_slot_card_data(slot) == null:
 		return false
-	var plated := bf.slot_has_protection_ability(slot, &"plated")
+	var plated := bf.slot_has_protection_ability(slot, &"plated") if not ignore_protection else null
 	if plated != null and bf.discard_protection_equipment(slot, &"plated"):
 		await bf.show_protection_trigger(plated, "Destruction prevented")
 		return false
-	var spiked := bf.slot_has_protection_ability(slot, &"spiked")
+	var spiked := bf.slot_has_protection_ability(slot, &"spiked") if not ignore_protection else null
 	bf.send_slot_card_to_discard(slot)
 	if from_clash and spiked != null and opposing_slot != null and bf.get_slot_card_data(opposing_slot) != null:
 		await bf.show_protection_trigger(spiked, "Attacker destroyed")
-		await bf.destroy_unit_with_protection(opposing_slot, null, false)
+		await bf.destroy_unit_with_protection(opposing_slot, null, false, false)
 	return true
 
 
@@ -699,6 +724,8 @@ func add_active_insight_actions_to_board_menu(slot: Node, card_data: CardData) -
 	if String(slot.get_meta("owner", "")) != "player":
 		return
 	if bool(slot.get_meta("face_down", false)):
+		return
+	if bf.is_ability_suppressed_by_lockdown(slot, "active"):
 		return
 	for ability in card_data.get_abilities():
 		if ability == null:
@@ -721,6 +748,8 @@ func add_active_mobility_actions_to_board_menu(slot: Node) -> void:
 		var card_data := entry.get("card") as CardData
 		if card_data == null:
 			continue
+		if card_data != bf.get_slot_card_data(slot) and bf.is_equipment_suppressed(slot):
+			continue
 		for ability in card_data.get_abilities():
 			if ability == null or ability.category.to_lower() != "mobility":
 				continue
@@ -738,6 +767,8 @@ func can_activate_insight_ability(slot: Node, ability: AbilityData) -> bool:
 	if slot == null or ability == null:
 		return false
 	if bf.current_phase == bf.BattlePhase.COMBAT and bf.parry_system.active:
+		return false
+	if bf.is_ability_suppressed_by_lockdown(slot, "active"):
 		return false
 	var card_data := bf.get_slot_card_data(slot)
 	if card_data == null:
@@ -806,7 +837,10 @@ func slot_has_mobility_ability(slot: Node, ability_id: StringName) -> AbilityDat
 		return null
 	var entries: Array = slot.call("get_ability_visual_entries") if slot.has_method("get_ability_visual_entries") else []
 	for entry in entries:
-		var found := bf.get_card_mobility_ability(entry.get("card") as CardData, ability_id)
+		var entry_card := entry.get("card") as CardData
+		if entry_card != bf.get_slot_card_data(slot) and bf.is_equipment_suppressed(slot):
+			continue
+		var found := bf.get_card_mobility_ability(entry_card, ability_id)
 		if found != null:
 			return found
 	return null
@@ -1029,6 +1063,11 @@ func resolve_immediate_hidden_gambit_cast(gambit_card: CardData, caster_owner: S
 	elif clean_owner == "player":
 		caster_label = "Player"
 
+	if await bf.resolve_hidden_control_gambit(gambit_card, clean_owner, lane):
+		# Lockdown is a persistent automatic aura, so its revealed Gambit stays
+		# face up. One-shot Control Gambits resolve and go to discard normally.
+		return bf.get_card_control_ability(gambit_card, &"lockdown") != null
+
 	for ability in gambit_card.get_abilities():
 		if ability == null or ability.category.to_lower() != "mobility":
 			continue
@@ -1070,6 +1109,8 @@ func can_activate_mobility_ability_base(slot: Node, ability: AbilityData) -> boo
 		return false
 	if String(slot.get_meta("owner", "")) != "player" or bool(slot.get_meta("face_down", false)):
 		return false
+	if bf.is_unit_chained_down(slot) or bf.is_ability_suppressed_by_lockdown(slot, "active"):
+		return false
 	if bf.current_phase != bf.BattlePhase.DEPLOYMENT and bf.current_phase != bf.BattlePhase.COMBAT:
 		return false
 	if bf.phase_transition_busy or bf.combat_resolution_running or bf.parry_system.active:
@@ -1105,6 +1146,8 @@ func can_activate_lane_shift_to_empty(slot: Node, ability: AbilityData) -> bool:
 		return false
 	if String(slot.get_meta("owner", "")) != "player" or bool(slot.get_meta("face_down", false)):
 		return false
+	if bf.is_unit_chained_down(slot) or bf.is_ability_suppressed_by_lockdown(slot, "active"):
+		return false
 	if bf.current_phase != bf.BattlePhase.DEPLOYMENT and bf.current_phase != bf.BattlePhase.COMBAT:
 		return false
 	if bf.phase_transition_busy or bf.combat_resolution_running or bf.parry_system.active:
@@ -1130,6 +1173,12 @@ func can_activate_volley_ability(slot: Node, ability: AbilityData) -> bool:
 	if slot == null or ability == null:
 		return false
 	if String(slot.get_meta("owner", "")) != "player" or bool(slot.get_meta("face_down", false)):
+		return false
+	if bf.is_unit_chained_down(slot) or bf.is_ability_suppressed_by_lockdown(slot, "active"):
+		return false
+	if not bf.get_control_halt_source_against("player").is_empty():
+		return false
+	if bf.control_lane_attack_is_disabled("player", bf.get_slot_lane(slot)):
 		return false
 	if bf.current_phase != bf.BattlePhase.COMBAT:
 		return false

@@ -101,6 +101,17 @@ func remove_top_card() -> CardData:
 	return card_data
 
 
+func remove_card(card_data: CardData) -> bool:
+	if card_data == null:
+		return false
+	for index in range(discarded_cards.size() - 1, -1, -1):
+		if discarded_cards[index] == card_data:
+			discarded_cards.remove_at(index)
+			build_stack()
+			return true
+	return false
+
+
 func cards_count() -> int:
 	return discarded_cards.size()
 

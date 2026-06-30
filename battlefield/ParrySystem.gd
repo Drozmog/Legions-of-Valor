@@ -27,6 +27,7 @@ var attacker_ap: int = 0
 var defender_ap: int = 0
 var required_dp: int = 0
 var gathered_dp: int = 0
+var ignore_defender_protection: bool = false
 
 # --- Pit + prompt nodes ---
 var pit_root: Node3D = null
@@ -424,7 +425,8 @@ func begin(
 	def_slot: Node,
 	def_card: CardData,
 	atk_power: int = -1,
-	def_power: int = -1
+	def_power: int = -1,
+	ignore_protection: bool = false
 ) -> void:
 	bf.set_active_combat_lane_highlight(combat_lane)
 
@@ -439,6 +441,7 @@ func begin(
 	defender_card = def_card
 	attacker_ap = atk_power if atk_power >= 0 else atk_card.ap
 	defender_ap = def_power if def_power >= 0 else def_card.ap
+	ignore_defender_protection = ignore_protection
 
 	# Required pit DP = attacking AP - endangered unit AP.
 	# The visible counter shows endangered unit AP + pit DP / attacking AP.
@@ -613,7 +616,7 @@ func _on_let_die_pressed() -> void:
 
 	var destroyed := false
 	if defender_slot != null:
-		destroyed = await bf.destroy_unit_with_protection(defender_slot, attacker_slot, true)
+		destroyed = await bf.destroy_unit_with_protection(defender_slot, attacker_slot, true, ignore_defender_protection)
 
 	if defender_card != null and destroyed:
 		bf.log_msg("You let " + defender_card.card_name + " die.")
@@ -638,6 +641,7 @@ func _resolve_successful_parry_abilities() -> void:
 			var drawn := bf.player_deck.draw_top_card()
 			if drawn != null:
 				bf.hand.add_card_to_hand(drawn)
+	await bf.resolve_ambush_from_parry(sacrifice_cards, "player")
 
 
 func _end_prompt() -> void:
@@ -652,6 +656,7 @@ func _end_prompt() -> void:
 	defender_ap = 0
 	required_dp = 0
 	gathered_dp = 0
+	ignore_defender_protection = false
 
 	_clear_visible_sacrifice_cards()
 	_hide_pit()

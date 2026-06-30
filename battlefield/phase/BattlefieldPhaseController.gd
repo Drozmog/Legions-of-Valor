@@ -732,7 +732,11 @@ func start_next_round() -> void:
 
 	bf.turn_number += 1
 	bf.used_active_insight_ability_keys.clear()
+	bf.used_active_control_ability_keys.clear()
 	bf.used_mobility_ability_keys.clear()
+	bf.control_disabled_lane_turns.clear()
+	bf.control_no_parry_turns.clear()
+	bf.control_handicap_turns.clear()
 	bf.update_turn_counter_ui()
 	bf.cancel_selected_card()
 	bf.phase_transition_busy = false
