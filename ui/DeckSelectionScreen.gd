@@ -247,6 +247,9 @@ func show_selection(
 
 
 func _on_deck_pressed(slot_index: int) -> void:
+	if SceneLoader != null and SceneLoader.has_method("play_select_button"):
+		SceneLoader.play_select_button()
+
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hide()
 	deck_selected.emit(slot_index)

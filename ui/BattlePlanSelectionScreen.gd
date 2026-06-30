@@ -864,15 +864,19 @@ func _on_action_input_event(
 ) -> void:
 	if not event is InputEventMouseButton:
 		return
+
 	var mouse_event := event as InputEventMouseButton
+
 	if mouse_event.button_index != MOUSE_BUTTON_LEFT or not mouse_event.pressed:
 		return
-	_play_select_sfx()
 
 	if action == "select":
+		_play_select_sfx()
 		_select_plan(card_index)
 	else:
+		_play_inspect_sfx()
 		_toggle_inspect(card_index)
+
 	get_viewport().set_input_as_handled()
 
 
@@ -1187,6 +1191,11 @@ func _play_battleplan_flip_sfx() -> void:
 func _play_back_sfx() -> void:
 	if SceneLoader != null and SceneLoader.has_method("play_back_button"):
 		SceneLoader.play_back_button()
+
+
+func _play_inspect_sfx() -> void:
+	if SceneLoader != null and SceneLoader.has_method("play_inspect_button"):
+		SceneLoader.play_inspect_button()
 
 
 func _cleanup_selection_world() -> void:
