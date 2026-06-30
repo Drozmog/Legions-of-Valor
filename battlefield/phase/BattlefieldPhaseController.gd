@@ -122,7 +122,9 @@ func setup_battle_plan_flow() -> void:
 func open_battle_plan_selection() -> void:
 	bf.waiting_for_battle_plan = true
 	bf.set_phase(bf.BattlePhase.BATTLEPLAN)
+
 	await bf.get_tree().create_timer(bf.PHASE_TITLE_TOTAL_TIME).timeout
+
 	if bf.current_phase != bf.BattlePhase.BATTLEPLAN:
 		return
 
@@ -141,12 +143,23 @@ func open_battle_plan_selection() -> void:
 	var choices: Array[Dictionary] = bf.get_unused_battle_plan_choices(5)
 
 	if choices.is_empty():
-		bf.log_msg("No unused Battle Plans remain. Battleplan deck is exhausted.")
+		bf.log_msg("All Battle Plans have been used. Reshuffling the Battleplan deck.")
 
-		if bf.battle_plan_selection_screen != null:
-			bf.battle_plan_selection_screen.visible = false
+		await bf.show_timed_mobility_message(
+			"BATTLEPLANS FINISHED  -  Reshuffling the Battleplan deck"
+		)
 
-		return
+		bf.used_battle_plan_keys.clear()
+		bf.opponent_battle_plan = {}
+
+		if bf.battle_plan_manager != null:
+			bf.battle_plan_manager.clear_current_battle_plan()
+
+		choices = bf.get_unused_battle_plan_choices(5)
+
+		if choices.is_empty():
+			bf.log_msg("Battleplan reshuffle failed: no Battle Plans are available.")
+			return
 
 	if choices.size() < 5:
 		bf.log_msg("Battleplan deck is running low. Remaining choices: " + str(choices.size()))

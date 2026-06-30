@@ -193,29 +193,74 @@ func resolve_directed_clash(
 func choose_center_interceptor(lane: String, attacker_slot: Node, original_defender_slot: Node) -> Dictionary:
 	if lane == "middle" or lane not in ["left", "right"]:
 		return {}
+
 	var attacker := bf.get_slot_card_data(attacker_slot)
+
 	var siege := bf.slot_has_mobility_ability(attacker_slot, &"siege")
 	if siege != null:
 		await bf.show_timed_mobility_message("SIEGE  -  Centre interception blocked")
 		return {}
+
 	var defender_owner := String(original_defender_slot.get_meta("owner", ""))
 	var center := bf.find_slot_by_owner_row_lane(defender_owner, "front", "middle")
 	var center_card := bf.get_slot_card_data(center)
-	if center == null or center == original_defender_slot or not bf.is_unit_card(center_card) or bf.is_unit_chained_down(center):
+
+	if center == null:
 		return {}
+
+	if center == original_defender_slot:
+		return {}
+
+	if not bf.is_unit_card(center_card):
+		return {}
+
+	if bf.is_unit_chained_down(center):
+		return {}
+
 	var intercept := true
+
 	if defender_owner == "player":
+		var original_defender_card := bf.get_slot_card_data(original_defender_slot)
+		var original_name := "side unit"
+
+		if original_defender_card != null:
+			original_name = original_defender_card.card_name
+
 		intercept = await bf.prompt_mobility_choice(
-			"CENTER INTERCEPTION  -  Protect the " + lane.capitalize() + " lane with " + center_card.card_name + "?",
+			"CENTER INTERCEPTION  -  "
+			+ center_card.card_name
+			+ " can take the hit for your "
+			+ lane.capitalize()
+			+ " lane unit, "
+			+ original_name
+			+ ". Choose INTERCEPT to move the clash/parry chain to the center unit, or PARRY to keep defending with the side unit.",
 			"INTERCEPT",
-			"DECLINE"
+			"PARRY"
 		)
 	else:
-		intercept = bf.get_slot_combat_ap(center) >= bf.get_slot_combat_ap(original_defender_slot)
+		var attacker_ap := bf.get_slot_combat_ap(attacker_slot)
+		var original_defender_ap := bf.get_slot_combat_ap(original_defender_slot)
+		var center_ap := bf.get_slot_combat_ap(center)
+
+		# AI uses the center if it improves the defense or can outright beat/survive the attacker.
+		intercept = center_ap >= attacker_ap or center_ap > original_defender_ap
+
 	if not intercept:
 		return {}
-	await bf.show_timed_mobility_message("CENTER INTERCEPTION  -  " + center_card.card_name + " protects the " + lane.capitalize() + " lane")
-	return {"slot": center, "card": center_card, "attacker": attacker}
+
+	await bf.show_timed_mobility_message(
+		"CENTER INTERCEPTION  -  "
+		+ center_card.card_name
+		+ " protects the "
+		+ lane.capitalize()
+		+ " lane"
+	)
+
+	return {
+		"slot": center,
+		"card": center_card,
+		"attacker": attacker
+	}
 
 
 func award_mutual_clash_aurion(

@@ -333,7 +333,13 @@ func _input(event: InputEvent) -> void:
 		continue_pressed = event.pressed
 
 	if continue_pressed:
+		_play_initial_menu_button_sfx()
 		show_main_menu()
+
+
+func _play_initial_menu_button_sfx() -> void:
+	if SceneLoader != null and SceneLoader.has_method("play_initial_menu_button"):
+		SceneLoader.play_initial_menu_button()
 
 
 func show_main_menu() -> void:

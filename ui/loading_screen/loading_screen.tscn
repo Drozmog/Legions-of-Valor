@@ -1,53 +1,56 @@
 [gd_scene format=3 uid="uid://py8dgq75ugw5"]
 
-[ext_resource type="Script" uid="uid://c6akjckpnmpvk" path="res://ui/PrototypeMenu.gd" id="1_7w6sp"]
-[ext_resource type="Texture2D" uid="uid://bcw2yvuqgn2qu" path="res://ui/Menu/Artwork/castle_warm.png" id="2_miqvf"]
-[ext_resource type="Texture2D" uid="uid://djcpomh1n3euu" path="res://ui/Menu/Artwork/full_logo_white.png" id="3_44it2"]
-[ext_resource type="Texture2D" uid="uid://cusjf6ipe8p56" path="res://ui/Menu/Artwork/full_logo.png" id="4_7u2l6"]
-[ext_resource type="AudioStream" uid="uid://7ux7ya7x48dx" path="res://Audio/Music/main_menu_theme.ogg" id="5_ybjt7"]
+[ext_resource type="Script" uid="uid://yavq8bu266vq" path="res://ui/loading_screen/LoadingScreen.gd" id="1_loading_script"]
 
-[node name="PrototypeMenu" type="Control" unique_id=1415191127]
+[node name="LoadingScreen" type="Control" unique_id=906701657]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_7w6sp")
+script = ExtResource("1_loading_script")
 
-[node name="MenuBackground" type="TextureRect" parent="." unique_id=1778304841]
-layout_mode = 0
-offset_right = 2560.0
-offset_bottom = 1440.0
-texture = ExtResource("2_miqvf")
+[node name="Background" type="ColorRect" parent="." unique_id=437115922]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.045, 0.041, 0.035, 1)
 
-[node name="MenuLogo" type="TextureRect" parent="." unique_id=950344649]
-layout_mode = 0
-offset_right = 2560.0
-offset_bottom = 1440.0
-texture = ExtResource("3_44it2")
+[node name="LoadingLabel" type="Label" parent="." unique_id=375412982]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_right = 250.0
+offset_bottom = 70.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 42
+text = "Loading..."
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="IntroLogo" type="TextureRect" parent="." unique_id=261565708]
-layout_mode = 0
-offset_right = 2560.0
-offset_bottom = 1440.0
-texture = ExtResource("4_7u2l6")
+[node name="ProgressBar" type="ProgressBar" parent="." unique_id=597170850]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 86.0
+offset_right = 300.0
+offset_bottom = 110.0
+grow_horizontal = 2
+show_percentage = false
 
-[node name="MenuChoices" type="VBoxContainer" parent="." unique_id=1744871481]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="IntroCurtain" type="ColorRect" parent="." unique_id=327938943]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="PressAnyButton" type="Label" parent="." unique_id=416473263]
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
-
-[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1342917276]
-stream = ExtResource("5_ybjt7")
-autoplay = true
+[node name="FadeRect" type="ColorRect" parent="." unique_id=1796097618]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 1)
