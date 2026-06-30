@@ -1,4 +1,3 @@
-class_name SceneLoader
 extends Node
 
 const MENU_MUSIC_PATH := "res://Audio/Music/main_menu_theme.ogg"
@@ -72,7 +71,6 @@ func stop_menu_music() -> void:
 
 
 func _on_music_finished() -> void:
-	# Simple manual loop for menu music.
 	if music_player == null:
 		return
 
