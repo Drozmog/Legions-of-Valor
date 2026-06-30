@@ -2,12 +2,19 @@ extends Node
 
 const LOADING_SCREEN_PATH := "res://ui/loading_screen/loading_screen.tscn"
 const MENU_MUSIC_PATH := "res://Audio/Music/main_menu_theme.ogg"
+const MENU_SCENE_PATH := "res://ui/Menu/prototype_menu.tscn"
 const SFX_FOLDER := "res://Audio/SFX/"
+const MENU_MUSIC_START_DELAY := 1
 const MAX_SIMULTANEOUS_SFX := 8
+const MENU_MUSIC_FADE_OUT_TIME := 1.25
+const SILENT_VOLUME_DB := -40.0
 
 var target_scene_path: String = ""
 
 var music_player: AudioStreamPlayer = null
+var menu_music_fade_tween: Tween = null
+var menu_music_start_request_id := 0
+var menu_music_should_loop := false
 var sfx_players: Array[AudioStreamPlayer] = []
 var cached_sfx: Dictionary = {}
 
@@ -51,6 +58,14 @@ func _get_audio_bus_name(preferred_bus: String) -> String:
 
 func play_menu_music() -> void:
 	_ensure_music_player()
+	menu_music_should_loop = true
+	menu_music_start_request_id += 1
+
+	var request_id := menu_music_start_request_id
+
+	if menu_music_fade_tween != null and menu_music_fade_tween.is_valid():
+		menu_music_fade_tween.kill()
+		menu_music_fade_tween = null
 
 	if not ResourceLoader.exists(MENU_MUSIC_PATH):
 		push_warning("Menu music file missing: " + MENU_MUSIC_PATH)
@@ -63,21 +78,68 @@ func play_menu_music() -> void:
 		return
 
 	if music_player.stream == stream and music_player.playing:
+		music_player.volume_db = 0.0
 		return
+
+	if MENU_MUSIC_START_DELAY > 0.0:
+		await get_tree().create_timer(MENU_MUSIC_START_DELAY).timeout
+
+		if request_id != menu_music_start_request_id:
+			return
+
+		if not menu_music_should_loop:
+			return
+
+		if music_player == null or not is_instance_valid(music_player):
+			return
 
 	music_player.stream = stream
 	music_player.volume_db = 0.0
 	music_player.play()
 
 
-func stop_menu_music() -> void:
+func stop_menu_music(fade_time: float = 0.0) -> void:
+	menu_music_should_loop = false
+	menu_music_start_request_id += 1
+
 	if music_player == null:
 		return
 
-	music_player.stop()
+	if menu_music_fade_tween != null and menu_music_fade_tween.is_valid():
+		menu_music_fade_tween.kill()
+		menu_music_fade_tween = null
+
+	if not music_player.playing:
+		music_player.stream = null
+		music_player.volume_db = 0.0
+		return
+
+	if fade_time <= 0.0:
+		music_player.stop()
+		music_player.stream = null
+		music_player.volume_db = 0.0
+		return
+
+	menu_music_fade_tween = create_tween()
+	menu_music_fade_tween.set_trans(Tween.TRANS_SINE)
+	menu_music_fade_tween.set_ease(Tween.EASE_OUT)
+	menu_music_fade_tween.tween_property(music_player, "volume_db", SILENT_VOLUME_DB, fade_time)
+	menu_music_fade_tween.tween_callback(_finish_menu_music_fade)
+	
+	
+func _finish_menu_music_fade() -> void:
+	if music_player != null:
+		music_player.stop()
+		music_player.stream = null
+		music_player.volume_db = 0.0
+
+	menu_music_fade_tween = null
 
 
 func _on_music_finished() -> void:
+	if not menu_music_should_loop:
+		return
+
 	if music_player == null:
 		return
 
@@ -99,6 +161,44 @@ func go_to_scene(scene_path: String, sfx_name: String = "menu_button") -> void:
 		push_error("Could not open loading screen: " + LOADING_SCREEN_PATH + " | Error: " + str(error))
 
 
+func change_to_loaded_scene_with_overlay(loaded_scene: PackedScene, scene_path: String = "") -> void:
+	if loaded_scene == null:
+		push_error("SceneLoader received null loaded scene: " + scene_path)
+		finish_transition()
+		return
+
+	var final_scene_path := scene_path
+	if final_scene_path == "":
+		final_scene_path = target_scene_path
+
+	var tree := get_tree()
+
+	var old_scene := tree.current_scene
+	var new_scene := loaded_scene.instantiate()
+
+	if new_scene == null:
+		push_error("Could not instantiate loaded scene: " + final_scene_path)
+		finish_transition()
+		return
+
+	tree.root.add_child(new_scene)
+	tree.current_scene = new_scene
+
+	if old_scene != null and is_instance_valid(old_scene):
+		old_scene.queue_free()
+
+	if final_scene_path == MENU_SCENE_PATH:
+		play_menu_music()
+	else:
+		stop_menu_music(MENU_MUSIC_FADE_OUT_TIME)
+
+	finish_transition()
+
+
+func finish_transition() -> void:
+	target_scene_path = ""
+
+
 func play_sfx(sfx_name: String) -> void:
 	_ensure_sfx_players()
 
@@ -109,7 +209,15 @@ func play_sfx(sfx_name: String) -> void:
 
 	var player := get_free_sfx_player()
 	player.stream = stream
+	player.volume_db = get_sfx_volume_db(sfx_name)
 	player.play()
+	
+func get_sfx_volume_db(sfx_name: String) -> float:
+	match sfx_name:
+		"initial_menu_button":
+			return 6.0
+		_:
+			return 0.0
 
 
 func get_sfx(sfx_name: String) -> AudioStream:

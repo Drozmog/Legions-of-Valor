@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" uid="uid://du00fctaxlb8n" path="res://abilities/AbilityData.gd" id="1_4ex4p"]
 [ext_resource type="Resource" uid="uid://cg5veb0ypvpf7" path="res://abilities/definitions/control/handicap.tres" id="2_4ex4p"]
-[ext_resource type="Texture2D" uid="uid://bvn4rg41e64k3" path="res://cards/images/gambit/gridlock.png" id="3_ft6kr"]
+[ext_resource type="Texture2D" uid="uid://b58ntyf8fj7me" path="res://cards/images/gambit/liorvynn_arrow_volley.png" id="3_4ex4p"]
 [ext_resource type="Script" uid="uid://20ngslec6o41" path="res://cards/CardData.gd" id="4_dirbp"]
 
 [resource]
@@ -15,5 +15,5 @@ tribute_cost = 2
 dp = 1
 abilities = Array[ExtResource("1_4ex4p")]([ExtResource("2_4ex4p")])
 lore_text = "\"Before the first black soot-engine can ignite, the sky above the perimeter turns into a wall of leaf-tipped steel.\" - Ner'il Veilmother Huntress"
-card_art = ExtResource("3_ft6kr")
+card_art = ExtResource("3_4ex4p")
 metadata/_custom_type_script = "uid://20ngslec6o41"

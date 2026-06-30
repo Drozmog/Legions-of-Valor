@@ -532,7 +532,7 @@ func build_overlay_ui() -> void:
 	back_button.custom_minimum_size = Vector2(58, 26)
 	back_button.focus_mode = Control.FOCUS_NONE
 	back_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	back_button.pressed.connect(request_scene_change.bind(MENU_SCENE_PATH))
+	back_button.pressed.connect(request_scene_change.bind(MENU_SCENE_PATH, "back_button"))
 	command_row.add_child(back_button)
 
 	var title_label := Label.new()
@@ -2963,19 +2963,28 @@ func _on_save_and_battle_pressed() -> void:
 		request_scene_change(BATTLE_SCENE_PATH)
 
 
-func request_scene_change(scene_path: String) -> void:
+func request_scene_change(scene_path: String, sfx_name: String = "menu_button") -> void:
 	if scene_transition_requested:
 		return
+
 	scene_transition_requested = true
+
 	if scene_path == MENU_SCENE_PATH:
 		PrototypeMenu.skip_intro_once = true
+
 	active_tabletop_viewport = null
+
 	for entry in tabletop_ui_surfaces:
 		entry["interactive"] = false
-	call_deferred("_perform_scene_change", scene_path)
+
+	call_deferred("_perform_scene_change", scene_path, sfx_name)
 
 
-func _perform_scene_change(scene_path: String) -> void:
+func _perform_scene_change(scene_path: String, sfx_name: String = "menu_button") -> void:
+	if SceneLoader != null and SceneLoader.has_method("go_to_scene"):
+		SceneLoader.go_to_scene(scene_path, sfx_name)
+		return
+
 	var tree := get_tree()
 	if tree != null:
 		tree.change_scene_to_file(scene_path)
