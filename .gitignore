@@ -12,3 +12,17 @@ LegionsOfValor.exe
 LegionsOfValor.pck
 Trials/
 export_presets.cfg.claude/
+
+# Local / raw marketplace assets - do not upload
+Objects/Battlefield/moss_wood_4k.blend.zip
+Objects/Battlefield/rocky_terrain/
+Objects/Battlefield/stone_altar/
+
+# Optional: ignore raw heavy source files
+*.blend
+*.blend1
+*.fbx
+*.zip
+*.exr
+*.psd
+*.kra
