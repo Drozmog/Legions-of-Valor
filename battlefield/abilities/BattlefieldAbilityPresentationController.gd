@@ -23,6 +23,7 @@ func show_trigger(ability: AbilityData, detail: String = "", include_description
 	if include_description and ability.rules_text.strip_edges() != "":
 		message += "\n" + ability.rules_text.strip_edges()
 	bf.log_msg(ability.category.capitalize() + " triggered: " + ability.ability_name + (" - " + detail if detail != "" else ""))
+	_play_ability_label_sfx(ability.category)
 	bf.show_mobility_prompt(message, icon_path(ability.category))
 	await bf.get_tree().create_timer(maxf(duration, MINIMUM_MESSAGE_SECONDS)).timeout
 	await bf.hide_mobility_prompt()
@@ -53,3 +54,8 @@ func choose_card(cards: Array[CardData], ability: AbilityData, source_position: 
 		"chosen_destination": destination,
 		"other_destination": source_position,
 	})
+
+
+func _play_ability_label_sfx(category: String) -> void:
+	if SceneLoader != null and SceneLoader.has_method("play_ability_label"):
+		SceneLoader.play_ability_label(category)
