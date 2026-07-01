@@ -33,11 +33,13 @@ var draw_preview_following: bool = false
 var draw_preview_source_position := Vector3.ZERO
 var draw_preview_source_rotation := Vector3.ZERO
 var modal_blocked := false
+var card_inspect_panel: CardInspectPanel = null
 
 
 func setup(source_hand: HandUI, source_camera: Camera3D) -> void:
 	hand_ui = source_hand
 	camera_3d = source_camera
+	card_inspect_panel = find_card_inspect_panel()
 	set_process(true)
 	set_process_input(true)
 
@@ -272,10 +274,16 @@ func _on_card_input_event(
 ) -> void:
 	if _is_modal_blocked():
 		return
-	if event is InputEventMouseButton:
-		var mouse_event := event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
-			begin_card_press(proxy, mouse_event.position)
+	if not event is InputEventMouseButton:
+		return
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if mouse_event.pressed:
+		begin_card_press(proxy, mouse_event.position)
+	elif pressed_card == proxy:
+		release_pressed_card(mouse_event.position)
+		get_viewport().set_input_as_handled()
 
 
 func begin_card_press(proxy: CardUI, screen_position: Vector2) -> void:
@@ -364,8 +372,54 @@ func release_pressed_card(screen_position: Vector2) -> void:
 		released_card.rotation_degrees = 0.0
 		hand_ui._on_card_drag_released(released_card, screen_position)
 	else:
-		hand_ui._on_card_clicked(released_card, screen_position)
+		inspect_hand_card(released_card, screen_position)
 	press_became_drag = false
+
+
+func inspect_hand_card(proxy: CardUI, screen_position: Vector2) -> void:
+	if proxy == null or not is_instance_valid(proxy):
+		return
+	if proxy.card_data == null:
+		return
+
+	var inspector := find_card_inspect_panel()
+	if inspector != null:
+		inspector.show_card(proxy, proxy.card_data)
+		get_viewport().set_input_as_handled()
+		return
+
+	# Fallback for older scenes/tests that still connect through HandUI's signal.
+	if hand_ui != null:
+		hand_ui._on_card_clicked(proxy, screen_position)
+
+
+func find_card_inspect_panel() -> CardInspectPanel:
+	if card_inspect_panel != null and is_instance_valid(card_inspect_panel):
+		return card_inspect_panel
+
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+
+	var direct := scene.get_node_or_null("UI/CardInspectPanel") as CardInspectPanel
+	if direct != null:
+		card_inspect_panel = direct
+		return card_inspect_panel
+
+	card_inspect_panel = find_card_inspect_panel_recursive(scene)
+	return card_inspect_panel
+
+
+func find_card_inspect_panel_recursive(node: Node) -> CardInspectPanel:
+	if node is CardInspectPanel:
+		return node as CardInspectPanel
+
+	for child in node.get_children():
+		var found := find_card_inspect_panel_recursive(child)
+		if found != null:
+			return found
+
+	return null
 
 
 func _on_card_mouse_entered(proxy: CardUI) -> void:
