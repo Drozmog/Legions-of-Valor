@@ -199,6 +199,10 @@ func finish_transition() -> void:
 	target_scene_path = ""
 
 
+func play_initial_menu_button() -> void:
+	play_sfx("initial_menu_button")
+
+
 func play_sfx(sfx_name: String) -> void:
 	_ensure_sfx_players()
 
