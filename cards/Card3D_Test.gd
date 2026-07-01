@@ -458,6 +458,7 @@ func _on_ability_icon_input_event(
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			var ability := icon_root.get_meta("ability", null) as AbilityData
 			if ability != null and usable_ability_ids.has(String(ability.ability_id)):
+				_play_ability_icon_press_sfx(ability.category)
 				ability_icon_pressed.emit(self, ability)
 				get_viewport().set_input_as_handled()
 
@@ -474,6 +475,10 @@ func _on_ability_icon_mouse_exited(icon_root: Node3D) -> void:
 	if ability != null:
 		ability_icon_unhovered.emit(self, ability)
 	Cursors.use_normal()
+
+func _play_ability_icon_press_sfx(category: String) -> void:
+	if SceneLoader != null and SceneLoader.has_method("play_ability_icon_press"):
+		SceneLoader.play_ability_icon_press(category)
 
 func set_ability_icon_root_alpha(alpha: float) -> void:
 	if ability_icon_root == null:
