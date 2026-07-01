@@ -560,11 +560,13 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("5_yr2pt")
-raised_anchor_from_bottom = 110.0
+card_scale = 0.8
+raised_anchor_from_bottom = 59.325
+lowered_anchor_below_screen = 140.585
 min_spacing = 70.0
-max_spacing = 250.0
-max_rotation_degrees = 0.0
-fan_curve_drop = 0.0
+max_spacing = 194.825
+max_rotation_degrees = 5.395
+fan_curve_drop = 23.83
 
 [node name="PlayerStatusPanel" type="PanelContainer" parent="UI" unique_id=1604491341]
 visible = false
