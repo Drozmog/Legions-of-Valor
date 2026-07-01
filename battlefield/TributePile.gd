@@ -1,3 +1,4 @@
+@tool
 class_name TributePile
 extends Node3D
 
@@ -26,36 +27,51 @@ var base_node: MeshInstance3D = null
 func _ready() -> void:
 	create_base()
 	create_status_label()
+	set_status_text("TP 0/0")
+
+	if Engine.is_editor_hint():
+		return
+
 	build_stack()
 
 	if click_area != null:
 		click_area.input_ray_pickable = true
 		click_area.input_event.connect(_on_click_area_input_event)
 
-	set_status_text("TP 0/0")
+
+func apply_editor_owner(node: Node) -> void:
+	if not Engine.is_editor_hint():
+		return
+	if node == null or get_tree() == null:
+		return
+	var edited_root := get_tree().edited_scene_root
+	if edited_root != null and node.owner == null:
+		node.owner = edited_root
 
 
 func create_base() -> void:
+	base_node = get_node_or_null("TributeBase") as MeshInstance3D
 	if base_node != null:
 		return
 
 	base_node = CardPileVisual.create_pile_base("TributeBase")
 	add_child(base_node)
+	apply_editor_owner(base_node)
 
 
 func create_status_label() -> void:
-	if status_label != null:
-		return
+	status_label = get_node_or_null("StatusLabel") as Label3D
+	if status_label == null:
+		status_label = CardPileVisual.create_counter_label(
+			"StatusLabel",
+			"TP 0/0",
+			Vector3(counter_side_offset, counter_height, counter_forward_offset),
+			counter_pixel_size,
+			20
+		)
 
-	status_label = CardPileVisual.create_counter_label(
-		"StatusLabel",
-		"TP 0/0",
-		Vector3(counter_side_offset, counter_height, counter_forward_offset),
-		counter_pixel_size,
-		20
-	)
-
-	add_child(status_label)
+		add_child(status_label)
+		apply_editor_owner(status_label)
 
 
 func set_status_text(text: String) -> void:
