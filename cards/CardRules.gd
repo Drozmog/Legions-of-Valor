@@ -39,8 +39,14 @@ static func is_elite_card(card_data: CardData) -> bool:
 	return card_data != null and card_data.is_crown_rarity()
 
 
+static func is_star_or_crown_unit(card_data: CardData) -> bool:
+	return is_unit_card(card_data) and card_data.get_rarity_rank() >= 3
+
+
 static func get_deck_copy_limit(card_data: CardData) -> int:
-	return 2 if is_elite_card(card_data) else 3
+	# Diamond units and all normal cards keep the standard 3-copy limit.
+	# Star and crown rarity units are restricted to 2 copies.
+	return 2 if is_star_or_crown_unit(card_data) else 3
 
 
 static func get_defeat_aurion_reward(card_data: CardData) -> int:
