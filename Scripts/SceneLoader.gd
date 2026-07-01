@@ -203,6 +203,36 @@ func play_initial_menu_button() -> void:
 	play_sfx("initial_menu_button")
 
 
+func play_select_button() -> void:
+	play_sfx("select_button")
+
+
+func play_back_button() -> void:
+	play_sfx("back_button")
+
+
+func play_inspect_button() -> void:
+	play_sfx("inspect_button")
+
+
+func play_battleplan_flip() -> void:
+	play_sfx("battlePlan_flip")
+
+
+func play_board_action_button(action_id: int) -> void:
+	match action_id:
+		1:
+			play_sfx("inspect_button")
+		2:
+			play_sfx("attack_button")
+		3:
+			play_sfx("check_button")
+		4:
+			play_sfx("pass_button")
+		_:
+			play_sfx("select_button")
+
+
 func play_sfx(sfx_name: String) -> void:
 	_ensure_sfx_players()
 
