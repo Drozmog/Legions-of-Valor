@@ -1,3 +1,4 @@
+@tool
 class_name DiscardPile
 extends Node3D
 
@@ -22,15 +23,32 @@ func _ready() -> void:
 	create_base()
 	create_drop_area()
 	create_counter_label()
+	update_counter_label()
+
+	if Engine.is_editor_hint():
+		return
+
 	build_stack()
 
 
+func apply_editor_owner(node: Node) -> void:
+	if not Engine.is_editor_hint():
+		return
+	if node == null or get_tree() == null:
+		return
+	var edited_root := get_tree().edited_scene_root
+	if edited_root != null and node.owner == null:
+		node.owner = edited_root
+
+
 func create_base() -> void:
+	base_node = get_node_or_null("DiscardBase") as MeshInstance3D
 	if base_node != null:
 		return
 
 	base_node = CardPileVisual.create_pile_base("DiscardBase")
 	add_child(base_node)
+	apply_editor_owner(base_node)
 
 
 func create_drop_area() -> void:
@@ -40,27 +58,32 @@ func create_drop_area() -> void:
 	area.name = "DropArea"
 	area.input_ray_pickable = true
 	var collision := CollisionShape3D.new()
+	collision.name = "CollisionShape3D"
 	var shape := BoxShape3D.new()
 	shape.size = Vector3(1.35, 0.45, 1.65)
 	collision.shape = shape
 	collision.position.y = 0.18
 	area.add_child(collision)
 	add_child(area)
+	apply_editor_owner(area)
+	apply_editor_owner(collision)
 
 
 func create_counter_label() -> void:
-	if counter_label != null:
-		return
+	counter_label = get_node_or_null("DiscardCounter") as Label3D
+	if counter_label == null:
+		counter_label = CardPileVisual.create_counter_label(
+			"DiscardCounter",
+			"Discard: 0",
+			Vector3(counter_side_offset, counter_height, counter_forward_offset),
+			counter_pixel_size,
+			20
+		)
 
-	counter_label = CardPileVisual.create_counter_label(
-		"DiscardCounter",
-		"Discard: 0",
-		Vector3(counter_side_offset, counter_height, counter_forward_offset),
-		counter_pixel_size,
-		20
-	)
+		add_child(counter_label)
+		apply_editor_owner(counter_label)
 
-	add_child(counter_label)
+	update_counter_label()
 
 
 func update_counter_label() -> void:

@@ -1,3 +1,4 @@
+@tool
 class_name DrawPile
 extends Node3D
 
@@ -28,6 +29,11 @@ var counter_label: Label3D = null
 func _ready() -> void:
 	create_base()
 	create_counter_label()
+	update_counter_label()
+
+	if Engine.is_editor_hint():
+		return
+
 	build_stack()
 
 	if click_area != null:
@@ -39,27 +45,41 @@ func _ready() -> void:
 	set_process(false)
 
 
+func apply_editor_owner(node: Node) -> void:
+	if not Engine.is_editor_hint():
+		return
+	if node == null or get_tree() == null:
+		return
+	var edited_root := get_tree().edited_scene_root
+	if edited_root != null and node.owner == null:
+		node.owner = edited_root
+
+
 func create_base() -> void:
+	base_node = get_node_or_null("DrawPileBase") as MeshInstance3D
 	if base_node != null:
 		return
 
 	base_node = CardPileVisual.create_pile_base("DrawPileBase")
 	add_child(base_node)
+	apply_editor_owner(base_node)
 
 
 func create_counter_label() -> void:
-	if counter_label != null:
-		return
+	counter_label = get_node_or_null("DrawPileCounter") as Label3D
+	if counter_label == null:
+		counter_label = CardPileVisual.create_counter_label(
+			"DrawPileCounter",
+			"Deck: " + str(card_count),
+			Vector3(counter_side_offset, counter_height, counter_forward_offset),
+			counter_pixel_size,
+			20
+		)
 
-	counter_label = CardPileVisual.create_counter_label(
-		"DrawPileCounter",
-		"Deck: " + str(card_count),
-		Vector3(counter_side_offset, counter_height, counter_forward_offset),
-		counter_pixel_size,
-		20
-	)
+		add_child(counter_label)
+		apply_editor_owner(counter_label)
 
-	add_child(counter_label)
+	update_counter_label()
 
 
 func update_counter_label() -> void:
@@ -111,7 +131,7 @@ func _on_click_area_input_event(
 				return
 
 			is_dragging_from_pile = true
-			Cursors.use_grab()
+			Cursors.use_pointing()
 			set_process(true)
 
 			draw_drag_started.emit(get_viewport().get_mouse_position())
