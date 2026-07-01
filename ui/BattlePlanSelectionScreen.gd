@@ -17,8 +17,8 @@ const BATTLEPLAN_SIZE := Vector2(3.5, 2.5) # Exact 3.5 x 2.5 landscape ratio.
 # Matches Card3DTest's 0.065 radius on a 1.02-wide card.
 const CARD_CORNER_RADIUS_RATIO := 0.064
 const CARD_CORNER_SEGMENTS := 8
-const BOTTOM_CARD_Z := 2.5
-const TOP_CARD_Z := -1.5
+const BOTTOM_CARD_Z := 2.4
+const TOP_CARD_Z := -1.0
 const CARD_SURFACE_Y := 0.58
 const CARD_FACE_X_ROTATION := -90.0
 const TOP_SLOT_X := [-3.85, 0.0, 3.85]
