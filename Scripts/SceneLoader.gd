@@ -17,6 +17,7 @@ var menu_music_start_request_id := 0
 var menu_music_should_loop := false
 var sfx_players: Array[AudioStreamPlayer] = []
 var cached_sfx: Dictionary = {}
+var missing_sfx: Dictionary = {}
 
 
 func _ready() -> void:
@@ -92,7 +93,6 @@ func play_menu_music() -> void:
 
 		if music_player == null or not is_instance_valid(music_player):
 			return
-
 	music_player.stream = stream
 	music_player.volume_db = 0.0
 	music_player.play()
@@ -227,81 +227,47 @@ func get_sfx(sfx_name: String) -> AudioStream:
 	if cached_sfx.has(sfx_name):
 		return cached_sfx[sfx_name]
 
+	if missing_sfx.has(sfx_name):
+		return null
+
 	var path := SFX_FOLDER + sfx_name + ".wav"
 
 	if not ResourceLoader.exists(path):
+		var fallback_name := _get_sfx_fallback_name(sfx_name)
+		if fallback_name != "" and fallback_name != sfx_name:
+			var fallback_stream := get_sfx(fallback_name)
+			if fallback_stream != null:
+				cached_sfx[sfx_name] = fallback_stream
+				return fallback_stream
+
+		# Missing optional sounds should not spam the debugger every time an
+		# animation requests them. Keep one warning per missing key, then cache it.
 		push_warning("Missing SFX file: " + path)
+		missing_sfx[sfx_name] = true
 		return null
 
 	var stream := load(path) as AudioStream
 
 	if stream == null:
 		push_warning("Could not load SFX file: " + path)
+		missing_sfx[sfx_name] = true
 		return null
 
 	cached_sfx[sfx_name] = stream
 	return stream
 
 
-func get_free_sfx_player() -> AudioStreamPlayer:
-	_ensure_sfx_players()
+func _get_sfx_fallback_name(sfx_name: String) -> String:
+	match sfx_name:
+		"battlePlan_flip", "battleplan_flip", "battle_plan_flip":
+			return "select_button"
+		_:
+			return ""
 
+
+func get_free_sfx_player() -> AudioStreamPlayer:
 	for player in sfx_players:
-		if player != null and not player.playing:
+		if not player.playing:
 			return player
 
 	return sfx_players[0]
-
-
-func play_menu_button() -> void:
-	play_sfx("menu_button")
-
-
-func play_initial_menu_button() -> void:
-	play_sfx("initial_menu_button")
-
-
-func play_back_button() -> void:
-	play_sfx("back_button")
-
-
-func play_attack_button() -> void:
-	play_sfx("attack_button")
-
-
-func play_check_button() -> void:
-	play_sfx("check_button")
-
-
-func play_pass_button() -> void:
-	play_sfx("pass_button")
-
-
-func play_inspect_button() -> void:
-	play_sfx("inspect_button")
-
-
-func play_select_button() -> void:
-	play_sfx("select_button")
-
-
-func play_alert_sound() -> void:
-	play_sfx("alert_sound")
-
-
-func play_battleplan_flip() -> void:
-	play_sfx("battleplan_flip")
-
-
-func play_board_action_button(action_id: int) -> void:
-	match action_id:
-		2:
-			play_attack_button()
-		3:
-			play_check_button()
-		4:
-			play_pass_button()
-		1:
-			play_inspect_button()
-		_:
-			play_select_button()
