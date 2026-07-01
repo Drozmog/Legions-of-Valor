@@ -13,18 +13,20 @@ signal card_selected(card: Control)
 @warning_ignore("unused_signal")
 signal card_cleared()
 
-@export var card_scale: float = 0.80
+@export var card_scale: float = 0.95
+@export var card_width_scale: float = 0.88
+@export var card_height_scale: float = 1.25
 @export var max_hand_size: int = 7
 
-@export var raised_anchor_from_bottom: float = 100.0
-@export var lowered_anchor_below_screen: float = 140.0
+@export var raised_anchor_from_bottom: float = 70.0
+@export var lowered_anchor_below_screen: float = 180.0
 
 @export var min_spacing: float = 115.0
 @export var max_spacing: float = 190.0
 @export var max_fan_width: float = 1520.0
 
-@export var max_rotation_degrees: float = 0.0
-@export var fan_curve_drop: float = 0.0
+@export var max_rotation_degrees: float = 5.0
+@export var fan_curve_drop: float = 5.0
 @export var hover_lift: float = 55.0
 @export var tween_time: float = 0.22
 
@@ -152,7 +154,7 @@ func add_card_to_hand(card_data: CardData, animated: bool = true) -> bool:
 	cards.append(card)
 
 	card.setup(card_data)
-	card.scale = Vector2(card_scale, card_scale)
+	card.scale = Vector2(card_scale * card_width_scale, card_scale * card_height_scale)
 
 	connect_hand_card_signals(card)
 
@@ -216,7 +218,7 @@ func arrange_fan(animated: bool = true, animation_duration: float = -1.0) -> voi
 		else:
 			card.position = target_position
 			card.rotation_degrees = target_rotation
-			card.scale = Vector2(card_scale, card_scale)
+			card.scale = Vector2(card_scale * card_width_scale, card_scale * card_height_scale)
 
 
 func get_hand_area_size() -> Vector2:
@@ -411,7 +413,7 @@ func force_return_card_to_hand(card: CardUI) -> void:
 	selected_card = null
 	live_reorder_index = -1
 
-	card.scale = Vector2(card_scale, card_scale)
+	card.scale = Vector2(card_scale * card_width_scale, card_scale * card_height_scale)
 	card.move_to_front()
 
 	arrange_fan(true)
@@ -448,7 +450,7 @@ func _move_card_to_layout(
 
 	tween.tween_property(card, "position", target_position, duration)
 	tween.parallel().tween_property(card, "rotation_degrees", target_rotation, duration)
-	tween.parallel().tween_property(card, "scale", Vector2(card_scale, card_scale), duration)
+	tween.parallel().tween_property(card, "scale", Vector2(card_scale * card_width_scale, card_scale * card_height_scale), duration)
 
 
 func remove_selected_card() -> void:

@@ -1,9 +1,12 @@
 [gd_scene format=3 uid="uid://dp6yeqqg78j3r"]
 
 [ext_resource type="Script" uid="uid://d1bxaxrw4bbx1" path="res://battlefield/BattlefieldManager.gd" id="1_xm46m"]
+[ext_resource type="PackedScene" uid="uid://cuehaxbfy62d3" path="res://Objects/Battlefield/Spearman/warrior.glb" id="2_0j4sw"]
 [ext_resource type="Script" uid="uid://08vh6g385ekw" path="res://battlefield/BoardSlot.gd" id="2_do6fa"]
 [ext_resource type="Script" uid="uid://dca1os3pb27hf" path="res://battlefield/AnimatedGrassScatter.gd" id="2_pwkqk"]
 [ext_resource type="Texture2D" uid="uid://dnwcw2smdpix6" path="res://Textures/Battlefield/Grassy Field.png" id="2_rn43s"]
+[ext_resource type="Script" uid="uid://dcguoxe5nv3he" path="res://Scripts/AutoPlayImportedAnimations.gd" id="3_3fwnw"]
+[ext_resource type="PackedScene" uid="uid://brwo5ig4b1hss" path="res://Objects/Battlefield/Stelae Knight/stelae_knight.glb" id="3_3mp1y"]
 [ext_resource type="PackedScene" uid="uid://ddl0bw6e3sco0" path="res://Objects/Battlefield/grass/grass.tscn" id="3_g1ksm"]
 [ext_resource type="Script" uid="uid://dgms62rwac6hr" path="res://battlefield/GameLog.gd" id="3_rdvt6"]
 [ext_resource type="Texture2D" uid="uid://bkikjm1frjevl" path="res://Textures/Battlefield/Wooden Tile.png" id="4_1fhha"]
@@ -34,7 +37,7 @@ ambient_light_color = Color(0.40069774, 0.40069774, 0.40069768, 1)
 glow_enabled = true
 glow_intensity = 0.0
 volumetric_fog_enabled = true
-volumetric_fog_density = 0.003
+volumetric_fog_density = 0.002
 adjustment_enabled = true
 adjustment_saturation = 1.13
 
@@ -135,8 +138,17 @@ spot_angle = 60.468746
 spot_angle_attenuation = 0.8408968
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1256937891]
-transform = Transform3D(1, 0, 0, 0, 0.25375775, 0.9672678, 0, -0.9672678, 0.25375775, 0, 4.865, 2.125)
+transform = Transform3D(1, 0, 0, 0, 0.4694716, 0.88294756, 0, -0.88294756, 0.4694716, 0, 12.675, 7.36)
 current = true
+fov = 28.7
+
+[node name="Warrior" parent="." unique_id=1929562019 instance=ExtResource("2_0j4sw")]
+transform = Transform3D(-0.8616292, 0, -0.5075384, 0, 1, 0, 0.5075384, 0, -0.8616292, 4.025, 0, 0.66)
+script = ExtResource("3_3fwnw")
+
+[node name="StelaeKnight" parent="." unique_id=571941995 instance=ExtResource("3_3mp1y")]
+transform = Transform3D(0.09964534, 0, 0.37188143, 0, 0.385, 0, -0.37188143, 0, 0.09964534, -3.61, 0, -0.405)
+script = ExtResource("3_3fwnw")
 
 [node name="AnimatedGrassScatter" type="Node3D" parent="." unique_id=1289923785]
 transform = Transform3D(0.44792828, 0, -0.043130696, 0, 0.45, 0, 0.043130696, 0, 0.44792828, -6.91, 0, -2.89)
@@ -562,7 +574,7 @@ shape = SubResource("CylinderShape3D_djscq")
 script = ExtResource("19_moveh")
 
 [node name="EnemyHandFan" type="Node3D" parent="OpponentVisuals" unique_id=1712949409]
-transform = Transform3D(1, 0, 0, 0, -1, 8.742278e-08, 0, -8.742278e-08, -1, 0, 1.2461718, -2.7247562)
+transform = Transform3D(1.53, 0, 0, 0, -1.53, 2.3102358e-07, 0, -2.3102358e-07, -1.53, 0, 0.181, -4.42)
 
 [node name="EnemyDrawPileVisual" type="Node3D" parent="OpponentVisuals" unique_id=384757661]
 transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 3.708, 0.1, -2.195)

@@ -20,7 +20,7 @@ extends Node3D
 @export var face_up_pile_card_scale: float = 1.0
 
 @export var opponent_label_pixel_size: float = 0.0045
-@export var opponent_pile_label_font_size: int = 22
+@export var opponent_pile_label_font_size: int = 35
 @export var opponent_hand_label_font_size: int = 22
 @export var show_enemy_hand_label: bool = false
 
@@ -240,7 +240,7 @@ func rebuild_face_up_pile(root: Node3D, cards: Array, label_text: String) -> voi
 	create_label(
 		root,
 		label_text + ": " + str(cards.size()),
-		Vector3(0, 0.14, -0.98),
+		Vector3(0, 0.14, 1.04),
 		opponent_pile_label_font_size
 	)
 	
@@ -265,7 +265,7 @@ func rebuild_card_back_pile(root: Node3D, count: int, label_text: String) -> voi
 	create_label(
 		root,
 		label_text + ": " + str(count),
-		Vector3(0, 0.14, -0.98),
+		Vector3(0, 0.14, 1.04),
 		opponent_pile_label_font_size
 	)
 

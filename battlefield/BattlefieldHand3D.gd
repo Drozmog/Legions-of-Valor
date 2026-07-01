@@ -270,10 +270,37 @@ func _on_card_input_event(
 	if event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
-			pressed_card = proxy
-			pressed_screen_position = mouse_event.position
-			press_became_drag = false
-			get_viewport().set_input_as_handled()
+			begin_card_press(proxy, mouse_event.position)
+
+
+func begin_card_press(proxy: CardUI, screen_position: Vector2) -> void:
+	if hand_ui == null or proxy == null or not is_instance_valid(proxy) or not hand_ui.cards.has(proxy):
+		return
+	pressed_card = proxy
+	pressed_screen_position = screen_position
+	press_became_drag = false
+	get_viewport().set_input_as_handled()
+
+
+func get_hand_proxy_at_screen_position(screen_position: Vector2) -> CardUI:
+	if hand_ui == null or camera_3d == null or not is_instance_valid(camera_3d):
+		return null
+	var ray_origin := camera_3d.project_ray_origin(screen_position)
+	var ray_end := ray_origin + camera_3d.project_ray_normal(screen_position) * 100.0
+	var query := PhysicsRayQueryParameters3D.create(ray_origin, ray_end, CARD_PICK_LAYER)
+	query.collide_with_areas = true
+	query.collide_with_bodies = false
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	var collider := hit.get("collider", null) as Node
+	if collider == null or collider.name != &"HandCardPickArea":
+		return null
+	var visual := collider.get_parent()
+	if visual == null:
+		return null
+	var proxy := visual.get_meta("hand_proxy", null) as CardUI
+	if proxy == null or not is_instance_valid(proxy) or not hand_ui.cards.has(proxy):
+		return null
+	return proxy
 
 
 func update_pressed_card_drag() -> void:
@@ -295,6 +322,14 @@ func _input(event: InputEvent) -> void:
 	if _is_modal_blocked():
 		clear_hand_interaction_state()
 		return
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
+			if pressed_card == null:
+				var proxy := get_hand_proxy_at_screen_position(mouse_event.position)
+				if proxy != null:
+					begin_card_press(proxy, mouse_event.position)
+			return
 	if pressed_card == null:
 		return
 	if event is InputEventMouseButton:
