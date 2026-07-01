@@ -26,3 +26,13 @@ Objects/Battlefield/stone_altar/
 *.exr
 *.psd
 *.kra
+# Godot resource extraction backups
+*.tscn.backup_*
+
+# Large local flame asset files
+Objects/Battlefield/flame_skull/flame_test.glb
+Objects/Battlefield/flame_skull/flame.tscn
+
+# Large local flame skull assets
+Objects/Battlefield/flame_skull/flame_test.glb
+Objects/Battlefield/flame_skull/flame.tscn

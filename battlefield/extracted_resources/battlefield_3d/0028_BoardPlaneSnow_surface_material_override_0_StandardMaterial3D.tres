@@ -1,0 +1,6 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://xcoamojowr1r"]
+
+[ext_resource type="Texture2D" uid="uid://dlcuxga8mdox5" path="res://Textures/Battlefield/Snowy Path.png" id="1_508ux"]
+
+[resource]
+albedo_texture = ExtResource("1_508ux")

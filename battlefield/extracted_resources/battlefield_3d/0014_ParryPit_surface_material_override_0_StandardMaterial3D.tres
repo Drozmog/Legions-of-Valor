@@ -1,0 +1,12 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://t2vxc5h33875"]
+
+[ext_resource type="Texture2D" uid="uid://4qqyxcvaakcg" path="res://Objects/Battlefield/Firepit/trn_Firepit_AlbedoTransparency.png" id="1_v4qlm"]
+[ext_resource type="Texture2D" uid="uid://c1olrq7nrfdy4" path="res://Objects/Battlefield/Firepit/trn_Firepit_MetallicSmoothness.png" id="2_j0apl"]
+[ext_resource type="Texture2D" uid="uid://bjy7td7w8jbuj" path="res://Objects/Battlefield/Firepit/trn_Firepit_Normal.png" id="3_vn0ei"]
+
+[resource]
+albedo_texture = ExtResource("1_v4qlm")
+metallic = 1.0
+metallic_texture = ExtResource("2_j0apl")
+normal_enabled = true
+normal_texture = ExtResource("3_vn0ei")

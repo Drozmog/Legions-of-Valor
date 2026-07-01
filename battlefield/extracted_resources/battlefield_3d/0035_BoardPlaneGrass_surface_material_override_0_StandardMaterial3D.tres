@@ -1,0 +1,21 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://bit627j1y10kx"]
+
+[ext_resource type="Texture2D" uid="uid://dnwcw2smdpix6" path="res://Textures/Battlefield/Grassy Field.png" id="1_fx5ik"]
+[ext_resource type="Texture2D" uid="uid://cbsuxtwa08jjy" path="res://Objects/Battlefield/rocky_terrain/textures/rocky_terrain_02_spec_4k.png" id="2_lo7a1"]
+[ext_resource type="Texture2D" uid="uid://cv87xjbxea678" path="res://Objects/Battlefield/rocky_terrain/textures/rocky_terrain_02_disp_4k.png" id="3_t3yjb"]
+[ext_resource type="Texture2D" uid="uid://bsgxqio304cfh" path="res://Objects/Battlefield/rocky_terrain/textures/rocky_terrain_02_nor_gl_4k.png" id="4_i3rik"]
+[ext_resource type="Texture2D" uid="uid://c3fwn2irdl48k" path="res://Objects/Battlefield/rocky_terrain/textures/rocky_terrain_02_rough_4k.png" id="5_457kc"]
+
+[resource]
+albedo_texture = ExtResource("1_fx5ik")
+roughness_texture = ExtResource("5_457kc")
+normal_enabled = true
+normal_texture = ExtResource("4_i3rik")
+ao_enabled = true
+ao_light_affect = 0.22
+ao_texture = ExtResource("2_lo7a1")
+heightmap_enabled = true
+heightmap_texture = ExtResource("3_t3yjb")
+uv1_scale = Vector3(0.965, 0.95, 1.025)
+uv1_offset = Vector3(0.01, 0.035, 0)
+texture_repeat = false

@@ -1,0 +1,16 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://w5kawbveajsk"]
+
+[ext_resource type="Texture2D" uid="uid://c1526y41p8s0v" path="res://battlefield/extracted_resources/battlefield_3d/0006_PileBase_surface_material_override_0_albedo_texture_CompressedTexture2D.res" id="1_w86g4"]
+[ext_resource type="Texture2D" uid="uid://dbhbrkql7xtf3" path="res://battlefield/extracted_resources/battlefield_3d/0009_PileBase_surface_material_override_0_heightmap_texture_CompressedTexture2D.res" id="2_x362i"]
+[ext_resource type="Texture2D" uid="uid://dhxfa8duun6hd" path="res://battlefield/extracted_resources/battlefield_3d/0008_PileBase_surface_material_override_0_normal_texture_CompressedTexture2D.res" id="3_38dyi"]
+[ext_resource type="Texture2D" uid="uid://dd7n0mcykovby" path="res://battlefield/extracted_resources/battlefield_3d/0007_PileBase_surface_material_override_0_roughness_texture_CompressedTexture2D.res" id="4_3tbhu"]
+
+[resource]
+albedo_texture = ExtResource("1_w86g4")
+roughness_texture = ExtResource("4_3tbhu")
+normal_enabled = true
+normal_texture = ExtResource("3_38dyi")
+heightmap_enabled = true
+heightmap_texture = ExtResource("2_x362i")
+uv1_scale = Vector3(3.02, 2.655, 3.165)
+uv1_offset = Vector3(-0.01, -0.65, 0)

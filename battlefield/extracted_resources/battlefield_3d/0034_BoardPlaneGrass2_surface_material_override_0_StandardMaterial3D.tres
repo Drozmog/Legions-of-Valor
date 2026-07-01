@@ -1,0 +1,20 @@
+[gd_resource type="StandardMaterial3D" format=3 uid="uid://dorxo037cugda"]
+
+[ext_resource type="Texture2D" uid="uid://btt0utkeml8h1" path="res://battlefield/extracted_resources/battlefield_3d/0029_BoardPlaneGrass2_surface_material_override_0_albedo_texture_CompressedTexture2D.res" id="1_3yh8c"]
+[ext_resource type="Texture2D" uid="uid://2gs55jqf5fnb" path="res://battlefield/extracted_resources/battlefield_3d/0032_BoardPlaneGrass2_surface_material_override_0_ao_texture_CompressedTexture2D.res" id="2_puhjf"]
+[ext_resource type="Texture2D" uid="uid://dm3587c5kkp3t" path="res://battlefield/extracted_resources/battlefield_3d/0033_BoardPlaneGrass2_surface_material_override_0_heightmap_texture_CompressedTexture2D.res" id="3_txtjc"]
+[ext_resource type="Texture2D" uid="uid://c0dp76ifa70lr" path="res://battlefield/extracted_resources/battlefield_3d/0031_BoardPlaneGrass2_surface_material_override_0_normal_texture_CompressedTexture2D.res" id="4_tri33"]
+[ext_resource type="Texture2D" uid="uid://sjwhoyht3k1i" path="res://battlefield/extracted_resources/battlefield_3d/0030_BoardPlaneGrass2_surface_material_override_0_roughness_texture_CompressedTexture2D.res" id="5_t1s6h"]
+
+[resource]
+albedo_texture = ExtResource("1_3yh8c")
+roughness_texture = ExtResource("5_t1s6h")
+normal_enabled = true
+normal_scale = 1.78
+normal_texture = ExtResource("4_tri33")
+ao_enabled = true
+ao_light_affect = 0.37
+ao_texture = ExtResource("2_puhjf")
+heightmap_enabled = true
+heightmap_scale = 0.02
+heightmap_texture = ExtResource("3_txtjc")
