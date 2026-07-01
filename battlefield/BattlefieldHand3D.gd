@@ -40,6 +40,12 @@ func setup(source_hand: HandUI, source_camera: Camera3D) -> void:
 	hand_ui = source_hand
 	camera_3d = source_camera
 	card_inspect_panel = find_card_inspect_panel()
+	if hand_ui != null:
+		# The 2D HandUI cards are only layout/data proxies now. Keeping the
+		# Control visible lets a proxy card flash at its final layout slot for one
+		# frame before the 3D deal animation catches up.
+		hand_ui.visible = false
+		hand_ui.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_process(true)
 	set_process_input(true)
 
@@ -47,6 +53,8 @@ func setup(source_hand: HandUI, source_camera: Camera3D) -> void:
 func _process(delta: float) -> void:
 	if hand_ui == null or camera_3d == null:
 		return
+	if hand_ui.visible:
+		hand_ui.visible = false
 	sync_card_visuals()
 	update_card_layout(delta)
 	if _is_modal_blocked():
