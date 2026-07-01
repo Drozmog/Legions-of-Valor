@@ -199,38 +199,58 @@ func finish_transition() -> void:
 	target_scene_path = ""
 
 
+func play_menu_button() -> void:
+	play_sfx("menu_button")
+
+
 func play_initial_menu_button() -> void:
 	play_sfx("initial_menu_button")
-
-
-func play_select_button() -> void:
-	play_sfx("select_button")
 
 
 func play_back_button() -> void:
 	play_sfx("back_button")
 
 
+func play_attack_button() -> void:
+	play_sfx("attack_button")
+
+
+func play_check_button() -> void:
+	play_sfx("check_button")
+
+
+func play_pass_button() -> void:
+	play_sfx("pass_button")
+
+
 func play_inspect_button() -> void:
 	play_sfx("inspect_button")
 
 
+func play_select_button() -> void:
+	play_sfx("select_button")
+
+
+func play_alert_sound() -> void:
+	play_sfx("alert_sound")
+
+
 func play_battleplan_flip() -> void:
-	play_sfx("battlePlan_flip")
+	play_sfx("battleplan_flip")
 
 
 func play_board_action_button(action_id: int) -> void:
 	match action_id:
-		1:
-			play_sfx("inspect_button")
 		2:
-			play_sfx("attack_button")
+			play_attack_button()
 		3:
-			play_sfx("check_button")
+			play_check_button()
 		4:
-			play_sfx("pass_button")
+			play_pass_button()
+		1:
+			play_inspect_button()
 		_:
-			play_sfx("select_button")
+			play_select_button()
 
 
 func play_sfx(sfx_name: String) -> void:
@@ -300,8 +320,10 @@ func _get_sfx_fallback_name(sfx_name: String) -> String:
 
 
 func get_free_sfx_player() -> AudioStreamPlayer:
+	_ensure_sfx_players()
+
 	for player in sfx_players:
-		if not player.playing:
+		if player != null and not player.playing:
 			return player
 
 	return sfx_players[0]
