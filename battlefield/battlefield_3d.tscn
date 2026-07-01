@@ -13,12 +13,8 @@
 [ext_resource type="Script" uid="uid://do8rfvsttcccj" path="res://battlefield/TributeManager.gd" id="4_rn43s"]
 [ext_resource type="Texture2D" uid="uid://dlcuxga8mdox5" path="res://Textures/Battlefield/Snowy Path.png" id="4_yr2pt"]
 [ext_resource type="Script" uid="uid://brfudyn18b5kf" path="res://ui/Hand.gd" id="5_yr2pt"]
-[ext_resource type="Texture2D" uid="uid://c8ynof30pf6qb" path="res://Objects/Battlefield/grassy_path/Grassy_Path (1).png" id="6_3mp1y"]
 [ext_resource type="Script" uid="uid://d3gtu3v3ewks1" path="res://battlefield/DrawPile.gd" id="6_do6fa"]
-[ext_resource type="Texture2D" uid="uid://t5l2ea73pldt" path="res://Objects/Battlefield/grassy_path/Grassy_Path (4).png" id="7_3fwnw"]
-[ext_resource type="Texture2D" uid="uid://ddmylrohpuxvn" path="res://Objects/Battlefield/grassy_path/Grassy_Path (2).png" id="8_wbmb6"]
 [ext_resource type="Texture2D" uid="uid://cbsuxtwa08jjy" path="res://Objects/Battlefield/rocky_terrain/textures/rocky_terrain_02_spec_4k.png" id="8_yn4tq"]
-[ext_resource type="Texture2D" uid="uid://bfl602e4yji7k" path="res://Objects/Battlefield/grassy_path/Grassy_Path (3).png" id="9_44471"]
 [ext_resource type="Texture2D" uid="uid://cv87xjbxea678" path="res://Objects/Battlefield/rocky_terrain/textures/rocky_terrain_02_disp_4k.png" id="9_e8p8s"]
 [ext_resource type="Script" uid="uid://di4kmq4hqvt7y" path="res://ui/PlayerStatusPanel.gd" id="9_m3t58"]
 [ext_resource type="Script" uid="uid://cqmyr7rmuptnr" path="res://battlefield/TributePile.gd" id="9_yr2pt"]
@@ -32,7 +28,6 @@
 [ext_resource type="Script" uid="uid://d4enyei8am72a" path="res://battle/BattlePlanManager.gd" id="14_vaox5"]
 [ext_resource type="Texture2D" uid="uid://rwt8mp83m5da" path="res://ui/combat_buttons/inspect_button.png" id="14_whobu"]
 [ext_resource type="Script" uid="uid://b620xjxapgjsm" path="res://battlefield/DiscardPile.gd" id="17_daqav"]
-[ext_resource type="Texture2D" uid="uid://bgjff8r7til78" path="res://Textures/Battlefield/ParryTable.png" id="18_djscq"]
 [ext_resource type="Script" uid="uid://rpa2sw7oae1o" path="res://battlefield/OpponentVisuals.gd" id="19_moveh"]
 [ext_resource type="Script" uid="uid://bvdqqom8n8net" path="res://battlefield/CardAnimationManager.gd" id="20_xm46m"]
 [ext_resource type="Texture2D" uid="uid://4qqyxcvaakcg" path="res://Objects/Battlefield/Firepit/trn_Firepit_AlbedoTransparency.png" id="23_r3wp2"]
@@ -66,20 +61,32 @@ uv1_scale = Vector3(0.965, 0.95, 1.025)
 uv1_offset = Vector3(0.01, 0.035, 0)
 texture_repeat = false
 
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_yn4tq"]
+load_path = "res://.godot/imported/Grassy_Path (1).png-e747785b64d6566a08ed9cf544d288c6.s3tc.ctex"
+
 [sub_resource type="CompressedTexture2D" id="CompressedTexture2D_dgsky"]
 
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_e8p8s"]
+load_path = "res://.godot/imported/Grassy_Path (4).png-7cdb09e7a449becfee757d1b87820cd0.s3tc.ctex"
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_r3wp2"]
+load_path = "res://.godot/imported/Grassy_Path (2).png-4bb530bde62819c4662ac9f7ebf08383.s3tc.ctex"
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_ovuhe"]
+load_path = "res://.godot/imported/Grassy_Path (3).png-4ff2fc20109daabf797000ab7409c4cf.s3tc.ctex"
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_u0ya7"]
-albedo_texture = ExtResource("6_3mp1y")
-roughness_texture = ExtResource("9_44471")
+albedo_texture = SubResource("CompressedTexture2D_yn4tq")
+roughness_texture = SubResource("CompressedTexture2D_ovuhe")
 normal_enabled = true
 normal_scale = 1.78
-normal_texture = ExtResource("8_wbmb6")
+normal_texture = SubResource("CompressedTexture2D_r3wp2")
 ao_enabled = true
 ao_light_affect = 0.37
 ao_texture = SubResource("CompressedTexture2D_dgsky")
 heightmap_enabled = true
 heightmap_scale = 0.02
-heightmap_texture = ExtResource("7_3fwnw")
+heightmap_texture = SubResource("CompressedTexture2D_e8p8s")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1fhha"]
 albedo_texture = ExtResource("4_yr2pt")
@@ -193,17 +200,6 @@ metallic = 1.0
 metallic_texture = ExtResource("25_pbk2t")
 normal_enabled = true
 normal_texture = ExtResource("24_ovuhe")
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_daqav"]
-top_radius = 0.57
-bottom_radius = 0.0
-height = 0.001
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_moveh"]
-albedo_texture = ExtResource("18_djscq")
-uv1_scale = Vector3(1.845, 1.845, 1.845)
-uv1_offset = Vector3(0.04, -0.895, 0)
-texture_repeat = false
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_djscq"]
 height = 0.45
@@ -689,21 +685,18 @@ transform = Transform3D(-2.6226832e-10, 0, -0.008, 0, 0.004, 0, 0.006, 0, -3.496
 [node name="ParryPit" type="Node3D" parent="." unique_id=2130131975]
 transform = Transform3D(1.11, 0, 0, 0, 1.11, 0, 0, 0, 1.11, 4.19, 0.1, 0)
 
-[node name="ParryPitGlow" type="MeshInstance3D" parent="ParryPit" unique_id=1325203415]
+[node name="ParryPit" type="MeshInstance3D" parent="ParryPit" unique_id=1325203415]
 transform = Transform3D(1.3828827, 0, 0, 0, -6.0447725e-08, 1.3828827, 0, -1.3828827, -6.0447725e-08, -3.7747746, -0.09009009, 0)
 mesh = SubResource("ArrayMesh_s22n7")
 surface_material_override/0 = SubResource("StandardMaterial3D_cdro3")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="ParryPit" unique_id=1129680907]
-visible = false
-mesh = SubResource("CylinderMesh_daqav")
-surface_material_override/0 = SubResource("StandardMaterial3D_moveh")
-
 [node name="ParryDPCounter" type="Label3D" parent="ParryPit" unique_id=903500747]
+transform = Transform3D(1.425, 0, 0, 0, 0.88493276, 1.1169238, 0, -1.1169238, 0.88493276, -3.7795417, 1.205334, -1.6533976)
 visible = false
 text = "0/0 DP"
 
 [node name="ParryPitDropArea" type="Area3D" parent="ParryPit" unique_id=1833703348]
+transform = Transform3D(1.3349996, 0, 0, 0, 1.3349996, 0, 0, 0, 1.3349996, -3.7799168, 0.58685595, 0.004474966)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="ParryPit/ParryPitDropArea" unique_id=604015528]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
@@ -803,7 +796,7 @@ mesh = SubResource("BoxMesh_ovuhe")
 surface_material_override/0 = SubResource("StandardMaterial3D_bkda5")
 
 [node name="PileLabel" type="Label3D" parent="OpponentVisuals/EnemyDrawPileVisual" unique_id=1709141700]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, 1.04)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.045, 0.14, 1.285)
 pixel_size = 0.0045
 billboard = 1
 no_depth_test = true
@@ -825,7 +818,7 @@ material_override = SubResource("StandardMaterial3D_pbk2t")
 mesh = SubResource("BoxMesh_s22n7")
 
 [node name="PileLabel" type="Label3D" parent="OpponentVisuals/EnemyTributePileVisual" unique_id=847564049]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, 1.04)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.13, 0.14, 1.285)
 pixel_size = 0.0045
 billboard = 1
 no_depth_test = true
@@ -847,7 +840,7 @@ material_override = SubResource("StandardMaterial3D_yopvp")
 mesh = SubResource("BoxMesh_cdro3")
 
 [node name="PileLabel" type="Label3D" parent="OpponentVisuals/EnemyDiscardPileVisual" unique_id=270999811]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.14, 1.04)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.045, 0.14, 1.285)
 pixel_size = 0.0045
 billboard = 1
 no_depth_test = true
