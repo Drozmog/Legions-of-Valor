@@ -32,7 +32,7 @@ const INTRO_SHUFFLE_STEPS := 8
 const INTRO_STACK_TIME := 0.30
 const INTRO_DEAL_OUT_TIME := 0.38
 const INTRO_DEAL_STAGGER := 0.055
-const BUTTON_SIZE := Vector3(0.78, 0.045, 0.362)
+const BUTTON_SIZE := Vector3(0.90, 0.045, 0.4177)
 const BUTTON_SURFACE_SIZE := Vector2(BUTTON_SIZE.x, BUTTON_SIZE.z)
 const INSPECTOR_BUTTON_SIZE := Vector2(183.0, 85.0) # 280x130 ratio
 
@@ -773,7 +773,7 @@ func _create_action_group(card_index: int, slot_index: int) -> Node3D:
 	group.name = "BattlePlanActions%d" % (slot_index + 1)
 	var entry: Dictionary = card_entries[card_index]
 	var card_root := entry["root"] as Node3D
-	group.position = Vector3(card_root.position.x, CARD_SURFACE_Y + 0.11, TOP_CARD_Z + 1.34)
+	group.position = Vector3(card_root.position.x, CARD_SURFACE_Y + 0.11, TOP_CARD_Z + 1.48)
 	group.scale = Vector3(0.02, 0.02, 0.02)
 	selection_root.add_child(group)
 	_create_action_button(group, card_index, "select", "SELECT", -0.46, select_button_texture)
@@ -785,7 +785,7 @@ func _create_action_group(card_index: int, slot_index: int) -> Node3D:
 
 
 func _action_group_position(slot_index: int) -> Vector3:
-	return Vector3(float(TOP_SLOT_X[slot_index]), CARD_SURFACE_Y + 0.11, TOP_CARD_Z + 1.34)
+	return Vector3(float(TOP_SLOT_X[slot_index]), CARD_SURFACE_Y + 0.11, TOP_CARD_Z + 1.48)
 
 
 func _create_action_button(
@@ -938,8 +938,8 @@ func _build_inspector_actions(card_index: int) -> void:
 	inspector_actions.set_anchors_preset(Control.PRESET_CENTER)
 	inspector_actions.offset_left = -215.0
 	inspector_actions.offset_right = 215.0
-	inspector_actions.offset_top = 326.0
-	inspector_actions.offset_bottom = 421.0
+	inspector_actions.offset_top = 295.0
+	inspector_actions.offset_bottom = 390.0
 	inspector_actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	inspector_actions.add_theme_constant_override("separation", 8)
 	inspector_actions.mouse_filter = Control.MOUSE_FILTER_PASS
