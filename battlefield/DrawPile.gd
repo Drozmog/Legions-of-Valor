@@ -6,17 +6,65 @@ signal draw_drag_started(screen_position: Vector2)
 signal draw_drag_moved(screen_position: Vector2)
 signal draw_drag_released(screen_position: Vector2)
 
-@export var card_count: int = 40
-@export var card_width: float = 1.02
-@export var card_height: float = 1.34
-@export var card_thickness: float = 0.006
-@export var max_visible_cards: int = 14
-@export var card_gap: float = 0.008
+@export_group("Card Stack")
+@export var card_count: int = 40:
+	set(value):
+		card_count = max(value, 0)
+		_refresh_visuals()
+@export var card_width: float = 1.02:
+	set(value):
+		card_width = value
+		_refresh_visuals()
+@export var card_height: float = 1.34:
+	set(value):
+		card_height = value
+		_refresh_visuals()
+@export var card_thickness: float = 0.006:
+	set(value):
+		card_thickness = value
+		_refresh_visuals()
+@export var max_visible_cards: int = 14:
+	set(value):
+		max_visible_cards = max(value, 0)
+		_refresh_visuals()
+@export var card_gap: float = 0.008:
+	set(value):
+		card_gap = value
+		_refresh_visuals()
+@export var stack_base_offset: Vector3 = Vector3(0.0, 0.025, 0.0):
+	set(value):
+		stack_base_offset = value
+		_refresh_visuals()
 
-@export var counter_side_offset: float = 0.0
-@export var counter_height: float = 0.16
-@export var counter_forward_offset: float = -0.92
-@export var counter_pixel_size: float = 0.006
+@export_group("Pile Base")
+@export var base_local_offset: Vector3 = Vector3.ZERO:
+	set(value):
+		base_local_offset = value
+		_apply_base_layout()
+
+@export_group("Counter Label")
+@export var counter_side_offset: float = 0.0:
+	set(value):
+		counter_side_offset = value
+		update_counter_label()
+@export var counter_height: float = 0.16:
+	set(value):
+		counter_height = value
+		update_counter_label()
+@export var counter_forward_offset: float = -0.92:
+	set(value):
+		counter_forward_offset = value
+		update_counter_label()
+@export var counter_pixel_size: float = 0.006:
+	set(value):
+		counter_pixel_size = value
+		update_counter_label()
+
+@export_group("Interaction Area")
+@export var click_area_local_offset: Vector3 = Vector3(0.0, 0.0, -0.29577875):
+	set(value):
+		click_area_local_offset = value
+		_apply_click_area_layout()
 
 @onready var click_area: Area3D = get_node_or_null("ClickArea") as Area3D
 
@@ -29,18 +77,12 @@ var counter_label: Label3D = null
 func _ready() -> void:
 	create_base()
 	create_counter_label()
-	update_counter_label()
+	_sync_layout_exports_from_existing_children()
+	_apply_all_layout()
 
-	if Engine.is_editor_hint():
-		return
-
-	build_stack()
-
-	if click_area != null:
-		click_area.input_ray_pickable = true
-		click_area.input_event.connect(_on_click_area_input_event)
-		click_area.mouse_entered.connect(_on_mouse_entered)
-		click_area.mouse_exited.connect(_on_mouse_exited)
+	if not Engine.is_editor_hint():
+		build_stack()
+		connect_click_area_signals()
 
 	set_process(false)
 
@@ -53,6 +95,52 @@ func apply_editor_owner(node: Node) -> void:
 	var edited_root := get_tree().edited_scene_root
 	if edited_root != null and node.owner == null:
 		node.owner = edited_root
+
+
+func _refresh_visuals() -> void:
+	if not is_inside_tree():
+		return
+	create_base()
+	create_counter_label()
+	_apply_all_layout()
+	if not Engine.is_editor_hint():
+		build_stack()
+
+
+func _apply_all_layout() -> void:
+	_apply_base_layout()
+	_apply_click_area_layout()
+	update_counter_label()
+
+
+func _sync_layout_exports_from_existing_children() -> void:
+	if base_node != null:
+		base_local_offset = base_node.position
+
+	if counter_label != null:
+		counter_side_offset = counter_label.position.x
+		counter_height = counter_label.position.y
+		counter_forward_offset = counter_label.position.z
+		counter_pixel_size = counter_label.pixel_size
+
+	if click_area != null:
+		click_area_local_offset = click_area.position
+
+
+func _get_counter_offset() -> Vector3:
+	return Vector3(counter_side_offset, counter_height, counter_forward_offset)
+
+
+func _apply_base_layout() -> void:
+	if base_node != null:
+		base_node.position = base_local_offset
+
+
+func _apply_click_area_layout() -> void:
+	if click_area == null:
+		click_area = get_node_or_null("ClickArea") as Area3D
+	if click_area != null:
+		click_area.position = click_area_local_offset
 
 
 func create_base() -> void:
@@ -71,7 +159,7 @@ func create_counter_label() -> void:
 		counter_label = CardPileVisual.create_counter_label(
 			"DrawPileCounter",
 			"Deck: " + str(card_count),
-			Vector3(counter_side_offset, counter_height, counter_forward_offset),
+			_get_counter_offset(),
 			counter_pixel_size,
 			20
 		)
@@ -86,13 +174,26 @@ func update_counter_label() -> void:
 	if counter_label == null:
 		return
 
-	counter_label.position = Vector3(counter_side_offset, counter_height, counter_forward_offset)
+	counter_label.position = _get_counter_offset()
+	counter_label.pixel_size = counter_pixel_size
 	counter_label.text = "Deck: " + str(card_count)
+
+
+func connect_click_area_signals() -> void:
+	if click_area == null:
+		return
+
+	click_area.input_ray_pickable = true
+	if not click_area.input_event.is_connected(_on_click_area_input_event):
+		click_area.input_event.connect(_on_click_area_input_event)
+	if not click_area.mouse_entered.is_connected(_on_mouse_entered):
+		click_area.mouse_entered.connect(_on_mouse_entered)
+	if not click_area.mouse_exited.is_connected(_on_mouse_exited):
+		click_area.mouse_exited.connect(_on_mouse_exited)
 
 
 func set_card_count(new_count: int) -> void:
 	card_count = max(new_count, 0)
-	build_stack()
 
 
 func build_stack() -> void:
@@ -102,7 +203,7 @@ func build_stack() -> void:
 
 	for i in range(visible_count):
 		var card := CardPileVisual.create_card_back_visual(card_width, card_height)
-		card.position = Vector3(0, 0.025 + float(i) * (card_thickness + card_gap), 0)
+		card.position = stack_base_offset + Vector3(0.0, float(i) * (card_thickness + card_gap), 0.0)
 		card.rotation_degrees = Vector3.ZERO
 		add_child(card)
 		stacked_cards.append(card)
@@ -125,6 +226,9 @@ func _on_click_area_input_event(
 	_normal: Vector3,
 	_shape_idx: int
 ) -> void:
+	if Engine.is_editor_hint():
+		return
+
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			if card_count <= 0 or is_dragging_from_pile:
