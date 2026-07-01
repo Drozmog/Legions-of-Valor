@@ -12,12 +12,14 @@
 [ext_resource type="PackedScene" uid="uid://cim5ar5i1vlw1" path="res://Objects/Deck_Builder/Wooden Mug/Wooden Mug.glb" id="5_rh0hs"]
 [ext_resource type="PackedScene" uid="uid://cfbk1dl0gqcpb" path="res://Objects/Deck_Builder/Tray/Tray.glb" id="6_0mkf5"]
 [ext_resource type="PackedScene" uid="uid://bd1wg8evpiulr" path="res://Objects/Deck_Builder/Book Stack/book_stack.glb" id="6_7i4bp"]
+[ext_resource type="PackedScene" uid="uid://b2563ml0hkf47" path="res://Objects/Deck_Builder/Candles/two_candles.tscn" id="6_a5cs0"]
+[ext_resource type="Script" uid="uid://dcguoxe5nv3he" path="res://Scripts/AutoPlayImportedAnimations.gd" id="7_oh4no"]
 [ext_resource type="AudioStream" uid="uid://cr8sk41mflpg8" path="res://Audio/Music/Deck Builder - Time Flows Ever Onward.ogg" id="13_7um2w"]
 
 [sub_resource type="Environment" id="Environment_uy14w"]
 ambient_light_energy = 0.25
 volumetric_fog_enabled = true
-volumetric_fog_density = 0.005
+volumetric_fog_density = 0.002
 volumetric_fog_emission_energy = 0.0
 volumetric_fog_length = 30.0
 
@@ -65,13 +67,14 @@ script = ExtResource("1_builder")
 environment = SubResource("Environment_uy14w")
 
 [node name="DeckBuilderCamera" type="Camera3D" parent="." unique_id=614418254]
-transform = Transform3D(1, 0, 0, 0, 0.15988123, 0.98713624, 0, -0.98713624, 0.15988123, 0, 5.5699997, 1.3849993)
+transform = Transform3D(1, 0, 0, 0, 0.15988122, 0.9871362, 0, -0.9871362, 0.15988122, 0, 5.5699997, 1.3849993)
 current = true
 fov = 71.5
 
 [node name="WarmOverheadLight" type="DirectionalLight3D" parent="." unique_id=1695227764]
 transform = Transform3D(1, 0, 0, 0, -0.12360144, 0.9923319, 0, -0.9923319, -0.12360144, 0, 15.179, 5.300354)
 light_energy = 0.352
+light_angular_distance = 1.82
 light_specular = 0.2
 shadow_enabled = true
 shadow_opacity = 0.85
@@ -117,11 +120,36 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1564276, 0.012, 0.10418761
 mesh = SubResource("Mesh_LeftSurface")
 surface_material_override/0 = SubResource("Mat_Surface")
 
+[node name="TwoCandles" parent="." unique_id=428276340 instance=ExtResource("6_a5cs0")]
+transform = Transform3D(-0.68155813, 0, 7.7902427, 0, 7.82, 0, -7.7902427, 0, -0.68155813, -4.975, 0.015, -2.48)
+script = ExtResource("7_oh4no")
+
+[node name="CandleLightLeft" type="OmniLight3D" parent="TwoCandles" unique_id=1097329581]
+transform = Transform3D(0.12787725, 0, 0, 0, 0.12787724, 0, 9.313226e-10, 0, 0.12787725, -0.0028193593, 0.14207771, -0.045231402)
+light_color = Color(1, 0.8, 0.54509807, 1)
+light_energy = 0.5
+light_volumetric_fog_energy = 11.486
+light_size = 0.216
+light_specular = 0.1
+omni_range = 2.631
+omni_attenuation = 0.054
+
+[node name="CandleLightRight" type="OmniLight3D" parent="TwoCandles" unique_id=1976781564]
+transform = Transform3D(0.12787725, 0, 0, 0, 0.12787724, 0, 9.313226e-10, 0, 0.12787725, -0.020317852, 0.1027772, 0.068455994)
+light_color = Color(1, 0.8, 0.54509807, 1)
+light_energy = 0.5
+light_volumetric_fog_energy = 11.486
+light_size = 0.216
+light_specular = 0.1
+omni_range = 2.631
+omni_attenuation = 0.054
+
 [node name="BookStack" parent="." unique_id=1586676646 instance=ExtResource("6_7i4bp")]
 transform = Transform3D(-0.8831165, 0, 1.4992349, 0, 1.74, 0, -1.4992349, 0, -0.8831165, 4.07, 0, -4.23)
 
 [node name="LibraryTitle3D" type="Label3D" parent="." unique_id=770178002]
 transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, -5.8564277, 0.08, -2.5458124)
+visible = false
 pixel_size = 0.01
 offset = Vector2(158.425, -46.31)
 outline_modulate = Color(0, 0, 0, 0)
@@ -133,6 +161,9 @@ transform = Transform3D(0.017541364, -0.26428902, 0.008282687, 0.0013738311, -0.
 
 [node name="Coins" parent="." unique_id=1040945268 instance=ExtResource("5_niogi")]
 transform = Transform3D(-2.2258925, 0, -6.65249, 0, 7.015, 0, 6.65249, 0, -2.2258925, -6.45, 0, 3.855)
+
+[node name="Coins2" parent="." unique_id=717920349 instance=ExtResource("5_niogi")]
+transform = Transform3D(-2.740979, 0, 6.4573417, 0, 7.015, 0, -6.4573417, 0, -2.740979, 2.2, 0.015, 4.81)
 
 [node name="Leather Book" parent="." unique_id=336374824 instance=ExtResource("5_prbbm")]
 transform = Transform3D(-10.192732, 0, 2.3485641, 0, 10.38, 0, -1.9628096, 0, -12.195928, -7.297, 0, -1.538)

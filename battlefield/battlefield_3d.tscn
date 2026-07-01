@@ -2,13 +2,19 @@
 
 [ext_resource type="Script" uid="uid://d1bxaxrw4bbx1" path="res://battlefield/BattlefieldManager.gd" id="1_xm46m"]
 [ext_resource type="Script" uid="uid://08vh6g385ekw" path="res://battlefield/BoardSlot.gd" id="2_do6fa"]
+[ext_resource type="Script" uid="uid://dca1os3pb27hf" path="res://battlefield/AnimatedGrassScatter.gd" id="2_pwkqk"]
 [ext_resource type="Texture2D" uid="uid://dnwcw2smdpix6" path="res://Textures/Battlefield/Grassy Field.png" id="2_rn43s"]
+[ext_resource type="PackedScene" uid="uid://ddl0bw6e3sco0" path="res://Objects/Battlefield/grass/grass.tscn" id="3_g1ksm"]
 [ext_resource type="Script" uid="uid://dgms62rwac6hr" path="res://battlefield/GameLog.gd" id="3_rdvt6"]
 [ext_resource type="Texture2D" uid="uid://bkikjm1frjevl" path="res://Textures/Battlefield/Wooden Tile.png" id="4_1fhha"]
 [ext_resource type="Script" uid="uid://do8rfvsttcccj" path="res://battlefield/TributeManager.gd" id="4_rn43s"]
 [ext_resource type="Texture2D" uid="uid://dlcuxga8mdox5" path="res://Textures/Battlefield/Snowy Path.png" id="4_yr2pt"]
 [ext_resource type="Script" uid="uid://brfudyn18b5kf" path="res://ui/Hand.gd" id="5_yr2pt"]
+[ext_resource type="Texture2D" uid="uid://c8ynof30pf6qb" path="res://Objects/Battlefield/grassy_path/Grassy_Path (1).png" id="6_3mp1y"]
 [ext_resource type="Script" uid="uid://d3gtu3v3ewks1" path="res://battlefield/DrawPile.gd" id="6_do6fa"]
+[ext_resource type="Texture2D" uid="uid://t5l2ea73pldt" path="res://Objects/Battlefield/grassy_path/Grassy_Path (4).png" id="7_3fwnw"]
+[ext_resource type="Texture2D" uid="uid://ddmylrohpuxvn" path="res://Objects/Battlefield/grassy_path/Grassy_Path (2).png" id="8_wbmb6"]
+[ext_resource type="Texture2D" uid="uid://bfl602e4yji7k" path="res://Objects/Battlefield/grassy_path/Grassy_Path (3).png" id="9_44471"]
 [ext_resource type="Script" uid="uid://di4kmq4hqvt7y" path="res://ui/PlayerStatusPanel.gd" id="9_m3t58"]
 [ext_resource type="Script" uid="uid://cqmyr7rmuptnr" path="res://battlefield/TributePile.gd" id="9_yr2pt"]
 [ext_resource type="Script" uid="uid://bla1wuf0yxf5q" path="res://ui/BattlePlanPanel.gd" id="11_7c1op"]
@@ -31,7 +37,21 @@ size = Vector2(17.135, 8.34)
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_rn43s"]
 albedo_texture = ExtResource("2_rn43s")
 normal_texture = SubResource("CompressedTexture2D_xm46m")
-uv1_scale = Vector3(0.97, 1, 1)
+
+[sub_resource type="CompressedTexture2D" id="CompressedTexture2D_dgsky"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_u0ya7"]
+albedo_texture = ExtResource("6_3mp1y")
+roughness_texture = ExtResource("9_44471")
+normal_enabled = true
+normal_scale = 1.78
+normal_texture = ExtResource("8_wbmb6")
+ao_enabled = true
+ao_light_affect = 0.37
+ao_texture = SubResource("CompressedTexture2D_dgsky")
+heightmap_enabled = true
+heightmap_scale = 0.02
+heightmap_texture = ExtResource("7_3fwnw")
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1fhha"]
 albedo_texture = ExtResource("4_yr2pt")
@@ -82,26 +102,866 @@ draw_pile = NodePath("DrawPile")
 tribute_pile = NodePath("TributePile")
 player_deck = NodePath("PlayerDeck")
 
-[node name="BoardPlaneGrass" type="MeshInstance3D" parent="." unique_id=1652894338]
+[node name="WarmOverheadLight" type="DirectionalLight3D" parent="." unique_id=1894267964]
+transform = Transform3D(1, 0, 0, 0, -0.123601444, 0.992332, 0, -0.992332, -0.123601444, 0, 15.179, 5.300354)
 visible = false
-mesh = SubResource("PlaneMesh_lmsbs")
-surface_material_override/0 = SubResource("StandardMaterial3D_rn43s")
+light_energy = 0.352
+light_specular = 0.2
+shadow_enabled = true
+shadow_opacity = 0.85
+sky_mode = 1
 
-[node name="BoardPlaneGrass2" type="MeshInstance3D" parent="." unique_id=487335533]
-mesh = SubResource("PlaneMesh_lmsbs")
-surface_material_override/0 = SubResource("StandardMaterial3D_rn43s")
-
-[node name="BoardPlaneSnow" type="MeshInstance3D" parent="." unique_id=1368429057]
-visible = false
-mesh = SubResource("PlaneMesh_lmsbs")
-surface_material_override/0 = SubResource("StandardMaterial3D_1fhha")
+[node name="TopLight" type="SpotLight3D" parent="." unique_id=313698220]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 9.066, 0)
+light_color = Color(1, 0.99215686, 0.84705883, 1)
+light_energy = 10.213
+light_volumetric_fog_energy = 3.0
+light_specular = 0.0
+shadow_enabled = true
+spot_range = 15.397273
+spot_attenuation = 1.2
+spot_angle = 60.468746
+spot_angle_attenuation = 0.8408968
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=1256937891]
 transform = Transform3D(1, 0, 0, 0, 0.25375775, 0.9672678, 0, -0.9672678, 0.25375775, 0, 4.865, 2.125)
 current = true
 
-[node name="Sunlight" type="DirectionalLight3D" parent="." unique_id=1091007707]
-transform = Transform3D(1, 0, 0, 0, -4.371139e-08, 1, 0, -1, -4.371139e-08, 0, 3.4370525, 0)
+[node name="AnimatedGrassScatter" type="Node3D" parent="." unique_id=1289923785]
+transform = Transform3D(-1.9014454e-08, 0, 0.435, 0, 0.435, 0, -0.435, 0, -1.9014454e-08, -6.805, 0, -2.625)
+script = ExtResource("2_pwkqk")
+grass_scene = ExtResource("3_g1ksm")
+columns = 10
+rows = 10
+spacing_x = 0.5
+spacing_z = 0.5
+random_position_jitter = 2.0
+
+[node name="generated_grass_00_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=850570535 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.46807736, 0, 0.9318032, 0, 1.0427625, 0, -0.9318032, 0, -0.46807736, -0.65953875, 0, -1.1384375)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=1948249885 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.86671084, 0, -0.10566459, 0, 0.8731281, 0, 0.10566459, 0, 0.86671084, -3.518065, 0, -0.1421156)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=1409021093 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.11151812, 0, -1.2083535, 0, 1.2134886, 0, 1.2083535, 0, 0.11151812, -2.9456413, 0, 0.70386815)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=1373367276 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.1334904, 0, 0.84482414, 0, 0.8553055, 0, -0.84482414, 0, 0.1334904, -0.46536326, 0, -0.47567773)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=2066047061 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.3792225, 0, -1.0980481, 0, 1.1616881, 0, 1.0980481, 0, -0.3792225, -1.763377, 0, 1.5489137)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=24220387 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7621759, 0, 0.80726373, 0, 1.1102192, 0, -0.80726373, 0, 0.7621759, -1.2698228, 0, -0.85952663)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=1992573736 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.68633187, 0, -0.89868134, 0, 1.1307871, 0, 0.89868134, 0, -0.68633187, -0.95446825, 0, 1.7919443)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=1106057461 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.69609016, 0, -0.9399164, 0, 1.1696086, 0, 0.9399164, 0, -0.69609016, -0.32670355, 0, 2.7385907)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=679501545 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7958772, 0, -0.63113815, 0, 1.0157539, 0, 0.63113815, 0, 0.7958772, -1.6156662, 0, 2.2738729)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=691096972 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.1563966, 0, 0.41161004, 0, 1.2274673, 0, -0.41161004, 0, 1.1563966, -1.6755633, 0, 2.90406)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=312786994 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.9512437, 0, 0.6632445, 0, 1.159637, 0, -0.6632445, 0, 0.9512437, 0.005369425, 0, -4.2261906)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=417910743 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.42810643, 0, 0.70522404, 0, 0.82499456, 0, -0.70522404, 0, 0.42810643, -0.9635496, 0, -0.52804947)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=1463953614 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.9943076, 0, 0.16917227, 0, 1.0085964, 0, -0.16917227, 0, 0.9943076, -2.7717118, 0, 0.2583239)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=220947948 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.97986007, 0, -0.7008596, 0, 1.2047116, 0, 0.7008596, 0, -0.97986007, -0.16385627, 0, -0.04376459)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=145204484 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.51060164, 0, -0.91335785, 0, 1.0463922, 0, 0.91335785, 0, -0.51060164, 0.06784177, 0, -0.3101157)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=1314296265 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.80948335, 0, 0.30805182, 0, 0.8661173, 0, -0.30805182, 0, -0.80948335, -1.1580954, 0, -1.2666144)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=1768505522 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.7490728, 0, -0.68951815, 0, 1.0181087, 0, 0.68951815, 0, -0.7490728, -3.1010463, 0, 1.2078359)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=1133182470 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.51377136, 0, -0.68457246, 0, 0.85592085, 0, 0.68457246, 0, -0.51377136, -3.4984944, 0, 2.7713945)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=1211855789 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.6590882, 0, -0.47494182, 0, 0.81238353, 0, 0.47494182, 0, 0.6590882, -3.356128, 0, 1.6888018)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=1474192807 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.51774263, 0, -1.1076927, 0, 1.2227186, 0, 1.1076927, 0, -0.51774263, -3.1880174, 0, 3.8777826)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=1937481660 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.92721874, 0, -0.2436127, 0, 0.95868754, 0, 0.2436127, 0, -0.92721874, -1.7353154, 0, -0.65001035)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=344974778 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.38621625, 0, -0.995557, 0, 1.0678468, 0, 0.995557, 0, 0.38621625, -1.4315842, 0, 0.0729754)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=1725001511 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.63026077, 0, 0.9044372, 0, 1.102377, 0, -0.9044372, 0, -0.63026077, 0.39358592, 0, -0.58472633)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=1455347309 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.22245736, 0, 1.1438882, 0, 1.1653186, 0, -1.1438882, 0, -0.22245736, -1.3026319, 0, -1.0623782)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=92404022 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.25180045, 0, -0.8723761, 0, 0.9079887, 0, 0.8723761, 0, 0.25180045, -2.3988514, 0, 0.1400609)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=1551885491 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.67832303, 0, -0.69680494, 0, 0.97245014, 0, 0.69680494, 0, 0.67832303, -1.4340773, 0, 0.9532871)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=1062971807 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.44539887, 0, 0.9577704, 0, 1.056269, 0, -0.9577704, 0, 0.44539887, -2.9802802, 0, -0.85928345)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=714125882 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.37585822, 0, -1.0242475, 0, 1.0910327, 0, 1.0242475, 0, -0.37585822, -2.539682, 0, -0.43981016)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=1306998797 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.0129026, 0, -0.15313067, 0, 1.0244124, 0, 0.15313067, 0, -1.0129026, -2.7853913, 0, 3.6124012)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=151621830 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.2899565, 0, 1.0041513, 0, 1.0451769, 0, -1.0041513, 0, -0.2899565, -0.35403156, 0, 3.4689035)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=1439195827 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.80682015, 0, 0.014731411, 0, 0.8069546, 0, -0.014731411, 0, -0.80682015, -0.500787, 0, -3.806375)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=646244376 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.8714106, 0, 0.08158001, 0, 0.87522095, 0, -0.08158001, 0, -0.8714106, -2.5019927, 0, -1.8606997)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=8346707 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.2812279, 0, 1.1477864, 0, 1.1817372, 0, -1.1477864, 0, -0.2812279, -1.6296031, 0, 0.0645535)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=753871515 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.8152453, 0, -0.15240535, 0, 0.8293686, 0, 0.15240535, 0, 0.8152453, 0.9004104, 0, -0.15582728)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=308070476 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.23907715, 0, 1.1303682, 0, 1.1553744, 0, -1.1303682, 0, 0.23907715, -2.0859532, 0, -1.1651548)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=1195775755 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.89674836, 0, 0.65918934, 0, 1.1129637, 0, -0.65918934, 0, 0.89674836, 0.6035621, 0, 1.3308251)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=1954284974 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.08236567, 0, -1.1065744, 0, 1.1096356, 0, 1.1065744, 0, 0.08236567, 0.93531275, 0, -0.81067824)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=1601375783 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.45716625, 0, -0.85483116, 0, 0.9694005, 0, 0.85483116, 0, -0.45716625, -2.122416, 0, 1.8786509)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=92695462 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.8496404, 0, -0.2443617, 0, 0.8840823, 0, 0.2443617, 0, -0.8496404, -1.5442843, 0, -0.19358611)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=30622855 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.11283348, 0, -0.83512527, 0, 0.84271324, 0, 0.83512527, 0, -0.11283348, -2.4418836, 0, 1.6335841)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=1163964660 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.09230522, 0, -1.1285447, 0, 1.1323133, 0, 1.1285447, 0, -0.09230522, -0.9740648, 0, -2.6280086)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=431837468 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.96390253, 0, 0.6853912, 0, 1.182738, 0, -0.6853912, 0, 0.96390253, 0.058842182, 0, -2.8848386)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=1387173944 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.8836552, 0, -0.49384668, 0, 1.01229, 0, 0.49384668, 0, 0.8836552, 1.6014345, 0, 0.21887755)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=975390813 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.76756275, 0, -0.50572324, 0, 0.9191891, 0, 0.50572324, 0, -0.76756275, -0.5600338, 0, -1.6425062)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=1894831554 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7666378, 0, -0.26669705, 0, 0.81170243, 0, 0.26669705, 0, 0.7666378, 1.4957478, 0, 1.3864138)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=750364688 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.06457, 0, 0.08671537, 0, 1.0680958, 0, -0.08671537, 0, 1.06457, -1.5481098, 0, 0.98628044)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=1668487442 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.76385146, 0, 0.9395483, 0, 1.2108757, 0, -0.9395483, 0, 0.76385146, -0.37124264, 0, -1.1344959)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=2145439216 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.64723635, 0, 0.51886326, 0, 0.8295384, 0, -0.51886326, 0, -0.64723635, 0.11392474, 0, 0.70789564)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=325727494 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7895084, 0, 0.38883963, 0, 0.88006806, 0, -0.38883963, 0, 0.7895084, 0.98231244, 0, 3.6094098)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=131391411 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.78224033, 0, 0.23511945, 0, 0.81681156, 0, -0.23511945, 0, -0.78224033, 0.21765208, 0, 1.887984)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=1169860406 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.631228, 0, -0.5517667, 0, 0.8383885, 0, 0.5517667, 0, -0.631228, 0.46160173, 0, -2.5104375)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=468690810 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.9484973, 0, -0.37329534, 0, 1.0193118, 0, 0.37329534, 0, -0.9484973, -0.27125132, 0, -3.5338488)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=1109863739 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.1064862, 0, -0.058183745, 0, 1.108015, 0, 0.058183745, 0, -1.1064862, -0.43267047, 0, -0.7734554)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=1982928803 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.15798765, 0, -1.1644579, 0, 1.1751266, 0, 1.1644579, 0, -0.15798765, -1.4857665, 0, 0.2233851)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=342811976 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.03982542, 0, 0.87000126, 0, 0.8709123, 0, -0.87000126, 0, -0.03982542, 1.9520948, 0, 1.7136731)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=302208266 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.2737814, 0, -0.8942472, 0, 0.9352189, 0, 0.8942472, 0, -0.2737814, -1.091238, 0, -0.89883757)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=1766112051 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.48838225, 0, -0.86263883, 0, 0.99129355, 0, 0.86263883, 0, 0.48838225, -1.1750152, 0, -0.17890751)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=1158610014 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.1414292, 0, 1.1827744, 0, 1.1912, 0, -1.1827744, 0, -0.1414292, 0.6711199, 0, 0.97246027)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=410223656 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.0917645, 0, -0.22778003, 0, 1.1152728, 0, 0.22778003, 0, -1.0917645, -0.41039538, 0, 0.06839657)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=153638028 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.18592642, 0, -1.0523111, 0, 1.06861, 0, 1.0523111, 0, -0.18592642, 1.3989348, 0, 1.4809812)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=1254191106 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7627607, 0, 0.7518252, 0, 1.0710019, 0, -0.7518252, 0, 0.7627607, 0.7168319, 0, -2.6764402)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=1860149623 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.44916746, 0, -0.8693449, 0, 0.9785254, 0, 0.8693449, 0, 0.44916746, 0.18391323, 0, -1.767465)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=1032203472 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.28905085, 0, -1.0746135, 0, 1.1128092, 0, 1.0746135, 0, -0.28905085, -0.91142654, 0, -0.6742296)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=152849969 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.004064451, 0, -1.0926496, 0, 1.0926571, 0, 1.0926496, 0, -0.004064451, -0.8646692, 0, -2.3693955)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=1257229573 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.9844199, 0, -0.5375129, 0, 1.1216072, 0, 0.5375129, 0, 0.9844199, 1.4849706, 0, -1.2475071)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=720647788 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.59850913, 0, -1.0252229, 0, 1.1871374, 0, 1.0252229, 0, 0.59850913, 1.5410674, 0, 1.7350132)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=1130301075 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.1532736, 0, 0.17290708, 0, 1.1661633, 0, -0.17290708, 0, 1.1532736, -0.450737, 0, 1.2532501)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=92737213 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.330073, 0, 1.1079224, 0, 1.1560451, 0, -1.1079224, 0, -0.330073, 1.3173335, 0, -0.154006)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=1123288181 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.811542, 0, 0.19566217, 0, 0.83479583, 0, -0.19566217, 0, -0.811542, -0.7865981, 0, -0.16659176)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=1871167311 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.56020993, 0, -0.7005611, 0, 0.8970067, 0, 0.7005611, 0, 0.56020993, 2.379705, 0, 3.8603168)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=234948295 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.53495777, 0, -1.0191251, 0, 1.1509978, 0, 1.0191251, 0, 0.53495777, -0.37021196, 0, -0.34473443)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=2034996295 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.0808063, 0, -0.40668613, 0, 1.1547883, 0, 0.40668613, 0, 1.0808063, 2.8814876, 0, -1.9633325)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=547833523 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.708789, 0, 0.48132196, 0, 0.8567687, 0, -0.48132196, 0, -0.708789, 0.94091177, 0, -1.7364113)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=1672947821 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.6514335, 0, -0.77203816, 0, 1.0101527, 0, 0.77203816, 0, 0.6514335, -0.6390531, 0, -0.75008166)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=766697538 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.6612803, 0, -0.4812307, 0, 0.81784755, 0, 0.4812307, 0, -0.6612803, 2.338178, 0, -1.3844218)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=759140704 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.14887391, 0, 1.2157617, 0, 1.2248428, 0, -1.2157617, 0, -0.14887391, -0.5415844, 0, -1.5932604)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=887356139 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.17773175, 0, -1.1165876, 0, 1.1306443, 0, 1.1165876, 0, 0.17773175, 1.5820811, 0, 0.14254999)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=1558636408 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.7569216, 0, -0.87620205, 0, 1.1578689, 0, 0.87620205, 0, -0.7569216, 0.1875391, 0, 0.25838363)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=112232356 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.80258965, 0, 0.07687205, 0, 0.8062627, 0, -0.07687205, 0, 0.80258965, 1.7172039, 0, 0.094492435)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=82841143 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.34746695, 0, 1.1931379, 0, 1.2427032, 0, -1.1931379, 0, 0.34746695, 3.1674426, 0, 3.1706202)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=1174745722 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.9128796, 0, -0.05728722, 0, 0.91467535, 0, 0.05728722, 0, -0.9128796, 2.141004, 0, -1.8710566)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=460701541 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.039411154, 0, -1.0830169, 0, 1.0837338, 0, 1.0830169, 0, 0.039411154, 2.4602294, 0, -2.9874601)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=918117282 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.0332462, 0, -0.6201955, 0, 1.2050892, 0, 0.6201955, 0, -1.0332462, 2.2778592, 0, -0.23004508)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=1944604958 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.3282826, 0, 1.0329453, 0, 1.0838567, 0, -1.0329453, 0, -0.3282826, 2.2385402, 0, 1.232867)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=1849301151 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.45676154, 0, 0.93972915, 0, 1.044855, 0, -0.93972915, 0, 0.45676154, 2.9482937, 0, -0.084875345)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=1842787354 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.65346223, 0, -0.6935277, 0, 0.95288694, 0, 0.6935277, 0, 0.65346223, 1.352126, 0, 0.7289479)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=255229524 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.10669866, 0, 0.8012727, 0, 0.80834556, 0, -0.8012727, 0, -0.10669866, 0.843987, 0, -0.14386356)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=1276199543 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.1151108, 0, -1.1261129, 0, 1.1319809, 0, 1.1261129, 0, 0.1151108, 2.854482, 0, 1.4919922)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=476633298 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.0990452, 0, -0.45494467, 0, 1.1894851, 0, 0.45494467, 0, 1.0990452, 2.3520908, 0, 1.578361)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=373698615 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.1476507, 0, 0.030161818, 0, 1.148047, 0, -0.030161818, 0, -1.1476507, 0.7424159, 0, 2.7361884)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_00" type="Node3D" parent="AnimatedGrassScatter" unique_id=1320076916 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.5399262, 0, 0.73299867, 0, 0.9103886, 0, -0.73299867, 0, 0.5399262, 3.9547439, 0, -2.4112484)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_01" type="Node3D" parent="AnimatedGrassScatter" unique_id=308099764 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.6004077, 0, 0.8645072, 0, 1.0525503, 0, -0.8645072, 0, 0.6004077, 3.30707, 0, -0.72907734)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_02" type="Node3D" parent="AnimatedGrassScatter" unique_id=1286516797 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.67549115, 0, 0.88988066, 0, 1.1172179, 0, -0.88988066, 0, -0.67549115, 4.156312, 0, -0.87864304)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_03" type="Node3D" parent="AnimatedGrassScatter" unique_id=731735409 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.5029533, 0, 0.93403345, 0, 1.0608395, 0, -0.93403345, 0, -0.5029533, 2.3555634, 0, -0.8277459)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_04" type="Node3D" parent="AnimatedGrassScatter" unique_id=439932172 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.39925888, 0, -1.0456471, 0, 1.119279, 0, 1.0456471, 0, -0.39925888, 4.083822, 0, -0.37130976)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_05" type="Node3D" parent="AnimatedGrassScatter" unique_id=71013525 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.1301087, 0, 0.46694508, 0, 1.2227769, 0, -0.46694508, 0, 1.1301087, 1.9340768, 0, 0.4617219)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_06" type="Node3D" parent="AnimatedGrassScatter" unique_id=1109190595 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.87168986, 0, 0.6327505, 0, 1.0771334, 0, -0.6327505, 0, -0.87168986, 2.8266482, 0, -1.2003862)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_07" type="Node3D" parent="AnimatedGrassScatter" unique_id=2127592746 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.77154154, 0, -0.34709314, 0, 0.8460201, 0, 0.34709314, 0, -0.77154154, 3.2077599, 0, 0.6395606)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_08" type="Node3D" parent="AnimatedGrassScatter" unique_id=88429723 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.63910687, 0, -1.0736442, 0, 1.2494676, 0, 1.0736442, 0, 0.63910687, 2.8748326, 0, 2.801398)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_09" type="Node3D" parent="AnimatedGrassScatter" unique_id=943914782 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.58356893, 0, 0.5663832, 0, 0.81322974, 0, -0.5663832, 0, -0.58356893, 0.9016651, 0, 0.3966812)
+metadata/generated_grass = true
+
+[node name="AnimatedGrassScatter2" type="Node3D" parent="." unique_id=1987998131]
+transform = Transform3D(0.435, 0, 0, 0, 0.435, 0, 0, 0, 0.435, 6.805, 0, 2.625)
+script = ExtResource("2_pwkqk")
+grass_scene = ExtResource("3_g1ksm")
+columns = 10
+rows = 10
+spacing_x = 0.5
+spacing_z = 0.5
+random_position_jitter = 2.0
+
+[node name="generated_grass_00_00" parent="AnimatedGrassScatter2" unique_id=1518808160 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.46807736, 0, 0.9318032, 0, 1.0427625, 0, -0.9318032, 0, -0.46807736, -0.65953875, 0, -1.1384375)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_01" parent="AnimatedGrassScatter2" unique_id=1577331232 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.86671084, 0, -0.10566459, 0, 0.8731281, 0, 0.10566459, 0, 0.86671084, -3.518065, 0, -0.1421156)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_02" parent="AnimatedGrassScatter2" unique_id=817650101 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.11151812, 0, -1.2083535, 0, 1.2134886, 0, 1.2083535, 0, 0.11151812, -2.9456413, 0, 0.70386815)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_03" parent="AnimatedGrassScatter2" unique_id=1826527619 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.1334904, 0, 0.84482414, 0, 0.8553055, 0, -0.84482414, 0, 0.1334904, -0.46536326, 0, -0.47567773)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_04" parent="AnimatedGrassScatter2" unique_id=919458847 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.3792225, 0, -1.0980481, 0, 1.1616881, 0, 1.0980481, 0, -0.3792225, -1.763377, 0, 1.5489137)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_05" parent="AnimatedGrassScatter2" unique_id=410000972 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7621759, 0, 0.80726373, 0, 1.1102192, 0, -0.80726373, 0, 0.7621759, -1.2698228, 0, -0.85952663)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_06" parent="AnimatedGrassScatter2" unique_id=554115354 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.68633187, 0, -0.89868134, 0, 1.1307871, 0, 0.89868134, 0, -0.68633187, -0.95446825, 0, 1.7919443)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_07" parent="AnimatedGrassScatter2" unique_id=349911997 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.69609016, 0, -0.9399164, 0, 1.1696086, 0, 0.9399164, 0, -0.69609016, -0.32670355, 0, 2.7385907)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_08" parent="AnimatedGrassScatter2" unique_id=1973825883 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7958772, 0, -0.63113815, 0, 1.0157539, 0, 0.63113815, 0, 0.7958772, -1.6156662, 0, 2.2738729)
+metadata/generated_grass = true
+
+[node name="generated_grass_00_09" parent="AnimatedGrassScatter2" unique_id=1670358553 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.1563966, 0, 0.41161004, 0, 1.2274673, 0, -0.41161004, 0, 1.1563966, -1.6755633, 0, 2.90406)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_00" parent="AnimatedGrassScatter2" unique_id=42517064 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.9512437, 0, 0.6632445, 0, 1.159637, 0, -0.6632445, 0, 0.9512437, 0.005369425, 0, -4.2261906)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_01" parent="AnimatedGrassScatter2" unique_id=113518739 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.42810643, 0, 0.70522404, 0, 0.82499456, 0, -0.70522404, 0, 0.42810643, -0.9635496, 0, -0.52804947)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_02" parent="AnimatedGrassScatter2" unique_id=649822205 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.9943076, 0, 0.16917227, 0, 1.0085964, 0, -0.16917227, 0, 0.9943076, -2.7717118, 0, 0.2583239)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_03" parent="AnimatedGrassScatter2" unique_id=958063383 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.97986007, 0, -0.7008596, 0, 1.2047116, 0, 0.7008596, 0, -0.97986007, -0.16385627, 0, -0.04376459)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_04" parent="AnimatedGrassScatter2" unique_id=1448399133 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.51060164, 0, -0.91335785, 0, 1.0463922, 0, 0.91335785, 0, -0.51060164, 0.06784177, 0, -0.3101157)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_05" parent="AnimatedGrassScatter2" unique_id=1936461675 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.80948335, 0, 0.30805182, 0, 0.8661173, 0, -0.30805182, 0, -0.80948335, -1.1580954, 0, -1.2666144)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_06" parent="AnimatedGrassScatter2" unique_id=854238689 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.7490728, 0, -0.68951815, 0, 1.0181087, 0, 0.68951815, 0, -0.7490728, -3.1010463, 0, 1.2078359)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_07" parent="AnimatedGrassScatter2" unique_id=947301698 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.51377136, 0, -0.68457246, 0, 0.85592085, 0, 0.68457246, 0, -0.51377136, -3.4984944, 0, 2.7713945)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_08" parent="AnimatedGrassScatter2" unique_id=1284308861 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.6590882, 0, -0.47494182, 0, 0.81238353, 0, 0.47494182, 0, 0.6590882, -3.356128, 0, 1.6888018)
+metadata/generated_grass = true
+
+[node name="generated_grass_01_09" parent="AnimatedGrassScatter2" unique_id=64631273 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.51774263, 0, -1.1076927, 0, 1.2227186, 0, 1.1076927, 0, -0.51774263, -3.1880174, 0, 3.8777826)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_00" parent="AnimatedGrassScatter2" unique_id=1765943093 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.92721874, 0, -0.2436127, 0, 0.95868754, 0, 0.2436127, 0, -0.92721874, -1.7353154, 0, -0.65001035)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_01" parent="AnimatedGrassScatter2" unique_id=2059131110 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.38621625, 0, -0.995557, 0, 1.0678468, 0, 0.995557, 0, 0.38621625, -1.4315842, 0, 0.0729754)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_02" parent="AnimatedGrassScatter2" unique_id=776008866 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.63026077, 0, 0.9044372, 0, 1.102377, 0, -0.9044372, 0, -0.63026077, 0.39358592, 0, -0.58472633)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_03" parent="AnimatedGrassScatter2" unique_id=950343707 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.22245736, 0, 1.1438882, 0, 1.1653186, 0, -1.1438882, 0, -0.22245736, -1.3026319, 0, -1.0623782)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_04" parent="AnimatedGrassScatter2" unique_id=87114056 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.25180045, 0, -0.8723761, 0, 0.9079887, 0, 0.8723761, 0, 0.25180045, -2.3988514, 0, 0.1400609)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_05" parent="AnimatedGrassScatter2" unique_id=1602301246 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.67832303, 0, -0.69680494, 0, 0.97245014, 0, 0.69680494, 0, 0.67832303, -1.4340773, 0, 0.9532871)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_06" parent="AnimatedGrassScatter2" unique_id=50334243 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.44539887, 0, 0.9577704, 0, 1.056269, 0, -0.9577704, 0, 0.44539887, -2.9802802, 0, -0.85928345)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_07" parent="AnimatedGrassScatter2" unique_id=1010321764 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.37585822, 0, -1.0242475, 0, 1.0910327, 0, 1.0242475, 0, -0.37585822, -2.539682, 0, -0.43981016)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_08" parent="AnimatedGrassScatter2" unique_id=1774068993 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.0129026, 0, -0.15313067, 0, 1.0244124, 0, 0.15313067, 0, -1.0129026, -2.7853913, 0, 3.6124012)
+metadata/generated_grass = true
+
+[node name="generated_grass_02_09" parent="AnimatedGrassScatter2" unique_id=282821098 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.2899565, 0, 1.0041513, 0, 1.0451769, 0, -1.0041513, 0, -0.2899565, -0.35403156, 0, 3.4689035)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_00" parent="AnimatedGrassScatter2" unique_id=925571646 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.80682015, 0, 0.014731411, 0, 0.8069546, 0, -0.014731411, 0, -0.80682015, -0.500787, 0, -3.806375)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_01" parent="AnimatedGrassScatter2" unique_id=1240289429 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.8714106, 0, 0.08158001, 0, 0.87522095, 0, -0.08158001, 0, -0.8714106, -2.5019927, 0, -1.8606997)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_02" parent="AnimatedGrassScatter2" unique_id=634773993 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.2812279, 0, 1.1477864, 0, 1.1817372, 0, -1.1477864, 0, -0.2812279, -1.6296031, 0, 0.0645535)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_03" parent="AnimatedGrassScatter2" unique_id=85407124 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.8152453, 0, -0.15240535, 0, 0.8293686, 0, 0.15240535, 0, 0.8152453, 0.9004104, 0, -0.15582728)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_04" parent="AnimatedGrassScatter2" unique_id=63340763 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.23907715, 0, 1.1303682, 0, 1.1553744, 0, -1.1303682, 0, 0.23907715, -2.0859532, 0, -1.1651548)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_05" parent="AnimatedGrassScatter2" unique_id=381807486 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.89674836, 0, 0.65918934, 0, 1.1129637, 0, -0.65918934, 0, 0.89674836, 0.6035621, 0, 1.3308251)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_06" parent="AnimatedGrassScatter2" unique_id=60008274 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.08236567, 0, -1.1065744, 0, 1.1096356, 0, 1.1065744, 0, 0.08236567, 0.93531275, 0, -0.81067824)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_07" parent="AnimatedGrassScatter2" unique_id=882584716 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.45716625, 0, -0.85483116, 0, 0.9694005, 0, 0.85483116, 0, -0.45716625, -2.122416, 0, 1.8786509)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_08" parent="AnimatedGrassScatter2" unique_id=162131 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.8496404, 0, -0.2443617, 0, 0.8840823, 0, 0.2443617, 0, -0.8496404, -1.5442843, 0, -0.19358611)
+metadata/generated_grass = true
+
+[node name="generated_grass_03_09" parent="AnimatedGrassScatter2" unique_id=1079978664 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.11283348, 0, -0.83512527, 0, 0.84271324, 0, 0.83512527, 0, -0.11283348, -2.4418836, 0, 1.6335841)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_00" parent="AnimatedGrassScatter2" unique_id=1986016401 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.09230522, 0, -1.1285447, 0, 1.1323133, 0, 1.1285447, 0, -0.09230522, -0.9740648, 0, -2.6280086)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_01" parent="AnimatedGrassScatter2" unique_id=933769938 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.96390253, 0, 0.6853912, 0, 1.182738, 0, -0.6853912, 0, 0.96390253, 0.058842182, 0, -2.8848386)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_02" parent="AnimatedGrassScatter2" unique_id=1303916165 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.8836552, 0, -0.49384668, 0, 1.01229, 0, 0.49384668, 0, 0.8836552, 1.6014345, 0, 0.21887755)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_03" parent="AnimatedGrassScatter2" unique_id=129189100 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.76756275, 0, -0.50572324, 0, 0.9191891, 0, 0.50572324, 0, -0.76756275, -0.5600338, 0, -1.6425062)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_04" parent="AnimatedGrassScatter2" unique_id=1730876544 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7666378, 0, -0.26669705, 0, 0.81170243, 0, 0.26669705, 0, 0.7666378, 1.4957478, 0, 1.3864138)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_05" parent="AnimatedGrassScatter2" unique_id=121191267 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.06457, 0, 0.08671537, 0, 1.0680958, 0, -0.08671537, 0, 1.06457, -1.5481098, 0, 0.98628044)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_06" parent="AnimatedGrassScatter2" unique_id=1147181044 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.76385146, 0, 0.9395483, 0, 1.2108757, 0, -0.9395483, 0, 0.76385146, -0.37124264, 0, -1.1344959)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_07" parent="AnimatedGrassScatter2" unique_id=381660478 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.64723635, 0, 0.51886326, 0, 0.8295384, 0, -0.51886326, 0, -0.64723635, 0.11392474, 0, 0.70789564)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_08" parent="AnimatedGrassScatter2" unique_id=679936515 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7895084, 0, 0.38883963, 0, 0.88006806, 0, -0.38883963, 0, 0.7895084, 0.98231244, 0, 3.6094098)
+metadata/generated_grass = true
+
+[node name="generated_grass_04_09" parent="AnimatedGrassScatter2" unique_id=435158968 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.78224033, 0, 0.23511945, 0, 0.81681156, 0, -0.23511945, 0, -0.78224033, 0.21765208, 0, 1.887984)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_00" parent="AnimatedGrassScatter2" unique_id=1204646888 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.631228, 0, -0.5517667, 0, 0.8383885, 0, 0.5517667, 0, -0.631228, 0.46160173, 0, -2.5104375)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_01" parent="AnimatedGrassScatter2" unique_id=1641408773 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.9484973, 0, -0.37329534, 0, 1.0193118, 0, 0.37329534, 0, -0.9484973, -0.27125132, 0, -3.5338488)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_02" parent="AnimatedGrassScatter2" unique_id=1641994059 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.1064862, 0, -0.058183745, 0, 1.108015, 0, 0.058183745, 0, -1.1064862, -0.43267047, 0, -0.7734554)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_03" parent="AnimatedGrassScatter2" unique_id=1695260171 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.15798765, 0, -1.1644579, 0, 1.1751266, 0, 1.1644579, 0, -0.15798765, -1.4857665, 0, 0.2233851)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_04" parent="AnimatedGrassScatter2" unique_id=1775417050 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.03982542, 0, 0.87000126, 0, 0.8709123, 0, -0.87000126, 0, -0.03982542, 1.9520948, 0, 1.7136731)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_05" parent="AnimatedGrassScatter2" unique_id=511023846 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.2737814, 0, -0.8942472, 0, 0.9352189, 0, 0.8942472, 0, -0.2737814, -1.091238, 0, -0.89883757)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_06" parent="AnimatedGrassScatter2" unique_id=75721456 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.48838225, 0, -0.86263883, 0, 0.99129355, 0, 0.86263883, 0, 0.48838225, -1.1750152, 0, -0.17890751)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_07" parent="AnimatedGrassScatter2" unique_id=73731888 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.1414292, 0, 1.1827744, 0, 1.1912, 0, -1.1827744, 0, -0.1414292, 0.6711199, 0, 0.97246027)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_08" parent="AnimatedGrassScatter2" unique_id=588535321 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.0917645, 0, -0.22778003, 0, 1.1152728, 0, 0.22778003, 0, -1.0917645, -0.41039538, 0, 0.06839657)
+metadata/generated_grass = true
+
+[node name="generated_grass_05_09" parent="AnimatedGrassScatter2" unique_id=1542452565 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.18592642, 0, -1.0523111, 0, 1.06861, 0, 1.0523111, 0, -0.18592642, 1.3989348, 0, 1.4809812)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_00" parent="AnimatedGrassScatter2" unique_id=260217755 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.7627607, 0, 0.7518252, 0, 1.0710019, 0, -0.7518252, 0, 0.7627607, 0.7168319, 0, -2.6764402)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_01" parent="AnimatedGrassScatter2" unique_id=282966361 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.44916746, 0, -0.8693449, 0, 0.9785254, 0, 0.8693449, 0, 0.44916746, 0.18391323, 0, -1.767465)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_02" parent="AnimatedGrassScatter2" unique_id=550930440 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.28905085, 0, -1.0746135, 0, 1.1128092, 0, 1.0746135, 0, -0.28905085, -0.91142654, 0, -0.6742296)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_03" parent="AnimatedGrassScatter2" unique_id=1722993415 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.004064451, 0, -1.0926496, 0, 1.0926571, 0, 1.0926496, 0, -0.004064451, -0.8646692, 0, -2.3693955)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_04" parent="AnimatedGrassScatter2" unique_id=1397886200 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.9844199, 0, -0.5375129, 0, 1.1216072, 0, 0.5375129, 0, 0.9844199, 1.4849706, 0, -1.2475071)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_05" parent="AnimatedGrassScatter2" unique_id=476301455 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.59850913, 0, -1.0252229, 0, 1.1871374, 0, 1.0252229, 0, 0.59850913, 1.5410674, 0, 1.7350132)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_06" parent="AnimatedGrassScatter2" unique_id=1788379759 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.1532736, 0, 0.17290708, 0, 1.1661633, 0, -0.17290708, 0, 1.1532736, -0.450737, 0, 1.2532501)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_07" parent="AnimatedGrassScatter2" unique_id=978314643 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.330073, 0, 1.1079224, 0, 1.1560451, 0, -1.1079224, 0, -0.330073, 1.3173335, 0, -0.154006)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_08" parent="AnimatedGrassScatter2" unique_id=1829425407 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.811542, 0, 0.19566217, 0, 0.83479583, 0, -0.19566217, 0, -0.811542, -0.7865981, 0, -0.16659176)
+metadata/generated_grass = true
+
+[node name="generated_grass_06_09" parent="AnimatedGrassScatter2" unique_id=1909675678 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.56020993, 0, -0.7005611, 0, 0.8970067, 0, 0.7005611, 0, 0.56020993, 2.379705, 0, 3.8603168)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_00" parent="AnimatedGrassScatter2" unique_id=1457019715 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.53495777, 0, -1.0191251, 0, 1.1509978, 0, 1.0191251, 0, 0.53495777, -0.37021196, 0, -0.34473443)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_01" parent="AnimatedGrassScatter2" unique_id=2141377561 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.0808063, 0, -0.40668613, 0, 1.1547883, 0, 0.40668613, 0, 1.0808063, 2.8814876, 0, -1.9633325)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_02" parent="AnimatedGrassScatter2" unique_id=1912754864 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.708789, 0, 0.48132196, 0, 0.8567687, 0, -0.48132196, 0, -0.708789, 0.94091177, 0, -1.7364113)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_03" parent="AnimatedGrassScatter2" unique_id=254212439 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.6514335, 0, -0.77203816, 0, 1.0101527, 0, 0.77203816, 0, 0.6514335, -0.6390531, 0, -0.75008166)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_04" parent="AnimatedGrassScatter2" unique_id=339770448 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.6612803, 0, -0.4812307, 0, 0.81784755, 0, 0.4812307, 0, -0.6612803, 2.338178, 0, -1.3844218)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_05" parent="AnimatedGrassScatter2" unique_id=1788009242 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.14887391, 0, 1.2157617, 0, 1.2248428, 0, -1.2157617, 0, -0.14887391, -0.5415844, 0, -1.5932604)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_06" parent="AnimatedGrassScatter2" unique_id=1198492952 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.17773175, 0, -1.1165876, 0, 1.1306443, 0, 1.1165876, 0, 0.17773175, 1.5820811, 0, 0.14254999)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_07" parent="AnimatedGrassScatter2" unique_id=369292008 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.7569216, 0, -0.87620205, 0, 1.1578689, 0, 0.87620205, 0, -0.7569216, 0.1875391, 0, 0.25838363)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_08" parent="AnimatedGrassScatter2" unique_id=2046893434 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.80258965, 0, 0.07687205, 0, 0.8062627, 0, -0.07687205, 0, 0.80258965, 1.7172039, 0, 0.094492435)
+metadata/generated_grass = true
+
+[node name="generated_grass_07_09" parent="AnimatedGrassScatter2" unique_id=476663281 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.34746695, 0, 1.1931379, 0, 1.2427032, 0, -1.1931379, 0, 0.34746695, 3.1674426, 0, 3.1706202)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_00" parent="AnimatedGrassScatter2" unique_id=1703027616 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.9128796, 0, -0.05728722, 0, 0.91467535, 0, 0.05728722, 0, -0.9128796, 2.141004, 0, -1.8710566)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_01" parent="AnimatedGrassScatter2" unique_id=1331975587 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.039411154, 0, -1.0830169, 0, 1.0837338, 0, 1.0830169, 0, 0.039411154, 2.4602294, 0, -2.9874601)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_02" parent="AnimatedGrassScatter2" unique_id=1199436050 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.0332462, 0, -0.6201955, 0, 1.2050892, 0, 0.6201955, 0, -1.0332462, 2.2778592, 0, -0.23004508)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_03" parent="AnimatedGrassScatter2" unique_id=1884301990 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.3282826, 0, 1.0329453, 0, 1.0838567, 0, -1.0329453, 0, -0.3282826, 2.2385402, 0, 1.232867)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_04" parent="AnimatedGrassScatter2" unique_id=585934426 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.45676154, 0, 0.93972915, 0, 1.044855, 0, -0.93972915, 0, 0.45676154, 2.9482937, 0, -0.084875345)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_05" parent="AnimatedGrassScatter2" unique_id=287965231 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.65346223, 0, -0.6935277, 0, 0.95288694, 0, 0.6935277, 0, 0.65346223, 1.352126, 0, 0.7289479)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_06" parent="AnimatedGrassScatter2" unique_id=1992008397 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.10669866, 0, 0.8012727, 0, 0.80834556, 0, -0.8012727, 0, -0.10669866, 0.843987, 0, -0.14386356)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_07" parent="AnimatedGrassScatter2" unique_id=2072147435 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.1151108, 0, -1.1261129, 0, 1.1319809, 0, 1.1261129, 0, 0.1151108, 2.854482, 0, 1.4919922)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_08" parent="AnimatedGrassScatter2" unique_id=1529414920 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.0990452, 0, -0.45494467, 0, 1.1894851, 0, 0.45494467, 0, 1.0990452, 2.3520908, 0, 1.578361)
+metadata/generated_grass = true
+
+[node name="generated_grass_08_09" parent="AnimatedGrassScatter2" unique_id=531094470 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-1.1476507, 0, 0.030161818, 0, 1.148047, 0, -0.030161818, 0, -1.1476507, 0.7424159, 0, 2.7361884)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_00" parent="AnimatedGrassScatter2" unique_id=1497439108 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.5399262, 0, 0.73299867, 0, 0.9103886, 0, -0.73299867, 0, 0.5399262, 3.9547439, 0, -2.4112484)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_01" parent="AnimatedGrassScatter2" unique_id=566532241 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.6004077, 0, 0.8645072, 0, 1.0525503, 0, -0.8645072, 0, 0.6004077, 3.30707, 0, -0.72907734)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_02" parent="AnimatedGrassScatter2" unique_id=1509822393 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.67549115, 0, 0.88988066, 0, 1.1172179, 0, -0.88988066, 0, -0.67549115, 4.156312, 0, -0.87864304)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_03" parent="AnimatedGrassScatter2" unique_id=1179598143 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.5029533, 0, 0.93403345, 0, 1.0608395, 0, -0.93403345, 0, -0.5029533, 2.3555634, 0, -0.8277459)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_04" parent="AnimatedGrassScatter2" unique_id=1631001868 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.39925888, 0, -1.0456471, 0, 1.119279, 0, 1.0456471, 0, -0.39925888, 4.083822, 0, -0.37130976)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_05" parent="AnimatedGrassScatter2" unique_id=320637798 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(1.1301087, 0, 0.46694508, 0, 1.2227769, 0, -0.46694508, 0, 1.1301087, 1.9340768, 0, 0.4617219)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_06" parent="AnimatedGrassScatter2" unique_id=1146959950 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.87168986, 0, 0.6327505, 0, 1.0771334, 0, -0.6327505, 0, -0.87168986, 2.8266482, 0, -1.2003862)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_07" parent="AnimatedGrassScatter2" unique_id=788631455 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.77154154, 0, -0.34709314, 0, 0.8460201, 0, 0.34709314, 0, -0.77154154, 3.2077599, 0, 0.6395606)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_08" parent="AnimatedGrassScatter2" unique_id=1687669560 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(0.63910687, 0, -1.0736442, 0, 1.2494676, 0, 1.0736442, 0, 0.63910687, 2.8748326, 0, 2.801398)
+metadata/generated_grass = true
+
+[node name="generated_grass_09_09" parent="AnimatedGrassScatter2" unique_id=1231976027 instance=ExtResource("3_g1ksm")]
+transform = Transform3D(-0.58356893, 0, 0.5663832, 0, 0.81322974, 0, -0.5663832, 0, -0.58356893, 0.9016651, 0, 0.3966812)
+metadata/generated_grass = true
+
+[node name="BoardPlaneGrass" type="MeshInstance3D" parent="." unique_id=1652894338]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.015, 0, 0, 0.045)
+visible = false
+mesh = SubResource("PlaneMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_rn43s")
+
+[node name="BoardPlaneGrass2" type="MeshInstance3D" parent="." unique_id=908775622]
+transform = Transform3D(1.005, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.03)
+mesh = SubResource("PlaneMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_u0ya7")
+
+[node name="BoardPlaneSnow" type="MeshInstance3D" parent="." unique_id=1368429057]
+visible = false
+mesh = SubResource("PlaneMesh_lmsbs")
+surface_material_override/0 = SubResource("StandardMaterial3D_1fhha")
 
 [node name="BoardSlots" type="Node3D" parent="." unique_id=937115534]
 
