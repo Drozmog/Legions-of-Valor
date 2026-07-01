@@ -36,10 +36,10 @@ func guard_battleplan_draw_pile(scene: Node, hand: Node) -> void:
 	if click_area == null:
 		return
 
-	var current_phase := int(scene.get("current_phase"))
-	var pending_draws := int(scene.get("pending_battleplan_draws"))
+	var current_phase := get_int_property(scene, "current_phase", -1)
+	var pending_draws := get_int_property(scene, "pending_battleplan_draws", 0)
 	var hand_size := get_hand_size(hand)
-	var max_hand_size := int(hand.get("max_hand_size"))
+	var max_hand_size := get_int_property(hand, "max_hand_size", 0)
 
 	var can_draw_now := current_phase == BATTLEPLAN_PHASE and pending_draws > 0 and hand_size < max_hand_size
 	click_area.input_ray_pickable = can_draw_now
@@ -64,9 +64,9 @@ func apply_real_3d_hand_depth(scene: Node, hand: Node) -> void:
 	if hand3d == null:
 		return
 
-	var lift_pixels := float(hand.get("hand_plane_lift"))
-	var camera_pixels := float(hand.get("hand_plane_x_offset"))
-	var pitch_degrees := float(hand.get("hand_plane_angle_degrees"))
+	var lift_pixels := get_float_property(hand, "hand_plane_lift", 0.0)
+	var camera_pixels := get_float_property(hand, "hand_plane_x_offset", 0.0)
+	var pitch_degrees := get_float_property(hand, "hand_plane_angle_degrees", 0.0)
 
 	var world_lift := clampf(lift_pixels * HAND_LIFT_TO_WORLD_Y, -MAX_HAND_WORLD_LIFT, MAX_HAND_WORLD_LIFT)
 	var camera_offset := clampf(camera_pixels * HAND_CAMERA_OFFSET_TO_WORLD, -MAX_HAND_CAMERA_OFFSET, MAX_HAND_CAMERA_OFFSET)
@@ -76,7 +76,7 @@ func apply_real_3d_hand_depth(scene: Node, hand: Node) -> void:
 		hand3d.set("hand_plane_y", 0.58 + world_lift)
 
 	var visuals: Variant = hand3d.get("card_visuals")
-	if not visuals is Dictionary:
+	if not (visuals is Dictionary):
 		return
 
 	for raw_id in (visuals as Dictionary).keys():
@@ -99,3 +99,17 @@ func get_hand_size(hand: Node) -> int:
 	if cards_variant is Array:
 		return (cards_variant as Array).size()
 	return 0
+
+
+func get_float_property(node: Object, property_name: String, fallback: float) -> float:
+	var value: Variant = node.get(property_name)
+	if value == null:
+		return fallback
+	return float(value)
+
+
+func get_int_property(node: Object, property_name: String, fallback: int) -> int:
+	var value: Variant = node.get(property_name)
+	if value == null:
+		return fallback
+	return int(value)
