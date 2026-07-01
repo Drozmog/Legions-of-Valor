@@ -8,6 +8,7 @@ const MENU_MUSIC_START_DELAY := 0.5
 const MAX_SIMULTANEOUS_SFX := 8
 const MENU_MUSIC_FADE_OUT_TIME := 1.25
 const SILENT_VOLUME_DB := -40.0
+const ABILITY_SFX_CATEGORIES := ["mobility", "assault", "attrition", "control", "economy", "protection", "insight"]
 
 var target_scene_path: String = ""
 
@@ -207,8 +208,24 @@ func play_initial_menu_button() -> void:
 	play_sfx("initial_menu_button")
 
 
+func play_major_select_button() -> void:
+	play_sfx("major_select_button")
+
+
+func play_hud_select_button() -> void:
+	play_sfx("hud_select_button")
+
+
+func play_hud_deselect_button() -> void:
+	play_sfx("hud_deselect_button")
+
+
+func play_select_button() -> void:
+	play_hud_select_button()
+
+
 func play_back_button() -> void:
-	play_sfx("back_button")
+	play_hud_deselect_button()
 
 
 func play_attack_button() -> void:
@@ -227,16 +244,36 @@ func play_inspect_button() -> void:
 	play_sfx("inspect_button")
 
 
-func play_select_button() -> void:
-	play_sfx("select_button")
-
-
 func play_alert_sound() -> void:
 	play_sfx("alert_sound")
 
 
 func play_battleplan_flip() -> void:
 	play_sfx("battleplan_flip")
+
+
+func play_hand_card_hold() -> void:
+	play_sfx("hand_card_hold")
+
+
+func play_hand_card_return() -> void:
+	play_sfx("hand_card_return")
+
+
+func play_hand_card_release() -> void:
+	play_sfx("hand_card_release")
+
+
+func play_elite_unit_shine() -> void:
+	play_sfx("elite_unit_shine")
+
+
+func play_ability_label(category: String) -> void:
+	play_sfx(_clean_ability_category(category) + "_label")
+
+
+func play_ability_icon_press(category: String) -> void:
+	play_sfx(_clean_ability_category(category) + "_icon_press")
 
 
 func play_board_action_button(action_id: int) -> void:
@@ -250,7 +287,7 @@ func play_board_action_button(action_id: int) -> void:
 		1:
 			play_inspect_button()
 		_:
-			play_select_button()
+			play_hud_select_button()
 
 
 func play_sfx(sfx_name: String) -> void:
@@ -312,11 +349,40 @@ func get_sfx(sfx_name: String) -> AudioStream:
 
 
 func _get_sfx_fallback_name(sfx_name: String) -> String:
-	match sfx_name:
-		"battlePlan_flip", "battleplan_flip", "battle_plan_flip":
+	var clean_name := sfx_name.to_lower().strip_edges()
+
+	match clean_name:
+		"hud_select_button":
 			return "select_button"
-		_:
-			return ""
+		"hud_deselect_button":
+			return "back_button"
+		"major_select_button":
+			return "select_button"
+		"battleplan_flip", "battleplan_flip_button", "battle_plan_flip":
+			return "major_select_button"
+		"hand_card_hold":
+			return "select_button"
+		"hand_card_return":
+			return "back_button"
+		"hand_card_release":
+			return "select_button"
+		"elite_unit_shine":
+			return "alert_sound"
+
+	if clean_name.ends_with("_label"):
+		return "alert_sound"
+
+	if clean_name.ends_with("_icon_press"):
+		return "major_select_button"
+
+	return ""
+
+
+func _clean_ability_category(category: String) -> String:
+	var clean_category := category.to_lower().strip_edges()
+	if ABILITY_SFX_CATEGORIES.has(clean_category):
+		return clean_category
+	return "mobility"
 
 
 func get_free_sfx_player() -> AudioStreamPlayer:
