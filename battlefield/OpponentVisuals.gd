@@ -6,26 +6,78 @@ const PILE_BASE_NAME := "PileBase"
 const PILE_LABEL_NAME := "PileLabel"
 const RUNTIME_VISUAL_META := "runtime_pile_visual"
 
+@export_group("Card Sizes")
 @export var card_width: float = 1.02
 @export var card_height: float = 1.34
 @export var card_thickness: float = 0.006
 
+@export_group("Enemy Hand")
 @export var hand_card_spacing: float = 0.42
 @export var hand_fan_curve: float = 0.16
 @export var hand_max_visible_cards: int = 10
 
+@export_group("Pile Stack")
 @export var pile_max_visible_cards: int = 14
 @export var pile_card_gap: float = 0.008
+@export var face_up_pile_card_scale: float = 1.0
 
+@export_group("Editor Preview Counts")
 @export var editor_preview_hand_count: int = 5
 @export var editor_preview_deck_count: int = 8
 @export var editor_preview_tribute_count: int = 2
 @export var editor_preview_discard_count: int = 2
 
-@export var face_up_pile_card_scale: float = 1.0
+@export_group("Enemy Deck Layout")
+@export var enemy_deck_base_offset: Vector3 = Vector3.ZERO:
+	set(value):
+		enemy_deck_base_offset = value
+		_apply_enemy_pile_layout(deck_root)
+@export var enemy_deck_stack_base_offset: Vector3 = Vector3(0.0, 0.025, 0.0):
+	set(value):
+		enemy_deck_stack_base_offset = value
+		_refresh_runtime_pile_stacks()
+@export var enemy_deck_label_offset: Vector3 = Vector3(0.0, 0.14, 1.04):
+	set(value):
+		enemy_deck_label_offset = value
+		_apply_enemy_pile_layout(deck_root)
 
-@export var opponent_label_pixel_size: float = 0.0045
-@export var opponent_pile_label_font_size: int = 35
+@export_group("Enemy Tribute Layout")
+@export var enemy_tribute_base_offset: Vector3 = Vector3.ZERO:
+	set(value):
+		enemy_tribute_base_offset = value
+		_apply_enemy_pile_layout(tribute_root)
+@export var enemy_tribute_stack_base_offset: Vector3 = Vector3(0.0, 0.045, 0.0):
+	set(value):
+		enemy_tribute_stack_base_offset = value
+		_refresh_runtime_pile_stacks()
+@export var enemy_tribute_label_offset: Vector3 = Vector3(0.0, 0.14, 1.04):
+	set(value):
+		enemy_tribute_label_offset = value
+		_apply_enemy_pile_layout(tribute_root)
+
+@export_group("Enemy Discard Layout")
+@export var enemy_discard_base_offset: Vector3 = Vector3.ZERO:
+	set(value):
+		enemy_discard_base_offset = value
+		_apply_enemy_pile_layout(discard_root)
+@export var enemy_discard_stack_base_offset: Vector3 = Vector3(0.0, 0.045, 0.0):
+	set(value):
+		enemy_discard_stack_base_offset = value
+		_refresh_runtime_pile_stacks()
+@export var enemy_discard_label_offset: Vector3 = Vector3(0.0, 0.14, 1.04):
+	set(value):
+		enemy_discard_label_offset = value
+		_apply_enemy_pile_layout(discard_root)
+
+@export_group("Enemy Labels")
+@export var opponent_label_pixel_size: float = 0.0045:
+	set(value):
+		opponent_label_pixel_size = value
+		_apply_all_enemy_pile_layouts()
+@export var opponent_pile_label_font_size: int = 35:
+	set(value):
+		opponent_pile_label_font_size = value
+		_apply_all_enemy_pile_layouts()
 @export var opponent_hand_label_font_size: int = 22
 @export var show_enemy_hand_label: bool = false
 
@@ -50,6 +102,8 @@ var hand_initialized: bool = false
 func _ready() -> void:
 	find_roots()
 	ensure_editable_pile_nodes()
+	_sync_layout_exports_from_existing_children()
+	_apply_all_enemy_pile_layouts()
 
 	if Engine.is_editor_hint():
 		return
@@ -77,13 +131,119 @@ func apply_editor_owner(node: Node) -> void:
 
 func ensure_editable_pile_nodes() -> void:
 	ensure_pile_base(deck_root)
-	update_pile_label(deck_root, "Enemy Deck: " + str(get_visible_deck_count()), Vector3(0, 0.14, 1.04), opponent_pile_label_font_size)
+	ensure_pile_label(deck_root, _get_enemy_label_offset(deck_root), opponent_pile_label_font_size)
 
 	ensure_pile_base(tribute_root)
-	update_pile_label(tribute_root, "Enemy Tribute: " + str(get_visible_tribute_count()), Vector3(0, 0.14, 1.04), opponent_pile_label_font_size)
+	ensure_pile_label(tribute_root, _get_enemy_label_offset(tribute_root), opponent_pile_label_font_size)
 
 	ensure_pile_base(discard_root)
-	update_pile_label(discard_root, "Enemy Discard: " + str(get_visible_discard_count()), Vector3(0, 0.14, 1.04), opponent_pile_label_font_size)
+	ensure_pile_label(discard_root, _get_enemy_label_offset(discard_root), opponent_pile_label_font_size)
+
+
+func _sync_layout_exports_from_existing_children() -> void:
+	_sync_pile_layout_from_existing_children(deck_root)
+	_sync_pile_layout_from_existing_children(tribute_root)
+	_sync_pile_layout_from_existing_children(discard_root)
+
+
+func _sync_pile_layout_from_existing_children(root: Node3D) -> void:
+	if root == null:
+		return
+
+	var base := root.get_node_or_null(PILE_BASE_NAME) as MeshInstance3D
+	if base != null:
+		if root == deck_root:
+			enemy_deck_base_offset = base.position
+		elif root == tribute_root:
+			enemy_tribute_base_offset = base.position
+		elif root == discard_root:
+			enemy_discard_base_offset = base.position
+
+	var label := root.get_node_or_null(PILE_LABEL_NAME) as Label3D
+	if label != null:
+		if root == deck_root:
+			enemy_deck_label_offset = label.position
+		elif root == tribute_root:
+			enemy_tribute_label_offset = label.position
+		elif root == discard_root:
+			enemy_discard_label_offset = label.position
+		opponent_label_pixel_size = label.pixel_size
+
+
+func _apply_all_enemy_pile_layouts() -> void:
+	if not is_inside_tree():
+		return
+	find_roots()
+	_apply_enemy_pile_layout(deck_root)
+	_apply_enemy_pile_layout(tribute_root)
+	_apply_enemy_pile_layout(discard_root)
+
+
+func _apply_enemy_pile_layout(root: Node3D) -> void:
+	if root == null:
+		return
+
+	var base := ensure_pile_base(root)
+	if base != null:
+		base.position = _get_enemy_base_offset(root)
+
+	var label := ensure_pile_label(root, _get_enemy_label_offset(root), opponent_pile_label_font_size)
+	if label != null:
+		label.position = _get_enemy_label_offset(root)
+		label.pixel_size = opponent_label_pixel_size
+		label.font_size = opponent_pile_label_font_size
+		label.text = _get_enemy_label_text(root)
+
+
+func _refresh_runtime_pile_stacks() -> void:
+	if not is_inside_tree():
+		return
+	_apply_all_enemy_pile_layouts()
+	if Engine.is_editor_hint():
+		return
+	rebuild_deck_pile()
+	rebuild_tribute_pile()
+	rebuild_discard_pile()
+
+
+func _get_enemy_base_offset(root: Node3D) -> Vector3:
+	if root == deck_root:
+		return enemy_deck_base_offset
+	if root == tribute_root:
+		return enemy_tribute_base_offset
+	if root == discard_root:
+		return enemy_discard_base_offset
+	return Vector3.ZERO
+
+
+func _get_enemy_stack_base_offset(root: Node3D) -> Vector3:
+	if root == deck_root:
+		return enemy_deck_stack_base_offset
+	if root == tribute_root:
+		return enemy_tribute_stack_base_offset
+	if root == discard_root:
+		return enemy_discard_stack_base_offset
+	return Vector3.ZERO
+
+
+func _get_enemy_label_offset(root: Node3D) -> Vector3:
+	if root == deck_root:
+		return enemy_deck_label_offset
+	if root == tribute_root:
+		return enemy_tribute_label_offset
+	if root == discard_root:
+		return enemy_discard_label_offset
+	return Vector3(0.0, 0.14, 1.04)
+
+
+func _get_enemy_label_text(root: Node3D) -> String:
+	if root == deck_root:
+		return "Enemy Deck: " + str(get_visible_deck_count())
+	if root == tribute_root:
+		return "Enemy Tribute: " + str(get_visible_tribute_count())
+	if root == discard_root:
+		return "Enemy Discard: " + str(get_visible_discard_count())
+	return "Enemy Pile"
 
 
 func ensure_pile_base(root: Node3D) -> MeshInstance3D:
@@ -125,6 +285,9 @@ func ensure_pile_label(root: Node3D, label_position: Vector3, font_size: int) ->
 func update_pile_label(root: Node3D, text: String, label_position: Vector3, font_size: int) -> void:
 	var label := ensure_pile_label(root, label_position, font_size)
 	if label != null:
+		label.position = label_position
+		label.pixel_size = opponent_label_pixel_size
+		label.font_size = font_size
 		label.text = text
 
 
@@ -168,6 +331,7 @@ func set_all_counts(new_deck_count: int, new_hand_count: int, new_tribute_count:
 func rebuild_all() -> void:
 	find_roots()
 	ensure_editable_pile_nodes()
+	_apply_all_enemy_pile_layouts()
 	rebuild_hand_fan()
 	rebuild_deck_pile()
 	rebuild_tribute_pile()
@@ -308,7 +472,9 @@ func rebuild_face_up_pile(root: Node3D, cards: Array, label_text: String) -> voi
 		return
 
 	clear_runtime_children(root)
-	ensure_pile_base(root)
+	var base := ensure_pile_base(root)
+	if base != null:
+		base.position = _get_enemy_base_offset(root)
 
 	var start_index: int = max(0, cards.size() - pile_max_visible_cards)
 	var visible_cards: Array = cards.slice(start_index, cards.size())
@@ -322,7 +488,7 @@ func rebuild_face_up_pile(root: Node3D, cards: Array, label_text: String) -> voi
 		var card_node := CardPileVisual.create_face_up_card_visual(card_data, face_up_pile_card_scale)
 		mark_runtime_visual(card_node)
 
-		card_node.position = Vector3(0.0, 0.045 + float(i) * 0.014, 0.0)
+		card_node.position = _get_enemy_stack_base_offset(root) + Vector3(0.0, float(i) * 0.014, 0.0)
 		card_node.rotation_degrees = Vector3.ZERO
 
 		root.add_child(card_node)
@@ -330,7 +496,7 @@ func rebuild_face_up_pile(root: Node3D, cards: Array, label_text: String) -> voi
 	update_pile_label(
 		root,
 		label_text + ": " + str(cards.size()),
-		Vector3(0, 0.14, 1.04),
+		_get_enemy_label_offset(root),
 		opponent_pile_label_font_size
 	)
 	
@@ -341,21 +507,23 @@ func rebuild_card_back_pile(root: Node3D, count: int, label_text: String) -> voi
 		return
 
 	clear_runtime_children(root)
-	ensure_pile_base(root)
+	var base := ensure_pile_base(root)
+	if base != null:
+		base.position = _get_enemy_base_offset(root)
 
 	var visible_count: int = mini(count, pile_max_visible_cards)
 
 	for i in range(visible_count):
 		var card := CardPileVisual.create_card_back_visual(card_width, card_height)
 		mark_runtime_visual(card)
-		card.position = Vector3(0, 0.025 + float(i) * (card_thickness + pile_card_gap), 0)
+		card.position = _get_enemy_stack_base_offset(root) + Vector3(0.0, float(i) * (card_thickness + pile_card_gap), 0.0)
 		card.rotation_degrees = Vector3.ZERO
 		root.add_child(card)
 
 	update_pile_label(
 		root,
 		label_text + ": " + str(count),
-		Vector3(0, 0.14, 1.04),
+		_get_enemy_label_offset(root),
 		opponent_pile_label_font_size
 	)
 
