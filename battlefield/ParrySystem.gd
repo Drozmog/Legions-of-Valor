@@ -606,6 +606,8 @@ func _complete_success() -> void:
 	)
 	await _resolve_successful_parry_abilities()
 	bf.battleplan_objective_controller.note_parry_success("player", lane, sacrifice_cards.size())
+	await bf.economy_controller.on_successful_parry("player", sacrifice_cards)
+	await bf.assault_controller.finish_clash(attacker_slot)
 
 	_end_prompt()
 	await bf.advance_combat_lane_after_resolution()
@@ -623,9 +625,16 @@ func _on_let_die_pressed() -> void:
 		bf.log_msg("You let " + defender_card.card_name + " die.")
 		bf.add_aurion("ai", bf.get_unit_defeat_aurion_reward(defender_card), "Destroyed " + defender_card.card_name + " in combat.")
 		bf.battleplan_objective_controller.note_clash_win("enemy", attacker_card, attacker_ap - defender_ap)
+		await bf.combat_controller.resolve_ability_clash_win(attacker_slot, defender_card, "player")
+	await bf.assault_controller.finish_clash(attacker_slot)
 
+	var resume_lane := lane
+	var bloodthirst_extra := bf.combat_controller.retain_bloodthirst_priority(attacker_slot, resume_lane)
 	_end_prompt()
-	await bf.advance_combat_lane_after_resolution()
+	if bloodthirst_extra:
+		await bf.resolve_ai_current_priority_lane(resume_lane)
+	else:
+		await bf.advance_combat_lane_after_resolution()
 
 
 func _resolve_successful_parry_abilities() -> void:

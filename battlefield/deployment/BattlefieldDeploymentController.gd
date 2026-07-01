@@ -76,6 +76,7 @@ func try_place_selected_card_on_slot(slot: Node) -> bool:
 
 	if placed_successfully:
 		bf.tribute_manager.spend_tribute(deployment_cost)
+		bf.economy_controller.consume_focus_discount("player", bf.selected_card_data, place_face_down)
 
 		if place_face_down:
 			bf.player_face_down_gambits_this_round += 1
@@ -234,7 +235,7 @@ func try_promote_selected_card_on_slot(slot: Node) -> bool:
 
 	var old_unit: CardData = bf.get_slot_card_data(slot)
 	var new_unit: CardData = bf.selected_card_data
-	var promotion_cost: int = new_unit.tribute_cost
+	var promotion_cost: int = maxi(0, new_unit.tribute_cost - bf.economy_controller.get_deployment_discount(new_unit, slot, "player", true, false))
 
 	if not bf.tribute_manager.can_afford(promotion_cost):
 		bf.log_msg("Not enough Tribute Points to promote. Need " + str(promotion_cost) + ", have " + str(bf.tribute_manager.current_tribute_points) + ".")
@@ -247,7 +248,7 @@ func try_promote_selected_card_on_slot(slot: Node) -> bool:
 		return false
 
 	bf.tribute_manager.spend_tribute(promotion_cost)
-	bf.log_msg("Promoted " + old_unit.card_name + " into " + new_unit.card_name + " for full cost: " + str(promotion_cost) + " TP.")
+	bf.log_msg("Promoted " + old_unit.card_name + " into " + new_unit.card_name + " for " + str(promotion_cost) + " TP.")
 	bf.log_msg("Spent " + str(promotion_cost) + " TP. " + bf.tribute_manager.get_status_text())
 	bf.handle_card_deployed(new_unit, slot)
 	return true
@@ -380,7 +381,7 @@ func get_player_face_down_card_deployment_cost(card_data: CardData, place_face_d
 	if place_face_down:
 		return bf.get_player_next_face_down_card_setup_cost()
 
-	return card_data.tribute_cost
+	return maxi(0, card_data.tribute_cost - bf.economy_controller.get_deployment_discount(card_data, null, "player", false, false))
 
 
 func get_ai_face_down_card_deployment_cost(card_data: CardData, place_face_down: bool) -> int:
@@ -390,7 +391,7 @@ func get_ai_face_down_card_deployment_cost(card_data: CardData, place_face_down:
 	if place_face_down:
 		return bf.get_ai_next_face_down_card_setup_cost()
 
-	return card_data.tribute_cost
+	return maxi(0, card_data.tribute_cost - bf.economy_controller.get_deployment_discount(card_data, null, "enemy", false, false))
 
 
 # Legacy wrappers kept so older code still works.
@@ -554,6 +555,7 @@ func confirm_pending_spell_placement(place_face_down: bool) -> void:
 
 	if placed:
 		bf.tribute_manager.spend_tribute(deployment_cost)
+		bf.economy_controller.consume_focus_discount("player", spell_card_data, place_face_down)
 
 		if place_face_down:
 			bf.player_face_down_gambits_this_round += 1

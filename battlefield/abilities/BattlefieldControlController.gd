@@ -6,7 +6,7 @@ extends RefCounted
 
 var bf: BattlefieldManager
 
-const CONTROL_MESSAGE_DURATION := 1.9
+const CONTROL_MESSAGE_DURATION := 2.0
 
 
 func _init(owner_battlefield: BattlefieldManager) -> void:
@@ -137,7 +137,8 @@ func choose_control_slot(candidates: Array[Node], ability: AbilityData, instruct
 		candidates,
 		ability.ability_name.to_upper() + "  -  " + instruction,
 		bf.CONTROL_PROMPT_ICON_PATH,
-		ability.rules_text
+		ability.rules_text,
+		"control"
 	)
 
 

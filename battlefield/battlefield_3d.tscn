@@ -29,6 +29,15 @@
 [ext_resource type="Script" uid="uid://rpa2sw7oae1o" path="res://battlefield/OpponentVisuals.gd" id="19_moveh"]
 [ext_resource type="Script" uid="uid://bvdqqom8n8net" path="res://battlefield/CardAnimationManager.gd" id="20_xm46m"]
 
+[sub_resource type="Environment" id="Environment_u0ya7"]
+ambient_light_color = Color(0.40069774, 0.40069774, 0.40069768, 1)
+glow_enabled = true
+glow_intensity = 0.0
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.003
+adjustment_enabled = true
+adjustment_saturation = 1.13
+
 [sub_resource type="PlaneMesh" id="PlaneMesh_lmsbs"]
 size = Vector2(17.135, 8.34)
 
@@ -102,10 +111,12 @@ draw_pile = NodePath("DrawPile")
 tribute_pile = NodePath("TributePile")
 player_deck = NodePath("PlayerDeck")
 
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1028584882]
+environment = SubResource("Environment_u0ya7")
+
 [node name="WarmOverheadLight" type="DirectionalLight3D" parent="." unique_id=1894267964]
 transform = Transform3D(1, 0, 0, 0, -0.123601444, 0.992332, 0, -0.992332, -0.123601444, 0, 15.179, 5.300354)
-visible = false
-light_energy = 0.352
+light_energy = 1.217
 light_specular = 0.2
 shadow_enabled = true
 shadow_opacity = 0.85
@@ -128,33 +139,57 @@ transform = Transform3D(1, 0, 0, 0, 0.25375775, 0.9672678, 0, -0.9672678, 0.2537
 current = true
 
 [node name="AnimatedGrassScatter" type="Node3D" parent="." unique_id=1289923785]
-transform = Transform3D(-1.9014454e-08, 0, 0.435, 0, 0.435, 0, -0.435, 0, -1.9014454e-08, -6.805, 0, -2.625)
+transform = Transform3D(0.44792828, 0, -0.043130696, 0, 0.45, 0, 0.043130696, 0, 0.44792828, -6.91, 0, -2.89)
 script = ExtResource("2_pwkqk")
 grass_scene = ExtResource("3_g1ksm")
+random_seed = 1
 columns = 10
 rows = 10
-spacing_x = 0.5
-spacing_z = 0.5
+spacing_x = 0.8
+spacing_z = 0.8
 random_position_jitter = 2.0
 
-[node name="AnimatedGrassScatter2" type="Node3D" parent="." unique_id=1987998131]
-transform = Transform3D(0.435, 0, 0, 0, 0.435, 0, 0, 0, 0.435, 6.805, 0, 2.625)
+[node name="AnimatedGrassScatter2" type="Node3D" parent="." unique_id=1226820103]
+transform = Transform3D(-0.44993147, 0, -0.007853549, 0, 0.45, 0, 0.007853549, 0, -0.44993147, 7.01, 0, 2.42)
 script = ExtResource("2_pwkqk")
 grass_scene = ExtResource("3_g1ksm")
+random_seed = 1
 columns = 10
 rows = 10
-spacing_x = 0.5
-spacing_z = 0.5
+spacing_x = 0.8
+spacing_z = 0.8
 random_position_jitter = 2.0
+
+[node name="AnimatedGrassScatter3" type="Node3D" parent="." unique_id=1172590904]
+transform = Transform3D(-0.35888806, 0, 0.06651599, 0, 0.365, 0, -0.06651599, 0, -0.35888806, -6.35, -0.15, -0.38)
+script = ExtResource("2_pwkqk")
+grass_scene = ExtResource("3_g1ksm")
+random_seed = 5
+columns = 10
+rows = 6
+spacing_x = 0.8
+spacing_z = 0.8
+random_position_jitter = 1.0
+
+[node name="AnimatedGrassScatter4" type="Node3D" parent="." unique_id=213936778]
+transform = Transform3D(-0.34511432, 0, -0.118832424, 0, 0.365, 0, 0.118832424, 0, -0.34511432, 5.72, -0.15, 0.18)
+script = ExtResource("2_pwkqk")
+grass_scene = ExtResource("3_g1ksm")
+random_seed = 5
+columns = 10
+rows = 6
+spacing_x = 0.8
+spacing_z = 0.8
+random_position_jitter = 1.0
 
 [node name="BoardPlaneGrass" type="MeshInstance3D" parent="." unique_id=1652894338]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.015, 0, 0, 0.045)
-visible = false
+transform = Transform3D(1.015, 0, 0, 0, 1, 0, 0, 0, 1.015, 0, 0, 0.045)
 mesh = SubResource("PlaneMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_rn43s")
 
 [node name="BoardPlaneGrass2" type="MeshInstance3D" parent="." unique_id=908775622]
 transform = Transform3D(1.005, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.03)
+visible = false
 mesh = SubResource("PlaneMesh_lmsbs")
 surface_material_override/0 = SubResource("StandardMaterial3D_u0ya7")
 

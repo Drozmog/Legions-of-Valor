@@ -73,6 +73,37 @@ func animate_card_between_nodes(
 	)
 
 
+func animate_card_reveal_between_nodes(
+	card_data: CardData,
+	source_node: Node,
+	target_node: Node,
+	face_down: bool = false,
+	hold_seconds: float = 0.95
+) -> void:
+	if card_data == null or source_node == null or target_node == null:
+		return
+	var start_position := get_exact_landing_position(source_node) + Vector3(0.0, start_hover_height, 0.0)
+	var end_position := get_exact_landing_position(target_node)
+	var end_rotation := get_exact_landing_rotation(target_node)
+	var animated_card := create_animated_card(card_data, start_position, end_rotation, face_down)
+	if animated_card == null:
+		return
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		animated_card.free()
+		await animate_card_direct_3d(card_data, start_position, end_position, end_rotation, face_down)
+		return
+	var showcase_transform := get_camera_showcase_transform(animated_card, camera)
+	await tween_card_transform(animated_card, animated_card.global_transform, showcase_transform, 0.55, Tween.TRANS_CUBIC, Tween.EASE_OUT)
+	face_card_to_camera(animated_card, camera)
+	await get_tree().create_timer(maxf(hold_seconds, 0.75)).timeout
+	var destination := Transform3D(Basis.from_euler(end_rotation), end_position)
+	await tween_card_transform(animated_card, animated_card.global_transform, destination, 0.55, Tween.TRANS_CUBIC, Tween.EASE_IN_OUT)
+	if is_instance_valid(animated_card):
+		animated_card.global_transform = destination
+		animated_card.free()
+
+
 func animate_card_from_position_to_node(
 	card_data: CardData,
 	start_position: Vector3,
@@ -303,10 +334,10 @@ func set_card_surface_alpha(alpha: float, card_node: Node3D) -> void:
 		fallback.modulate = label_color
 
 
-func get_camera_showcase_transform(card_node: Node3D, camera: Camera3D) -> Transform3D:
+func get_camera_showcase_transform(_card_node: Node3D, camera: Camera3D) -> Transform3D:
 	var viewport_center := get_viewport().get_visible_rect().size * 0.5
-	var position := camera.project_position(viewport_center, showcase_camera_distance)
-	var normal := (camera.global_position - position).normalized()
+	var showcase_position := camera.project_position(viewport_center, showcase_camera_distance)
+	var normal := (camera.global_position - showcase_position).normalized()
 	var screen_up := camera.global_basis.y
 	var card_top := screen_up - normal * screen_up.dot(normal)
 	if card_top.length_squared() < 0.0001:
@@ -314,9 +345,9 @@ func get_camera_showcase_transform(card_node: Node3D, camera: Camera3D) -> Trans
 	card_top = card_top.normalized()
 	var z_axis := -card_top
 	var x_axis := normal.cross(z_axis).normalized()
-	var basis := Basis(x_axis, normal, z_axis).orthonormalized()
-	basis = basis.scaled(Vector3.ONE * showcase_scale)
-	return Transform3D(basis, position)
+	var showcase_basis := Basis(x_axis, normal, z_axis).orthonormalized()
+	showcase_basis = showcase_basis.scaled(Vector3.ONE * showcase_scale)
+	return Transform3D(showcase_basis, showcase_position)
 
 
 func face_card_to_camera(card_node: Node3D, camera: Camera3D) -> void:
@@ -692,11 +723,11 @@ func set_interpolated_arc_transform(
 ) -> void:
 	if card_node == null or not is_instance_valid(card_node):
 		return
-	var transform := start.interpolate_with(finish, t)
+	var interpolated_transform := start.interpolate_with(finish, t)
 	var a := start.origin.lerp(control, t)
 	var b := control.lerp(finish.origin, t)
-	transform.origin = a.lerp(b, t)
-	card_node.global_transform = transform
+	interpolated_transform.origin = a.lerp(b, t)
+	card_node.global_transform = interpolated_transform
 
 
 func set_card_arc_position(

@@ -201,9 +201,9 @@ func _update_deal_animation(
 		var destination_weight := 1.0 - exp(-8.0 * delta)
 		destination = destination.lerp(target_position, destination_weight)
 	state["destination"] = destination
-	var position := start.lerp(destination, travel)
-	position.y += sin(t * PI) * float(state["arc_height"])
-	visual.global_position = position
+	var animated_position := start.lerp(destination, travel)
+	animated_position.y += sin(t * PI) * float(state["arc_height"])
+	visual.global_position = animated_position
 	var bank := sin(t * PI) * deg_to_rad(-7.0 if destination.x < start.x else 7.0)
 	visual.global_rotation = target_rotation + Vector3(0.0, 0.0, bank)
 	var scale_weight := 0.90 + 0.10 * travel

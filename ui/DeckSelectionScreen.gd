@@ -118,11 +118,11 @@ void fragment() {
 	COLOR = vec4(tinted, 0.86 * mask);
 }
 """
-	var material := ShaderMaterial.new()
-	material.shader = shader
-	material.set_shader_parameter("blur_lod", 3.8)
-	material.set_shader_parameter("glass_tint", Color(0.03, 0.035, 0.045, 0.48))
-	return material
+	var glass_material := ShaderMaterial.new()
+	glass_material.shader = shader
+	glass_material.set_shader_parameter("blur_lod", 3.8)
+	glass_material.set_shader_parameter("glass_tint", Color(0.03, 0.035, 0.045, 0.48))
+	return glass_material
 
 
 func make_deck_slot_button_style(bg: Color, border: Color, border_width: int = 1) -> StyleBoxFlat:

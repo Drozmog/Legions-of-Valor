@@ -381,26 +381,26 @@ func _show_remaining_plans_directly() -> void:
 
 
 func _make_card_material(texture: Texture2D, priority: int) -> StandardMaterial3D:
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color.WHITE
-	material.albedo_texture = texture
+	var card_material := StandardMaterial3D.new()
+	card_material.albedo_color = Color.WHITE
+	card_material.albedo_texture = texture
 	# Keep selector cards in the transparent pass after the world dimmer so the
 	# 48% veil affects only the battlefield beneath them.
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.no_depth_test = true
-	material.render_priority = priority
-	material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-	material.emission_enabled = true
-	material.emission = Color(0.10, 0.055, 0.012, 1.0)
-	material.emission_energy_multiplier = 0.18
-	return material
+	card_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	card_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	card_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	card_material.no_depth_test = true
+	card_material.render_priority = priority
+	card_material.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	card_material.emission_enabled = true
+	card_material.emission = Color(0.10, 0.055, 0.012, 1.0)
+	card_material.emission_energy_multiplier = 0.18
+	return card_material
 
 
-func _create_rounded_card_mesh(size: Vector2) -> ArrayMesh:
-	var half_size := size * 0.5
-	var radius := minf(size.x, size.y) * CARD_CORNER_RADIUS_RATIO
+func _create_rounded_card_mesh(card_size: Vector2) -> ArrayMesh:
+	var half_size := card_size * 0.5
+	var radius := minf(card_size.x, card_size.y) * CARD_CORNER_RADIUS_RATIO
 	var outline: Array[Vector2] = []
 	_add_card_corner(outline, Vector2(half_size.x - radius, half_size.y - radius), radius, 0.0, 90.0)
 	_add_card_corner(outline, Vector2(-half_size.x + radius, half_size.y - radius), radius, 90.0, 180.0)
@@ -415,8 +415,8 @@ func _create_rounded_card_mesh(size: Vector2) -> ArrayMesh:
 		vertices.append(Vector3(point.x, point.y, 0.0))
 		normals.append(Vector3.FORWARD)
 		uvs.append(Vector2(
-			(point.x + half_size.x) / size.x,
-			1.0 - ((point.y + half_size.y) / size.y)
+			(point.x + half_size.x) / card_size.x,
+			1.0 - ((point.y + half_size.y) / card_size.y)
 		))
 	for index in range(1, outline.size() + 1):
 		var next_index := index + 1 if index < outline.size() else 1
@@ -807,18 +807,18 @@ func _create_action_button(
 	var mesh := PlaneMesh.new()
 	mesh.size = BUTTON_SURFACE_SIZE
 	surface.mesh = mesh
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.albedo_color = Color.WHITE if texture != null else Color(0.16, 0.075, 0.018, 0.98)
-	material.albedo_texture = texture
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.texture_repeat = false
-	material.emission_enabled = true
-	material.emission = Color(0.34, 0.18, 0.035, 1.0)
-	material.emission_energy_multiplier = 0.70
-	material.no_depth_test = true
-	material.render_priority = 110
-	surface.material_override = material
+	var button_material := StandardMaterial3D.new()
+	button_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	button_material.albedo_color = Color.WHITE if texture != null else Color(0.16, 0.075, 0.018, 0.98)
+	button_material.albedo_texture = texture
+	button_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	button_material.texture_repeat = false
+	button_material.emission_enabled = true
+	button_material.emission = Color(0.34, 0.18, 0.035, 1.0)
+	button_material.emission_energy_multiplier = 0.70
+	button_material.no_depth_test = true
+	button_material.render_priority = 110
+	surface.material_override = button_material
 	button_root.add_child(surface)
 
 	var label := Label3D.new()
@@ -1143,27 +1143,27 @@ func _set_card_glow(entry: Dictionary, enabled: bool) -> void:
 	for mesh_key in ["back", "front"]:
 		var mesh := entry[mesh_key] as MeshInstance3D
 		if mesh != null and mesh.material_override is StandardMaterial3D:
-			var material := mesh.material_override as StandardMaterial3D
-			material.emission = Color(0.95, 0.67, 0.18, 1.0) if enabled else Color(0.10, 0.055, 0.012, 1.0)
-			material.emission_energy_multiplier = 1.10 if enabled else 0.18
+			var card_material := mesh.material_override as StandardMaterial3D
+			card_material.emission = Color(0.95, 0.67, 0.18, 1.0) if enabled else Color(0.10, 0.055, 0.012, 1.0)
+			card_material.emission_energy_multiplier = 1.10 if enabled else 0.18
 
 
 func _on_action_mouse_entered(button_root: Node3D) -> void:
 	_use_cursor("use_pointing")
 	var surface := button_root.get_node_or_null("ButtonSurface") as MeshInstance3D
 	if surface != null and surface.material_override is StandardMaterial3D:
-		var material := surface.material_override as StandardMaterial3D
-		material.emission = Color(1.0, 0.72, 0.22, 1.0)
-		material.emission_energy_multiplier = 1.55
+		var button_material := surface.material_override as StandardMaterial3D
+		button_material.emission = Color(1.0, 0.72, 0.22, 1.0)
+		button_material.emission_energy_multiplier = 1.55
 
 
 func _on_action_mouse_exited(button_root: Node3D) -> void:
 	_use_cursor("use_normal")
 	var surface := button_root.get_node_or_null("ButtonSurface") as MeshInstance3D
 	if surface != null and surface.material_override is StandardMaterial3D:
-		var material := surface.material_override as StandardMaterial3D
-		material.emission = Color(0.34, 0.18, 0.035, 1.0)
-		material.emission_energy_multiplier = 0.70
+		var button_material := surface.material_override as StandardMaterial3D
+		button_material.emission = Color(0.34, 0.18, 0.035, 1.0)
+		button_material.emission_energy_multiplier = 0.70
 
 
 func _set_card_pickable(entry: Dictionary, pickable: bool) -> void:

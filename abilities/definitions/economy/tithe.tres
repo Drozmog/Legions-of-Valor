@@ -10,6 +10,6 @@ ability_name = "Tithe"
 category = "economy"
 point_cost = 11.0
 trigger = "on_draw"
-rules_text = "Draw a card. Opponent loses 2 TP temporarily next turn."
+rules_text = "Draw a card. Opponent loses 1 TP temporarily this round."
 icon = ExtResource("1_70owe")
 handler_id = &"tithe"

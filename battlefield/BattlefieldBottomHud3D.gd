@@ -325,8 +325,8 @@ void fragment() {
 	return material
 
 
-func update_info(phase_text: String, turn_text: String, score_text: String, instruction: String, action_text: String, disabled: bool, ready: bool) -> void:
-	var signature := "%s|%s|%s|%s|%s|%s|%s" % [phase_text, turn_text, score_text, instruction, action_text, disabled, ready]
+func update_info(phase_text: String, turn_text: String, score_text: String, instruction: String, action_text: String, disabled: bool, is_ready: bool) -> void:
+	var signature := "%s|%s|%s|%s|%s|%s|%s" % [phase_text, turn_text, score_text, instruction, action_text, disabled, is_ready]
 	if signature == last_info_signature:
 		return
 	last_info_signature = signature
@@ -338,7 +338,7 @@ func update_info(phase_text: String, turn_text: String, score_text: String, inst
 	phase_button.visible = not action_text.is_empty()
 	phase_button.disabled = disabled or modal_blocked
 	var style_name := "normal"
-	phase_button.add_theme_stylebox_override(style_name, button_style(Color(0.16, 0.18, 0.22, 0.82), Color(1.0, 1.0, 1.0, 0.72), 2, 0) if ready else button_style(Color(0.07, 0.08, 0.10, 0.62), Color(1.0, 1.0, 1.0, 0.26), 1, 0))
+	phase_button.add_theme_stylebox_override(style_name, button_style(Color(0.16, 0.18, 0.22, 0.82), Color(1.0, 1.0, 1.0, 0.72), 2, 0) if is_ready else button_style(Color(0.07, 0.08, 0.10, 0.62), Color(1.0, 1.0, 1.0, 0.26), 1, 0))
 
 
 func set_log_output(value: String) -> void:
@@ -592,14 +592,14 @@ func create_battleplan_face_texture(plan: Dictionary, caption: String) -> Textur
 
 	var panel := PanelContainer.new()
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.055, 0.065, 0.085, 0.90)
-	panel_style.border_color = Color(1.0, 1.0, 1.0, 0.42)
-	panel_style.set_border_width_all(6)
-	panel_style.set_corner_radius_all(34)
-	panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
-	panel_style.shadow_size = 12
-	panel.add_theme_stylebox_override("panel", panel_style)
+	var battleplan_panel_style := StyleBoxFlat.new()
+	battleplan_panel_style.bg_color = Color(0.055, 0.065, 0.085, 0.90)
+	battleplan_panel_style.border_color = Color(1.0, 1.0, 1.0, 0.42)
+	battleplan_panel_style.set_border_width_all(6)
+	battleplan_panel_style.set_corner_radius_all(34)
+	battleplan_panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.42)
+	battleplan_panel_style.shadow_size = 12
+	panel.add_theme_stylebox_override("panel", battleplan_panel_style)
 	viewport.add_child(panel)
 
 	var margin := MarginContainer.new()
@@ -679,9 +679,9 @@ func make_battleplan_card_material(texture: Texture2D) -> StandardMaterial3D:
 	return material
 
 
-func create_rounded_battleplan_card_mesh(size: Vector2) -> ArrayMesh:
-	var half_size := size * 0.5
-	var radius := minf(size.x, size.y) * BATTLEPLAN_CARD_CORNER_RADIUS_RATIO
+func create_rounded_battleplan_card_mesh(card_size: Vector2) -> ArrayMesh:
+	var half_size := card_size * 0.5
+	var radius := minf(card_size.x, card_size.y) * BATTLEPLAN_CARD_CORNER_RADIUS_RATIO
 	var outline: Array[Vector2] = []
 	add_battleplan_card_corner(outline, Vector2(half_size.x - radius, half_size.y - radius), radius, 0.0, 90.0)
 	add_battleplan_card_corner(outline, Vector2(-half_size.x + radius, half_size.y - radius), radius, 90.0, 180.0)
@@ -695,7 +695,7 @@ func create_rounded_battleplan_card_mesh(size: Vector2) -> ArrayMesh:
 	for point in outline:
 		vertices.append(Vector3(point.x, point.y, 0.0))
 		normals.append(Vector3.FORWARD)
-		uvs.append(Vector2((point.x + half_size.x) / size.x, 1.0 - ((point.y + half_size.y) / size.y)))
+		uvs.append(Vector2((point.x + half_size.x) / card_size.x, 1.0 - ((point.y + half_size.y) / card_size.y)))
 	for index in range(1, outline.size() + 1):
 		var next_index := index + 1 if index < outline.size() else 1
 		indices.append(0)

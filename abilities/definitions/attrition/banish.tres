@@ -9,6 +9,6 @@ ability_id = &"banish"
 ability_name = "Banish"
 category = "attrition"
 point_cost = 6.0
-rules_text = "Return a unit and all its equipment to back to the player's hand"
+rules_text = "Return a unit and all its equipment back to the player's hand"
 icon = ExtResource("1_8357v")
 handler_id = &"banish"

@@ -90,7 +90,7 @@ func note_monarch_strike(owner_name: String) -> void:
 	states[clean_owner(owner_name)]["monarch_strike"] = true
 
 
-func note_unit_defeated(victim_owner_name: String, defeated_card: CardData, winner_owner_name: String = "") -> void:
+func note_unit_defeated(victim_owner_name: String, _defeated_card: CardData, _winner_owner_name: String = "") -> void:
 	var victim := clean_owner(victim_owner_name)
 	states[victim]["units_lost"] = int(states[victim]["units_lost"]) + 1
 
@@ -153,6 +153,7 @@ func resolve_end_of_round() -> void:
 		if not objective_met(owner, id):
 			bf.log_msg(String(plan.get("name", "Battleplan")) + " objective was not completed.")
 			continue
+		await bf.economy_controller.on_battleplan_completed(owner)
 		var reward := int(plan.get("aurion_reward", 0))
 		if reward <= 0:
 			continue

@@ -2,6 +2,7 @@ class_name BattlefieldManager
 extends Node3D
 
 signal insight_gambit_slot_chosen(slot: Node)
+@warning_ignore("unused_signal")
 signal stealth_deployment_slot_chosen(slot: Node)
 signal mobility_slot_chosen(slot: Node)
 signal mobility_choice_made(accepted: bool)
@@ -45,6 +46,9 @@ const ABILITY_TOOLTIP_SCREEN_MARGIN := 12.0
 const MOBILITY_PROMPT_ICON_PATH := "res://ui/ability_icons/mobility.png"
 const PROTECTION_PROMPT_ICON_PATH := "res://ui/ability_icons/protection.png"
 const CONTROL_PROMPT_ICON_PATH := "res://ui/ability_icons/control.png"
+const ATTRITION_PROMPT_ICON_PATH := "res://ui/ability_icons/attrition.png"
+const ASSAULT_PROMPT_ICON_PATH := "res://ui/ability_icons/assault.png"
+const ECONOMY_PROMPT_ICON_PATH := "res://ui/ability_icons/economy.png"
 const MOBILITY_PROMPT_CENTER_Y: float = 0.385
 const MOBILITY_CHOICE_PANEL_WIDTH := 360.0
 const MOBILITY_CHOICE_PANEL_HEIGHT := 58.0
@@ -195,6 +199,7 @@ var stealth_deployment_selection_slot: Node = null
 var mobility_selection_active := false
 
 var mobility_candidate_slots: Array[Node] = []
+var mobility_selection_category := "mobility"
 var mobility_choice_panel: PanelContainer = null
 var used_mobility_ability_keys: Dictionary = {}
 var ability_tooltip_panel: PanelContainer = null
@@ -271,6 +276,10 @@ var combat_controller: BattlefieldCombatController = null
 var ability_controller: BattlefieldAbilityController = null
 var control_controller: BattlefieldControlController = null
 var volley_controller: BattlefieldVolleyController = null
+var ability_presentation_controller: BattlefieldAbilityPresentationController = null
+var attrition_controller: BattlefieldAttritionController = null
+var assault_controller: BattlefieldAssaultController = null
+var economy_controller: BattlefieldEconomyController = null
 var battleplan_objective_controller: BattlefieldBattleplanObjectiveController = null
 var deployment_controller: BattlefieldDeploymentController = null
 
@@ -382,6 +391,10 @@ func _ready() -> void:
 	ability_controller = BattlefieldAbilityController.new(self)
 	control_controller = BattlefieldControlController.new(self)
 	volley_controller = BattlefieldVolleyController.new(self)
+	ability_presentation_controller = BattlefieldAbilityPresentationController.new(self)
+	attrition_controller = BattlefieldAttritionController.new(self)
+	assault_controller = BattlefieldAssaultController.new(self)
+	economy_controller = BattlefieldEconomyController.new(self)
 	battleplan_objective_controller = BattlefieldBattleplanObjectiveController.new(self)
 	deployment_controller = BattlefieldDeploymentController.new(self)
 	ai_controller = BattlefieldAIController.new(self)
@@ -854,14 +867,18 @@ func choose_mobility_slot(
 	candidates: Array[Node],
 	prompt: String,
 	icon_path: String = MOBILITY_PROMPT_ICON_PATH,
-	description: String = ""
+	description: String = "",
+	category: String = "mobility"
 ) -> Node:
 	if candidates.is_empty():
 		return null
 	mobility_candidate_slots = candidates.duplicate()
 	mobility_selection_active = true
+	mobility_selection_category = category.to_lower()
 	for slot in mobility_candidate_slots:
-		if slot != null and slot.has_method("set_mobility_highlight"):
+		if slot != null and slot.has_method("set_ability_highlight"):
+			slot.call("set_ability_highlight", true, mobility_selection_category)
+		elif slot != null and slot.has_method("set_mobility_highlight"):
 			slot.call("set_mobility_highlight", true)
 	var display_text := prompt
 	if description.strip_edges() != "":
@@ -869,16 +886,21 @@ func choose_mobility_slot(
 	show_mobility_prompt(display_text, icon_path)
 	var chosen: Node = await mobility_slot_chosen
 	for slot in mobility_candidate_slots:
-		if slot != null and slot.has_method("set_mobility_highlight"):
+		if slot != null and slot.has_method("set_ability_highlight"):
+			slot.call("set_ability_highlight", false, mobility_selection_category)
+		elif slot != null and slot.has_method("set_mobility_highlight"):
 			slot.call("set_mobility_highlight", false)
 	mobility_candidate_slots.clear()
 	mobility_selection_active = false
+	mobility_selection_category = "mobility"
 	await hide_mobility_prompt()
 	return chosen
 
 
 func cancel_active_ability_targeting() -> bool:
 	if volley_controller != null and volley_controller.cancel():
+		return true
+	if insight_presenter != null and insight_presenter.cancel_active_choice():
 		return true
 	if mobility_selection_active:
 		mobility_slot_chosen.emit(null)
@@ -1128,8 +1150,8 @@ func player_has_remaining_deployment_move() -> bool:
 	return phase_controller.player_has_remaining_deployment_move()
 
 
-func set_phase_button_ready_visual(ready: bool) -> void:
-	phase_controller.set_phase_button_ready_visual(ready)
+func set_phase_button_ready_visual(is_ready: bool) -> void:
+	phase_controller.set_phase_button_ready_visual(is_ready)
 
 
 func update_phase_instruction_ui() -> void:
@@ -1497,6 +1519,10 @@ func is_equipment_suppressed(slot: Node) -> bool:
 	return control_controller.is_equipment_suppressed(slot)
 
 
+func is_equipment_lane_locked(slot: Node) -> bool:
+	return attrition_controller != null and attrition_controller.is_equipment_lane_locked(slot)
+
+
 func get_control_halt_source_against(owner_name: String) -> Dictionary:
 	return control_controller.get_halt_source_against(owner_name)
 
@@ -1577,6 +1603,7 @@ func resolve_directed_clash(
 
 
 func resolve_ai_parry_attempt(
+	attacker_slot: Node,
 	attacker_card: CardData,
 	defender_slot: Node,
 	defender_card: CardData,
@@ -1584,7 +1611,7 @@ func resolve_ai_parry_attempt(
 	defender_ap: int = -1,
 	ignore_protection: bool = false
 ) -> void:
-	await combat_controller.resolve_ai_parry_attempt(attacker_card, defender_slot, defender_card, attacker_ap, defender_ap, ignore_protection)
+	await combat_controller.resolve_ai_parry_attempt(attacker_slot, attacker_card, defender_slot, defender_card, attacker_ap, defender_ap, ignore_protection)
 
 
 func resolve_ai_successful_parry_abilities(parry_cards: Array[CardData]) -> void:
@@ -1603,8 +1630,12 @@ func get_slot_combat_ap(slot: Node, ignore_protection: bool = false) -> int:
 	return combat_controller.get_slot_combat_ap(slot, ignore_protection)
 
 
-func get_slot_combat_ap_with_protection_announcements(slot: Node, ignore_protection: bool = false) -> int:
-	return await ability_controller.get_slot_combat_ap_with_protection_announcements(slot, ignore_protection)
+func get_slot_combat_ap_with_protection_announcements(
+	slot: Node,
+	ignore_protection: bool = false,
+	is_attacking: bool = false
+) -> int:
+	return await ability_controller.get_slot_combat_ap_with_protection_announcements(slot, ignore_protection, is_attacking)
 
 
 func get_card_protection_ability(card_data: CardData, ability_id: StringName) -> AbilityData:
@@ -1655,9 +1686,10 @@ func destroy_unit_with_protection(
 	slot: Node,
 	opposing_slot: Node = null,
 	from_clash: bool = false,
-	ignore_protection: bool = false
+	ignore_protection: bool = false,
+	by_gambit: bool = false
 ) -> bool:
-	return await ability_controller.destroy_unit_with_protection(slot, opposing_slot, from_clash, ignore_protection)
+	return await ability_controller.destroy_unit_with_protection(slot, opposing_slot, from_clash, ignore_protection, by_gambit)
 
 
 func discard_protection_equipment(slot: Node, ability_id: StringName) -> bool:
@@ -1840,7 +1872,7 @@ func discard_cards_with_animation(cards: Array, source_node: Node, slot_owner: S
 			ai_discard.append(card_data)
 		elif discard_pile != null:
 			discard_pile.add_card(card_data, false)
-	animate_cards_to_discard_and_reveal(cards, source_node, slot_owner)
+	await animate_cards_to_discard_and_reveal(cards, source_node, slot_owner)
 
 
 func animate_cards_to_discard_and_reveal(cards: Array, source_node: Node, slot_owner: String) -> void:
@@ -1906,6 +1938,22 @@ func add_aurion(scoring_owner: String, amount: int, reason: String = "") -> void
 
 	update_aurion_counter_ui()
 	check_aurion_victory()
+
+
+func lose_aurion(scoring_owner: String, amount: int, reason: String = "") -> void:
+	if amount <= 0:
+		return
+	var clean_owner := scoring_owner.to_lower().strip_edges()
+	if clean_owner == "player":
+		player_aurion_points = maxi(0, player_aurion_points - amount)
+		log_msg("Player loses " + str(amount) + " Aurion. " + reason)
+	elif clean_owner in ["ai", "enemy", "opponent"]:
+		ai_aurion_points = maxi(0, ai_aurion_points - amount)
+		log_msg("AI loses " + str(amount) + " Aurion. " + reason)
+	else:
+		log_msg("Unknown Aurion owner: " + scoring_owner)
+		return
+	update_aurion_counter_ui()
 
 
 func get_unit_defeat_aurion_reward(card_data: CardData) -> int:
@@ -2090,6 +2138,12 @@ func refresh_player_usable_ability_icons() -> void:
 							usable_ids.append(ability.ability_id)
 						elif category == "control" and ability.trigger == "active" and can_activate_control_ability(slot, ability):
 							usable_ids.append(ability.ability_id)
+						elif category == "attrition" and attrition_controller.can_activate(slot, ability):
+							usable_ids.append(ability.ability_id)
+						elif category == "assault" and assault_controller.can_activate(slot, ability):
+							usable_ids.append(ability.ability_id)
+						elif category == "economy" and economy_controller.can_activate(slot, ability):
+							usable_ids.append(ability.ability_id)
 			if visual != null and visual.has_method("set_usable_ability_ids"):
 				visual.call("set_usable_ability_ids", usable_ids)
 			connect_card_ability_icon_signals(slot, visual)
@@ -2125,6 +2179,8 @@ func _on_card_ability_icon_pressed(_card_visual: Node, ability: AbilityData, slo
 			player_passed_current_lane = true
 			set_lane_priority_to_ai(lane, ability.ability_name + " used instead of attacking.")
 			await resolve_ai_current_priority_lane(lane)
+	elif ability != null and ability.category.to_lower() in ["attrition", "assault", "economy"]:
+		await activate_modular_ability_from_slot(slot, ability)
 	else:
 		await activate_insight_ability_from_slot(slot, ability)
 
@@ -2892,6 +2948,7 @@ func show_board_slot_action_menu(slot: Node) -> void:
 		add_active_insight_actions_to_board_menu(slot, card_data)
 		add_active_mobility_actions_to_board_menu(slot)
 		add_active_control_actions_to_board_menu(slot)
+		add_active_modular_actions_to_board_menu(slot)
 	elif not added_action:
 		board_action_menu.add_item("Empty Slot", BOARD_ACTION_CANCEL)
 		var empty_index: int = board_action_menu.get_item_count() - 1
@@ -2915,6 +2972,8 @@ func _on_board_slot_action_selected(action_id: int) -> void:
 				player_passed_current_lane = true
 				set_lane_priority_to_ai(lane, ability.ability_name + " used instead of attacking.")
 				await resolve_ai_current_priority_lane(lane)
+		elif ability != null and ability.category.to_lower() in ["attrition", "assault", "economy"]:
+			await activate_modular_ability_from_slot(board_action_target_slot, ability)
 		else:
 			await activate_insight_from_board_action(action_id, board_action_target_slot)
 		board_action_target_slot = null
@@ -2946,6 +3005,54 @@ func add_active_insight_actions_to_board_menu(slot: Node, card_data: CardData) -
 
 func add_active_mobility_actions_to_board_menu(slot: Node) -> void:
 	ability_controller.add_active_mobility_actions_to_board_menu(slot)
+
+
+func add_active_modular_actions_to_board_menu(slot: Node) -> void:
+	if slot == null or bool(slot.get_meta("face_down", false)):
+		return
+	var entries: Array = slot.call("get_ability_visual_entries") if slot.has_method("get_ability_visual_entries") else []
+	for entry in entries:
+		var card_data := entry.get("card") as CardData
+		if card_data == null:
+			continue
+		if card_data != get_slot_card_data(slot) and is_equipment_suppressed(slot):
+			continue
+		for ability in card_data.get_abilities():
+			if ability == null or ability.trigger != "active":
+				continue
+			var category := ability.category.to_lower()
+			var available := (
+				(category == "attrition" and attrition_controller.can_activate(slot, ability))
+				or (category == "assault" and assault_controller.can_activate(slot, ability))
+				or (category == "economy" and economy_controller.can_activate(slot, ability))
+			)
+			if not available:
+				continue
+			var action_id := BOARD_ACTION_ACTIVE_INSIGHT_BASE + board_action_ability_map.size()
+			board_action_ability_map[action_id] = ability
+			board_action_menu.add_item("Use " + ability.ability_name, action_id)
+
+
+func activate_modular_ability_from_slot(slot: Node, ability: AbilityData) -> bool:
+	if slot == null or ability == null:
+		return false
+	var result: Dictionary = {"success": false, "consumes_attack": false}
+	match ability.category.to_lower():
+		"attrition":
+			result["success"] = await attrition_controller.activate(slot, ability, "player")
+			result["consumes_attack"] = bool(result["success"])
+		"assault":
+			result = await assault_controller.activate(slot, ability, "player")
+		"economy":
+			result = await economy_controller.activate(slot, ability, "player")
+	if not bool(result.get("success", false)):
+		return false
+	if bool(result.get("consumes_attack", false)):
+		var lane := get_slot_lane(slot)
+		player_passed_current_lane = true
+		set_lane_priority_to_ai(lane, ability.ability_name + " used instead of attacking.")
+		await resolve_ai_current_priority_lane(lane)
+	return true
 
 
 func can_activate_insight_ability(slot: Node, ability: AbilityData) -> bool:
@@ -3025,7 +3132,7 @@ func animate_snapshot_between_slots(snapshot: Dictionary, source: Node, target: 
 
 
 func resolve_stealth_hidden_decoy(back_slot: Node, card_data: CardData, owner_name: String, lane: String) -> bool:
-	return ability_controller.resolve_stealth_hidden_decoy(back_slot, card_data, owner_name, lane)
+	return await ability_controller.resolve_stealth_hidden_decoy(back_slot, card_data, owner_name, lane)
 
 
 func get_card_insight_ability(card_data: CardData, ability_id: StringName) -> AbilityData:
@@ -3175,12 +3282,12 @@ func pass_from_board_action_menu(slot: Node) -> void:
 	await combat_controller.pass_from_board_action_menu(slot)
 
 
-func resolve_monarch_strike(lane: String, attacker_card: CardData) -> void:
-	combat_controller.resolve_monarch_strike(lane, attacker_card)
+func resolve_monarch_strike(lane: String, attacker_card: CardData, attacker_slot: Node = null) -> void:
+	await combat_controller.resolve_monarch_strike(lane, attacker_card, attacker_slot)
 
 
-func resolve_ai_monarch_strike(lane: String, attacker_card: CardData) -> void:
-	combat_controller.resolve_ai_monarch_strike(lane, attacker_card)
+func resolve_ai_monarch_strike(lane: String, attacker_card: CardData, attacker_slot: Node = null) -> void:
+	await combat_controller.resolve_ai_monarch_strike(lane, attacker_card, attacker_slot)
 
 
 func patch_game_log_for_scrolling() -> void:

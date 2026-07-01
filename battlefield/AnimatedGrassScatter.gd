@@ -3,6 +3,9 @@ extends Node3D
 
 @export var grass_scene: PackedScene
 
+@export var use_fixed_seed: bool = true
+@export var random_seed: int = 12345
+
 @export var columns: int = 8
 @export var rows: int = 5
 
@@ -56,7 +59,11 @@ func regenerate(editor_preview: bool = false) -> void:
 	clear_generated_grass()
 
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.randomize()
+
+	if use_fixed_seed:
+		rng.seed = random_seed
+	else:
+		rng.randomize()
 
 	var start_x: float = -float(columns - 1) * spacing_x * 0.5
 	var start_z: float = -float(rows - 1) * spacing_z * 0.5

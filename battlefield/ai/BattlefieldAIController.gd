@@ -204,8 +204,7 @@ func ai_start_tribute_phase() -> void:
 	bf.ai_decay_player_memory_pressure()
 
 	bf.ai_current_perm_tp = bf.ai_perm_tp
-	bf.ai_temp_tp = 0
-	bf.ai_current_tp = bf.ai_current_perm_tp
+	bf.ai_current_tp = bf.ai_current_perm_tp + bf.ai_temp_tp
 	bf.ai_tribute_used_this_turn = false
 	bf.ai_tribute_finished_this_turn = false
 
@@ -291,7 +290,7 @@ func ai_choose_tribute_card_index() -> int:
 	return best_index
 
 
-func ai_score_tribute_card(card_index: int, card_data: CardData) -> int:
+func ai_score_tribute_card(_card_index: int, card_data: CardData) -> int:
 	if card_data == null:
 		return -999999
 
@@ -647,7 +646,7 @@ func ai_score_deployment_lookahead(card_data: CardData, slot: Node, action_type:
 	match action_type:
 		"promotion":
 			score += bf.ai_score_projected_lane_control(lane, card_data.ap, card_data.dp, true)
-			score += bf.ai_estimate_card_value(card_data) / 3
+			score += int(float(bf.ai_estimate_card_value(card_data)) / 3.0)
 
 		"unit":
 			if face_down or row == "back":
@@ -664,7 +663,7 @@ func ai_score_deployment_lookahead(card_data: CardData, slot: Node, action_type:
 					score -= 14
 			else:
 				score += bf.ai_score_projected_lane_control(lane, card_data.ap, card_data.dp, true)
-				score += bf.ai_estimate_card_value(card_data) / 4
+				score += int(float(bf.ai_estimate_card_value(card_data)) / 4.0)
 
 		"equipment":
 			var equipped_unit := bf.get_slot_card_data(slot)
@@ -770,19 +769,19 @@ func ai_score_attack_lookahead(lane: String) -> int:
 	if ap_gap > 0:
 		score += 55
 		score += ap_gap * 14
-		score += player_value / 5
+		score += int(float(player_value) / 5.0)
 
 		if ap_gap == 1:
 			score -= 14
 
 	elif ap_gap == 0:
 		score += 10
-		score += player_value / 6
-		score -= ai_value / 7
+		score += int(float(player_value) / 6.0)
+		score -= int(float(ai_value) / 7.0)
 
 	else:
 		score -= 55
-		score -= ai_value / 5
+		score -= int(float(ai_value) / 5.0)
 
 		if bf.slot_has_protection_ability(ai_front_slot, &"plated") != null:
 			score += 42
@@ -944,8 +943,6 @@ func ai_score_card_ability_value(card_data: CardData, slot: Node = null, context
 			continue
 
 		var category := String(ability.category).to_lower()
-		var handler_id := ability.get_handler_id()
-
 		match category:
 			"protection":
 				score += bf.ai_score_protection_ability_value(ability, card_data, slot, context, face_down)
@@ -1089,7 +1086,7 @@ func ai_score_protection_ability_value(ability: AbilityData, card_data: CardData
 	return score
 
 
-func ai_score_mobility_ability_value(ability: AbilityData, card_data: CardData, slot: Node, context: String, face_down: bool) -> int:
+func ai_score_mobility_ability_value(ability: AbilityData, _card_data: CardData, slot: Node, context: String, face_down: bool) -> int:
 	if ability == null:
 		return 0
 
@@ -1209,7 +1206,7 @@ func ai_score_insight_ability_value(ability: AbilityData, _card_data: CardData, 
 		var lane := bf.get_slot_lane(slot)
 
 		if lane != "":
-			score += bf.ai_memory_player_lane_pressure_score(lane) / 2
+			score += int(float(bf.ai_memory_player_lane_pressure_score(lane)) / 2.0)
 
 	return score
 
@@ -1507,6 +1504,8 @@ func ai_try_deploy_one_card() -> bool:
 		return false
 
 	var deployment_cost: int = bf.get_ai_face_down_card_deployment_cost(card_data, face_down)
+	if action_type == "promotion":
+		deployment_cost = maxi(0, card_data.tribute_cost - bf.economy_controller.get_deployment_discount(card_data, target_slot, "enemy", true, false))
 
 	if deployment_cost > bf.ai_current_tp:
 		return false
@@ -1548,9 +1547,9 @@ func ai_try_deploy_one_card() -> bool:
 
 		if success:
 			bf.ai_hand.pop_at(card_index)
-			bf.ai_spend_tp(card_data.tribute_cost)
+			bf.ai_spend_tp(deployment_cost)
 			await ai_resolve_deployment_abilities(card_data, target_slot)
-			bf.log_msg("AI promoted " + old_unit.card_name + " into " + card_data.card_name + " for full cost: " + str(card_data.tribute_cost) + " TP.")
+			bf.log_msg("AI promoted " + old_unit.card_name + " into " + card_data.card_name + " for " + str(deployment_cost) + " TP.")
 			bf.log_msg("AI TP after promotion: " + str(bf.ai_current_tp) + "/" + str(bf.ai_perm_tp) + " Temp +" + str(bf.ai_temp_tp))
 			bf.update_ai_visuals()
 			return true
@@ -1566,6 +1565,7 @@ func ai_try_deploy_one_card() -> bool:
 		if success:
 			bf.ai_hand.pop_at(card_index)
 			bf.ai_spend_tp(deployment_cost)
+			bf.economy_controller.consume_focus_discount("enemy", card_data, face_down)
 
 			if face_down:
 				bf.ai_face_down_gambits_this_round += 1
@@ -1596,6 +1596,9 @@ func ai_resolve_deployment_abilities(card_data: CardData, slot: Node) -> void:
 		return
 	await bf.resolve_control_deployment(card_data, slot, "enemy")
 	await bf.resolve_mobility_deployment(card_data, slot, "enemy")
+	await bf.attrition_controller.resolve_deployment(card_data, slot, "enemy")
+	await bf.assault_controller.resolve_deployment(card_data, slot, "enemy")
+	await bf.economy_controller.resolve_deployment(card_data, slot, "enemy")
 
 
 func ai_choose_deployment_action() -> Dictionary:
@@ -2554,6 +2557,13 @@ func ai_build_active_ability_actions(current_lane_name: String) -> Array[Diction
 			elif category == "insight":
 				bf.ai_add_active_insight_actions(actions, current_lane_name, source_slot, ability)
 
+			elif category in ["attrition", "assault", "economy"] and ability.get_handler_id() != &"focus":
+				actions.append({
+					"type": "modular_active",
+					"source_slot": source_slot,
+					"ability": ability,
+				})
+
 	return actions
 
 
@@ -2597,6 +2607,8 @@ func ai_get_active_ability_entries_for_slot(slot: Node) -> Array[Dictionary]:
 
 		if card_data == null:
 			continue
+		if card_data != bf.get_slot_card_data(slot) and bf.is_equipment_suppressed(slot):
+			continue
 
 		for ability in card_data.get_abilities():
 			if ability == null:
@@ -2610,6 +2622,10 @@ func ai_get_active_ability_entries_for_slot(slot: Node) -> Array[Dictionary]:
 				continue
 
 			if category == "mobility" and bf.ai_is_supported_ai_active_mobility(handler_id):
+				result.append({"card": card_data, "ability": ability})
+				continue
+
+			if category in ["attrition", "assault", "economy"] and ability.trigger == "active":
 				result.append({"card": card_data, "ability": ability})
 
 	return result
@@ -2648,10 +2664,19 @@ func ai_can_consider_active_ability(slot: Node, ability: AbilityData) -> bool:
 
 		return true
 
+	if category == "attrition":
+		return bf.attrition_controller.can_activate_for_owner(slot, ability, "enemy")
+
+	if category == "assault":
+		return bf.assault_controller.can_activate_for_owner(slot, ability, "enemy")
+
+	if category == "economy":
+		return bf.economy_controller.can_activate_for_owner(slot, ability, "enemy")
+
 	return false
 
 
-func ai_add_active_mobility_actions(actions: Array[Dictionary], current_lane_name: String, source_slot: Node, ability: AbilityData) -> void:
+func ai_add_active_mobility_actions(actions: Array[Dictionary], _current_lane_name: String, source_slot: Node, ability: AbilityData) -> void:
 	if source_slot == null or ability == null:
 		return
 
@@ -2777,6 +2802,9 @@ func ai_score_active_ability_action(action: Dictionary, current_lane_name: Strin
 		"insight_peek":
 			raw_score += bf.ai_score_active_insight_peek_action(target_slot, current_lane_name)
 
+		"modular_active":
+			raw_score += 145 if String(ability.category).to_lower() == "attrition" else 132
+
 		_:
 			return -999999
 
@@ -2786,6 +2814,8 @@ func ai_score_active_ability_action(action: Dictionary, current_lane_name: Strin
 		raw_score += 12
 	elif category == "insight":
 		raw_score += 10
+	elif category in ["attrition", "assault", "economy"]:
+		raw_score += 14
 
 	raw_score += bf.ai_tactical_noise(10)
 
@@ -2820,7 +2850,7 @@ func ai_score_active_move_action(source_slot: Node, target_slot: Node, current_l
 		score += 10
 
 	score += bf.ai_memory_player_lane_pressure_score(target_lane)
-	score -= bf.ai_memory_player_lane_pressure_score(source_lane) / 2
+	score -= int(float(bf.ai_memory_player_lane_pressure_score(source_lane)) / 2.0)
 
 	return score
 
@@ -2859,7 +2889,7 @@ func ai_score_active_destroy_action(target_slot: Node) -> int:
 		return -999999
 
 	var score := 70
-	score += bf.ai_estimate_card_value(target_card) / 3
+	score += int(float(bf.ai_estimate_card_value(target_card)) / 3.0)
 	score += bf.get_unit_defeat_aurion_reward(target_card) * 12
 	score += bf.ai_memory_player_lane_pressure_score(bf.get_slot_lane(target_slot))
 
@@ -2932,7 +2962,29 @@ func ai_execute_active_ability_action(action: Dictionary, current_lane_name: Str
 		"insight_peek":
 			return await bf.ai_execute_active_insight_peek_action(source_slot, target_slot, ability, current_lane_name)
 
+		"modular_active":
+			return await ai_execute_modular_active_action(source_slot, ability, current_lane_name)
+
 	return {"used": false, "result": "none"}
+
+
+func ai_execute_modular_active_action(source_slot: Node, ability: AbilityData, lane: String) -> Dictionary:
+	var result: Dictionary = {"success": false, "consumes_attack": false}
+	match ability.category.to_lower():
+		"attrition":
+			result["success"] = await bf.attrition_controller.activate(source_slot, ability, "enemy")
+			result["consumes_attack"] = bool(result["success"])
+		"assault":
+			result = await bf.assault_controller.activate(source_slot, ability, "enemy")
+		"economy":
+			result = await bf.economy_controller.activate(source_slot, ability, "enemy")
+	if not bool(result.get("success", false)):
+		return {"used": false, "result": "none"}
+	if bool(result.get("consumes_attack", false)):
+		bf.ai_passed_current_lane = true
+		bf.set_lane_priority_to_player(lane, ability.ability_name + " used instead of attacking.")
+		return {"used": true, "result": "consumed"}
+	return {"used": true, "result": "used"}
 
 
 func ai_mark_active_mobility_used(slot: Node, ability: AbilityData) -> void:
@@ -3032,13 +3084,14 @@ func ai_execute_active_insight_peek_action(source_slot: Node, target_slot: Node,
 	if target_card == null or not bool(target_slot.get_meta("face_down", false)):
 		return {"used": false, "result": "none"}
 
-	await bf.show_timed_mobility_message(ability.ability_name.to_upper() + "  -  AI reads hidden card")
+	await bf.ability_presentation_controller.show_trigger(ability, "AI reads hidden card", true)
 
 	if target_slot.has_method("reveal_card"):
 		target_slot.reveal_card()
 
 	bf.ai_memory_note_player_hidden_reveal(target_card, current_lane_name, "ai_active_insight")
 	bf.ai_mark_active_insight_used(source_slot, ability)
+	bf.assault_controller.note_insight_used("enemy")
 
 	bf.log_msg("AI used " + ability.ability_name + " and revealed your hidden back-row card in the " + current_lane_name + " lane.")
 
@@ -3154,6 +3207,9 @@ func ai_choose_combat_action(lane: String) -> String:
 
 
 func ai_score_combat_attack_action(lane: String) -> int:
+	var attacker := bf.find_slot_by_owner_row_lane("enemy", "front", lane)
+	if not bf.assault_controller.can_unit_attack(attacker):
+		return -999999
 	var ai_front_slot: Node = bf.find_slot_by_owner_row_lane("enemy", "front", lane)
 	var player_front_slot: Node = bf.find_slot_by_owner_row_lane("player", "front", lane)
 	var player_back_slot: Node = bf.find_slot_by_owner_row_lane("player", "back", lane)

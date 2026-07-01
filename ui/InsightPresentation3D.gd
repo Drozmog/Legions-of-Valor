@@ -31,6 +31,7 @@ var back_button: Button
 var ability_title: HBoxContainer
 var ability_title_label: Label
 var ability_description_label: Label
+var ability_title_icon: TextureRect
 var options: Dictionary = {}
 var active := false
 var input_ready := false
@@ -111,12 +112,12 @@ void fragment() {
 	ability_title.add_theme_constant_override("separation", 12)
 	ability_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ability_title.z_index = 300
-	var title_icon := TextureRect.new()
-	title_icon.custom_minimum_size = Vector2(80.0, 80.0)
-	title_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	title_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	title_icon.texture = load("res://ui/ability_icons/insight.png") as Texture2D
-	ability_title.add_child(title_icon)
+	ability_title_icon = TextureRect.new()
+	ability_title_icon.custom_minimum_size = Vector2(80.0, 80.0)
+	ability_title_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ability_title_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ability_title_icon.texture = load("res://ui/ability_icons/insight.png") as Texture2D
+	ability_title.add_child(ability_title_icon)
 	ability_title_label = Label.new()
 	ability_title_label.add_theme_font_size_override("font_size", 60)
 	ability_title_label.add_theme_color_override("font_color", Color.WHITE)
@@ -186,6 +187,9 @@ func present(cards: Array[CardData], config: Dictionary) -> void:
 	back_return_in_progress = false
 	options = config.duplicate(true)
 	ability_title_label.text = String(options.get("ability_name", "Insight"))
+	var icon_path := String(options.get("ability_icon_path", "res://ui/ability_icons/insight.png"))
+	if ability_title_icon != null and ResourceLoader.exists(icon_path):
+		ability_title_icon.texture = load(icon_path) as Texture2D
 	ability_description_label.text = String(options.get("ability_description", ""))
 	ability_description_label.visible = not ability_description_label.text.strip_edges().is_empty()
 	ability_title.visible = true
@@ -219,7 +223,14 @@ func present(cards: Array[CardData], config: Dictionary) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not active or not event is InputEventMouseButton:
+	if not active:
+		return
+	if event is InputEventKey:
+		var key := event as InputEventKey
+		if key.pressed and not key.echo and key.keycode == KEY_ESCAPE and cancel_active_choice():
+			get_viewport().set_input_as_handled()
+		return
+	if not event is InputEventMouseButton:
 		return
 	var mouse := event as InputEventMouseButton
 	if mouse.button_index != BACK_MOUSE_BUTTON_INDEX or not mouse.pressed:
@@ -227,6 +238,24 @@ func _input(event: InputEvent) -> void:
 	if inspect_panel != null and inspect_panel.visible:
 		_on_back_pressed()
 		get_viewport().set_input_as_handled()
+	elif cancel_active_choice():
+		get_viewport().set_input_as_handled()
+
+
+func cancel_active_choice() -> bool:
+	if not active or not input_ready or back_return_in_progress:
+		return false
+	if String(options.get("mode", "reveal")) != "choose":
+		return false
+	back_return_in_progress = true
+	input_ready = false
+	_cancel_active_choice_async()
+	return true
+
+
+func _cancel_active_choice_async() -> void:
+	await _return_all_cards_to_source()
+	await _finish({"cancelled": true, "index": -1})
 
 
 func _prepare_sharp_viewport() -> void:
@@ -308,24 +337,24 @@ func _create_action_button(entry: Dictionary, index: int, action: String, x_offs
 	var mesh := PlaneMesh.new()
 	mesh.size = ACTION_BUTTON_SIZE
 	surface.mesh = mesh
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.albedo_color = Color(0.075, 0.052, 0.027, 0.98)
+	var button_material := StandardMaterial3D.new()
+	button_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	button_material.albedo_color = Color(0.075, 0.052, 0.027, 0.98)
 	var button_texture: Texture2D = null
 	if battlefield != null:
 		var battleplan_screen := battlefield.get_node_or_null("UI/BattlePlanSelectionScreen") as BattlePlanSelectionScreen
 		if battleplan_screen != null:
 			button_texture = battleplan_screen.select_button_texture if action == "SELECT" else battleplan_screen.inspect_button_texture
 	if button_texture != null:
-		material.albedo_texture = button_texture
-		material.albedo_color = Color.WHITE
-		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		material.texture_repeat = false
-	material.emission_enabled = true
-	material.emission = Color(0.28, 0.17, 0.045)
-	material.emission_energy_multiplier = 0.8
-	material.no_depth_test = true
-	surface.material_override = material
+		button_material.albedo_texture = button_texture
+		button_material.albedo_color = Color.WHITE
+		button_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		button_material.texture_repeat = false
+	button_material.emission_enabled = true
+	button_material.emission = Color(0.28, 0.17, 0.045)
+	button_material.emission_energy_multiplier = 0.8
+	button_material.no_depth_test = true
+	surface.material_override = button_material
 	button.add_child(surface)
 	var label := Label3D.new()
 	label.layers = RENDER_LAYER_MASK
@@ -349,8 +378,8 @@ func _create_action_button(entry: Dictionary, index: int, action: String, x_offs
 	collision.shape = shape
 	area.add_child(collision)
 	area.input_event.connect(_on_action_input.bind(index, action))
-	area.mouse_entered.connect(_on_button_hover.bind(material, true))
-	area.mouse_exited.connect(_on_button_hover.bind(material, false))
+	area.mouse_entered.connect(_on_button_hover.bind(button_material, true))
+	area.mouse_exited.connect(_on_button_hover.bind(button_material, false))
 
 
 func _animate_cards_in() -> void:
@@ -597,10 +626,10 @@ func _card_screen_rect(root: Node3D) -> Rect2:
 	return Rect2(center - Vector2(90.0, 125.0), Vector2(180.0, 250.0))
 
 
-func _on_button_hover(material: StandardMaterial3D, hovered: bool) -> void:
+func _on_button_hover(button_material: StandardMaterial3D, hovered: bool) -> void:
 	_use_cursor(&"use_pointing" if hovered else &"use_normal")
-	if material != null:
-		material.emission_energy_multiplier = 1.55 if hovered else 0.8
+	if button_material != null:
+		button_material.emission_energy_multiplier = 1.55 if hovered else 0.8
 
 
 func _use_cursor(method_name: StringName) -> void:

@@ -23,8 +23,8 @@ var promotion_color: Color = Color(1.0, 0.84, 0.12, 1.0)
 var highlight_outline: Node3D
 var glow_outline: Node3D
 
-var outline_material: StandardMaterial3D
-var glow_material: StandardMaterial3D
+var outline_material: ShaderMaterial
+var glow_material: ShaderMaterial
 var mobility_pulse_tween: Tween
 
 const SLOT_WIDTH: float = 1.02
@@ -37,6 +37,16 @@ const GLOW_THICKNESS: float = 0.085
 const OUTLINE_Y_OFFSET: float = 0.030
 const GLOW_Y_OFFSET: float = 0.020
 const INSPECT_FADE_ALPHA: float = 0.36
+
+const ABILITY_GRADIENTS := {
+	"control": [Color(1.0, 1.0, 1.0), Color(0.18, 0.20, 0.23)],
+	"mobility": [Color(0.08, 0.78, 0.25), Color(0.68, 1.0, 0.08)],
+	"insight": [Color(0.58, 0.18, 0.92), Color(0.62, 0.03, 0.30)],
+	"protection": [Color(0.08, 0.34, 0.95), Color(0.34, 0.86, 1.0)],
+	"attrition": [Color(0.96, 0.05, 0.06), Color(0.52, 0.13, 0.01)],
+	"assault": [Color(1.0, 0.32, 0.02), Color(1.0, 0.90, 0.05)],
+	"economy": [Color(1.0, 0.86, 0.08), Color(0.58, 0.40, 0.10)],
+}
 
 
 func _ready() -> void:
@@ -90,36 +100,33 @@ func set_promotion_highlight(active: bool) -> void:
 		glow_outline.visible = false
 
 
-func set_insight_highlight(active: bool, color: Color = Color(0.18, 0.55, 1.0, 1.0)) -> void:
-	set_meta("insight_selectable", active)
-	if active:
-		set_outline_color(color)
-		highlight_outline.visible = true
-		glow_outline.visible = true
-	else:
-		highlight_outline.visible = false
-		glow_outline.visible = false
-		_use_cursor(&"use_normal")
+func set_insight_highlight(active: bool, _color: Color = Color(0.18, 0.55, 1.0, 1.0)) -> void:
+	set_ability_highlight(active, "insight")
 
 
 func set_mobility_highlight(active: bool) -> void:
+	set_ability_highlight(active, "mobility")
+
+
+func set_ability_highlight(active: bool, category: String = "mobility") -> void:
 	set_meta("mobility_selectable", active)
+	set_meta("insight_selectable", active and category == "insight")
 	if active:
-		set_outline_color(Color(0.20, 0.62, 1.0, 1.0))
+		set_gradient_colors(category)
 		highlight_outline.visible = true
 		glow_outline.visible = true
 		if mobility_pulse_tween != null and mobility_pulse_tween.is_valid():
 			mobility_pulse_tween.kill()
 		mobility_pulse_tween = create_tween().set_loops()
 		mobility_pulse_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-		mobility_pulse_tween.tween_property(glow_material, "emission_energy_multiplier", 3.4, 0.55)
-		mobility_pulse_tween.tween_property(glow_material, "emission_energy_multiplier", 1.8, 0.55)
+		mobility_pulse_tween.tween_method(_set_glow_energy, 2.0, 4.0, 0.55)
+		mobility_pulse_tween.tween_method(_set_glow_energy, 4.0, 2.0, 0.55)
 	else:
 		if mobility_pulse_tween != null and mobility_pulse_tween.is_valid():
 			mobility_pulse_tween.kill()
-		mobility_pulse_tween = null
+			mobility_pulse_tween = null
 		if glow_material != null:
-			glow_material.emission_energy_multiplier = 2.5
+			glow_material.set_shader_parameter("energy", 2.5)
 		highlight_outline.visible = false
 		glow_outline.visible = false
 		_use_cursor(&"use_normal")
@@ -127,12 +134,25 @@ func set_mobility_highlight(active: bool) -> void:
 
 func set_outline_color(color: Color) -> void:
 	if outline_material != null:
-		outline_material.albedo_color = color
-		outline_material.emission = color
+		outline_material.set_shader_parameter("color_a", color)
+		outline_material.set_shader_parameter("color_b", color)
 
 	if glow_material != null:
-		glow_material.albedo_color = Color(color.r, color.g, color.b, 0.18)
-		glow_material.emission = color
+		glow_material.set_shader_parameter("color_a", color)
+		glow_material.set_shader_parameter("color_b", color)
+
+
+func set_gradient_colors(category: String) -> void:
+	var colors: Array = ABILITY_GRADIENTS.get(category.to_lower(), ABILITY_GRADIENTS["mobility"])
+	outline_material.set_shader_parameter("color_a", colors[0])
+	outline_material.set_shader_parameter("color_b", colors[1])
+	glow_material.set_shader_parameter("color_a", colors[0])
+	glow_material.set_shader_parameter("color_b", colors[1])
+
+
+func _set_glow_energy(value: float) -> void:
+	if glow_material != null:
+		glow_material.set_shader_parameter("energy", value)
 
 
 func _on_click_area_input_event(
@@ -270,6 +290,9 @@ func can_attach_equipment() -> bool:
 
 	if has_burdened_equipment_lock():
 		return false
+	var scene := get_tree().current_scene
+	if scene != null and scene.has_method("is_equipment_lane_locked") and bool(scene.call("is_equipment_lane_locked", self)):
+		return false
 
 	return equipment_cards.size() < MAX_EQUIPMENT_PER_UNIT
 
@@ -362,6 +385,39 @@ func get_equipment_count() -> int:
 
 func get_equipment_cards() -> Array[CardData]:
 	return equipment_cards.duplicate()
+
+
+func remove_equipment_card(card_data: CardData) -> bool:
+	var index := equipment_cards.find(card_data)
+	if index < 0:
+		return false
+	equipment_cards.remove_at(index)
+	if index < equipment_nodes.size():
+		var visual := equipment_nodes[index]
+		equipment_nodes.remove_at(index)
+		if visual != null and is_instance_valid(visual):
+			visual.queue_free()
+	relayout_equipment()
+	return true
+
+
+func remove_all_equipment() -> Array[CardData]:
+	var removed: Array[CardData] = equipment_cards.duplicate()
+	for visual in equipment_nodes:
+		if visual != null and is_instance_valid(visual):
+			visual.queue_free()
+	equipment_cards.clear()
+	equipment_nodes.clear()
+	return removed
+
+
+func relayout_equipment() -> void:
+	for index in range(equipment_nodes.size()):
+		var equipment_node := equipment_nodes[index]
+		if equipment_node == null or not is_instance_valid(equipment_node):
+			continue
+		equipment_node.position = Vector3(-0.23 + float(index) * 0.46, 0.055 + float(index) * 0.004, 0.36)
+		equipment_node.rotation_degrees = Vector3(0, 0, -6 + 12 * index)
 
 
 func discard_equipment_with_ability(ability_id: StringName) -> CardData:
@@ -531,28 +587,14 @@ func setup_highlight_outline() -> void:
 	highlight_outline.name = "HighlightOutline"
 	add_child(highlight_outline)
 
-	outline_material = StandardMaterial3D.new()
-	outline_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	outline_material.albedo_color = valid_color
-	outline_material.emission_enabled = false
-	outline_material.emission = valid_color
-	outline_material.emission_energy_multiplier = 1.2
-	outline_material.no_depth_test = false
+	outline_material = create_gradient_material(false, 1.2, 1.0)
 
 	glow_outline = Node3D.new()
 	glow_outline.name = "GlowOutline"
 	add_child(glow_outline)
 
-	glow_material = StandardMaterial3D.new()
-	glow_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	glow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	glow_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	glow_material.albedo_color = Color(0.35, 1.0, 0.35, 0.18)
-	glow_material.emission_enabled = false
-	glow_material.emission = valid_color
-	glow_material.emission_energy_multiplier = 2.5
-	glow_material.no_depth_test = false
-	glow_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY
+	glow_material = create_gradient_material(true, 2.5, 0.24)
+	set_gradient_colors("mobility")
 
 	create_outline_bar(
 		highlight_outline,
@@ -627,7 +669,7 @@ func create_outline_bar(
 	bar_name: String,
 	bar_size: Vector3,
 	bar_position: Vector3,
-	material: StandardMaterial3D
+	material: Material
 ) -> MeshInstance3D:
 	var bar := MeshInstance3D.new()
 	bar.name = bar_name
@@ -642,3 +684,27 @@ func create_outline_bar(
 	parent_node.add_child(bar)
 
 	return bar
+
+
+func create_gradient_material(additive: bool, energy: float, alpha: float) -> ShaderMaterial:
+	var shader := Shader.new()
+	shader.code = (
+		"shader_type spatial;\n"
+		+ ("render_mode unshaded, blend_add, cull_disabled;\n" if additive else "render_mode unshaded, cull_disabled;\n")
+		+ "uniform vec4 color_a : source_color = vec4(0.1, 0.8, 0.2, 1.0);\n"
+		+ "uniform vec4 color_b : source_color = vec4(0.7, 1.0, 0.1, 1.0);\n"
+		+ "uniform float energy = 2.5;\n"
+		+ "uniform float opacity = 1.0;\n"
+		+ "void fragment() {\n"
+		+ "  float band = smoothstep(0.0, 1.0, UV.x * 0.62 + UV.y * 0.38);\n"
+		+ "  vec4 tint = mix(color_a, color_b, band);\n"
+		+ "  ALBEDO = tint.rgb;\n"
+		+ "  EMISSION = tint.rgb * energy;\n"
+		+ "  ALPHA = tint.a * opacity;\n"
+		+ "}\n"
+	)
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	material.set_shader_parameter("energy", energy)
+	material.set_shader_parameter("opacity", alpha)
+	return material

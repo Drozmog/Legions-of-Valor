@@ -537,11 +537,11 @@ func player_has_remaining_deployment_move() -> bool:
 	return false
 
 
-func set_phase_button_ready_visual(ready: bool) -> void:
-	if bf.phase_button_ready_visual == ready:
+func set_phase_button_ready_visual(is_ready: bool) -> void:
+	if bf.phase_button_ready_visual == is_ready:
 		return
-	bf.phase_button_ready_visual = ready
-	if not ready:
+	bf.phase_button_ready_visual = is_ready
+	if not is_ready:
 		bf.next_phase_button.remove_theme_stylebox_override("normal")
 		bf.next_phase_button.remove_theme_color_override("font_color")
 		return
@@ -722,7 +722,7 @@ func start_next_round() -> void:
 		bf.log_msg("Resolve the parry prompt before ending combat.")
 		bf.phase_transition_busy = false
 		return
-	bf.battleplan_objective_controller.resolve_end_of_round()
+	await bf.battleplan_objective_controller.resolve_end_of_round()
 	bf.reset_face_down_gambit_setup_counters()
 	bf.queue_surviving_stealth_deployments()
 	await bf.resolve_pending_stealth_deployments()
@@ -738,6 +738,8 @@ func start_next_round() -> void:
 		bf.battle_plan_manager.advance_round()
 
 	bf.turn_number += 1
+	await bf.economy_controller.start_new_round()
+	bf.assault_controller.start_new_round()
 	bf.used_active_insight_ability_keys.clear()
 	bf.used_active_control_ability_keys.clear()
 	bf.used_mobility_ability_keys.clear()
@@ -773,6 +775,7 @@ func resolve_pending_stealth_deployments() -> void:
 		if bf.get_slot_card_data(back_slot) == card_data and bf.get_slot_card_data(front_slot) == null:
 			back_slot.clear_slot()
 			front_slot.call("place_card", bf.TEST_CARD_SCENE, card_data, false)
+			await bf.handle_card_deployed(card_data, front_slot)
 	bf.pending_stealth_deployments.clear()
 
 

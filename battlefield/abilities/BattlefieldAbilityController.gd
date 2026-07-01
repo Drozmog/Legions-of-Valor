@@ -37,7 +37,10 @@ func handle_card_deployed(card_data: CardData, slot: Node = null) -> void:
 	var resolved_control := await bf.resolve_control_deployment(card_data, slot, "player")
 	var resolved_mobility := await bf.resolve_mobility_deployment(card_data, slot, "player")
 	var resolved_insight := await bf.resolve_insight_abilities(card_data, &"on_deploy")
-	if resolved_control or resolved_mobility or resolved_insight:
+	var resolved_attrition := await bf.attrition_controller.resolve_deployment(card_data, slot, "player")
+	var resolved_assault := await bf.assault_controller.resolve_deployment(card_data, slot, "player")
+	var resolved_economy := await bf.economy_controller.resolve_deployment(card_data, slot, "player")
+	if resolved_control or resolved_mobility or resolved_insight or resolved_attrition or resolved_assault or resolved_economy:
 		return
 
 	var ability_text_lower: String = card_data.get_ability_text().to_lower()
@@ -184,7 +187,7 @@ func resolve_reassign(ability: AbilityData) -> void:
 
 func show_timed_mobility_message(message: String) -> void:
 	bf.show_mobility_prompt(message)
-	await bf.get_tree().create_timer(0.9).timeout
+	await bf.get_tree().create_timer(2.0).timeout
 	await bf.hide_mobility_prompt()
 
 
@@ -316,7 +319,9 @@ func resolve_insight_abilities(card_data: CardData, trigger: StringName, extra_c
 			continue
 		var result := await bf.resolve_insight_with_presentation(ability, extra_context)
 		resolved_any = true
-		if not bool(result.get("success", false)):
+		if bool(result.get("success", false)):
+			bf.assault_controller.note_insight_used(String(extra_context.get("owner", "player")))
+		else:
 			bf.log_msg("Insight ability failed: " + ability.ability_name + " (" + String(result.get("reason", "unknown")) + ").")
 	return resolved_any
 
@@ -602,7 +607,7 @@ func ability_requires_choice(card_data: CardData) -> bool:
 	var ability_text_lower: String = card_data.get_ability_text().to_lower()
 	return ability_text_lower.contains("may ") or ability_text_lower.contains("choose")
 
-func get_slot_combat_ap_with_protection_announcements(slot: Node, ignore_protection: bool = false) -> int:
+func get_slot_combat_ap_with_protection_announcements(slot: Node, ignore_protection: bool = false, is_attacking: bool = false) -> int:
 	if slot == null:
 		return 0
 
@@ -612,6 +617,8 @@ func get_slot_combat_ap_with_protection_announcements(slot: Node, ignore_protect
 		return 0
 
 	var total := maxi(card_data.ap, 0)
+	await bf.assault_controller.announce_combat_bonuses(slot, is_attacking)
+	total += bf.assault_controller.get_combat_bonus(slot, is_attacking)
 	var owner_name := String(slot.get_meta("owner", ""))
 
 	var shielded := bf.slot_has_protection_ability(slot, &"shielded") if not ignore_protection else null
@@ -658,6 +665,8 @@ func get_gambit_attack_protection(attacker_slot: Node) -> AbilityData:
 func slot_has_protection_ability(slot: Node, ability_id: StringName) -> AbilityData:
 	if slot == null:
 		return null
+	if bool(slot.get_meta("face_down", false)):
+		return null
 	var ability := bf.get_card_protection_ability(bf.get_slot_card_data(slot), ability_id)
 	if ability != null:
 		return ability
@@ -680,7 +689,7 @@ func show_protection_trigger(ability: AbilityData, detail: String = "") -> void:
 
 	bf.log_msg("Protection triggered: " + message)
 	bf.show_mobility_prompt(message, bf.PROTECTION_PROMPT_ICON_PATH)
-	await bf.get_tree().create_timer(0.9).timeout
+	await bf.get_tree().create_timer(2.0).timeout
 	await bf.hide_mobility_prompt()
 
 
@@ -688,7 +697,8 @@ func destroy_unit_with_protection(
 	slot: Node,
 	opposing_slot: Node = null,
 	from_clash: bool = false,
-	ignore_protection: bool = false
+	ignore_protection: bool = false,
+	by_gambit: bool = false
 ) -> bool:
 	if slot == null or bf.get_slot_card_data(slot) == null:
 		return false
@@ -699,9 +709,14 @@ func destroy_unit_with_protection(
 	var spiked := bf.slot_has_protection_ability(slot, &"spiked") if not ignore_protection else null
 	var defeated_card := bf.get_slot_card_data(slot)
 	var defeated_owner := String(slot.get_meta("owner", ""))
+	var was_face_down := bool(slot.get_meta("face_down", false))
 	var winner_owner := String(opposing_slot.get_meta("owner", "")) if opposing_slot != null else ("enemy" if defeated_owner == "player" else "player")
 	bf.send_slot_card_to_discard(slot)
 	bf.battleplan_objective_controller.note_unit_defeated(defeated_owner, defeated_card, winner_owner)
+	await bf.economy_controller.on_unit_killed(winner_owner)
+	if not was_face_down:
+		await bf.attrition_controller.on_destroyed(slot, defeated_card, defeated_owner)
+		await bf.economy_controller.on_unit_destroyed(defeated_owner, defeated_card, from_clash, by_gambit)
 	if from_clash and spiked != null and opposing_slot != null and bf.get_slot_card_data(opposing_slot) != null:
 		await bf.show_protection_trigger(spiked, "Attacker destroyed")
 		await bf.destroy_unit_with_protection(opposing_slot, null, false, false)
@@ -809,6 +824,7 @@ func activate_insight_ability_from_slot(slot: Node, ability: AbilityData) -> voi
 		bf.log_msg("Insight ability failed: " + ability.ability_name + " (" + String(result.get("reason", "unknown")) + ").")
 		return
 	bf.used_active_insight_ability_keys[bf.get_active_insight_usage_key(slot, ability)] = true
+	bf.assault_controller.note_insight_used(String(slot.get_meta("owner", "player")))
 	if handler_id == &"true_sight" or handler_id == &"vantage":
 		bf.player_passed_current_lane = true
 		bf.set_lane_priority_to_ai(lane, ability.ability_name + " used instead of attacking.")
@@ -1021,8 +1037,10 @@ func resolve_stealth_hidden_decoy(back_slot: Node, card_data: CardData, owner_na
 	if front_slot != null and bf.get_slot_card_data(front_slot) == null:
 		back_slot.clear_slot()
 		front_slot.call("place_card", bf.TEST_CARD_SCENE, card_data, false)
+		await bf.ai_controller.ai_resolve_deployment_abilities(card_data, front_slot)
 	else:
 		back_slot.reveal_card()
+		await bf.ai_controller.ai_resolve_deployment_abilities(card_data, back_slot)
 	bf.update_ai_visuals()
 	return true
 
@@ -1067,6 +1085,15 @@ func resolve_immediate_hidden_gambit_cast(gambit_card: CardData, caster_owner: S
 		# Lockdown is a persistent automatic aura, so its revealed Gambit stays
 		# face up. One-shot Control Gambits resolve and go to discard normally.
 		return bf.get_card_control_ability(gambit_card, &"lockdown") != null
+	if await bf.attrition_controller.resolve_hidden_gambit(gambit_card, slot, clean_owner):
+		bf.assault_controller.note_gambit_triggered(clean_owner)
+		return false
+	if await bf.assault_controller.resolve_hidden_gambit(gambit_card, slot, clean_owner):
+		bf.assault_controller.note_gambit_triggered(clean_owner)
+		return false
+	if await bf.economy_controller.resolve_hidden_gambit(gambit_card, slot, clean_owner):
+		bf.assault_controller.note_gambit_triggered(clean_owner)
+		return false
 
 	for ability in gambit_card.get_abilities():
 		if ability == null or ability.category.to_lower() != "mobility":
@@ -1244,6 +1271,7 @@ func resolve_player_attack_lane_from_specific_attacker(lane: String, attacker_sl
 		bf.combat_resolution_running = false
 		return false
 	bf.battleplan_objective_controller.note_attack("player")
+	bf.assault_controller.note_attack(attacker_slot)
 	var infiltrator := bf.slot_has_protection_ability(attacker_slot, &"infiltrator")
 	if enemy_back_is_face_down and infiltrator != null:
 		await bf.show_protection_trigger(infiltrator, "Backline bypassed")
@@ -1253,7 +1281,7 @@ func resolve_player_attack_lane_from_specific_attacker(lane: String, attacker_sl
 		bf.combat_resolution_running = false
 		return follow_up
 	if enemy_front_card == null:
-		bf.resolve_monarch_strike(lane, player_card)
+		await bf.resolve_monarch_strike(lane, player_card, attacker_slot)
 		await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
 		await bf.advance_combat_lane_after_resolution()
 		bf.combat_resolution_running = false
@@ -1308,7 +1336,7 @@ func resolve_volley_attack_into_face_down_backrow(lane: String, enemy_back_slot:
 		await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
 		await bf.advance_combat_lane_after_resolution()
 		return false
-	if bf.resolve_stealth_hidden_decoy(enemy_back_slot, enemy_back_card, "enemy", lane):
+	if await bf.resolve_stealth_hidden_decoy(enemy_back_slot, enemy_back_card, "enemy", lane):
 		bf.log_msg(ability_name + " revealed a hidden unit. A follow-up action is available.")
 		await bf.get_tree().create_timer(bf.COMBAT_LANE_END_DELAY).timeout
 		bf.combat_priority_owner = "player"
