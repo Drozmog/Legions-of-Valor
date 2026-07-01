@@ -1,5 +1,10 @@
+@tool
 class_name OpponentVisuals
 extends Node3D
+
+const PILE_BASE_NAME := "PileBase"
+const PILE_LABEL_NAME := "PileLabel"
+const RUNTIME_VISUAL_META := "runtime_pile_visual"
 
 @export var card_width: float = 1.02
 @export var card_height: float = 1.34
@@ -42,9 +47,13 @@ var hand_card_nodes: Array[Node3D] = []
 var hand_initialized: bool = false
 
 
-
 func _ready() -> void:
 	find_roots()
+	ensure_editable_pile_nodes()
+
+	if Engine.is_editor_hint():
+		return
+
 	rebuild_all()
 
 
@@ -54,6 +63,85 @@ func find_roots() -> void:
 	tribute_root = get_node_or_null("EnemyTributePileVisual") as Node3D
 	discard_root = get_node_or_null("EnemyDiscardPileVisual") as Node3D
 	parry_pit_root = get_node_or_null("EnemyParryPitVisual") as Node3D
+
+
+func apply_editor_owner(node: Node) -> void:
+	if not Engine.is_editor_hint():
+		return
+	if node == null or get_tree() == null:
+		return
+	var edited_root := get_tree().edited_scene_root
+	if edited_root != null and node.owner == null:
+		node.owner = edited_root
+
+
+func ensure_editable_pile_nodes() -> void:
+	ensure_pile_base(deck_root)
+	update_pile_label(deck_root, "Enemy Deck: " + str(get_visible_deck_count()), Vector3(0, 0.14, 1.04), opponent_pile_label_font_size)
+
+	ensure_pile_base(tribute_root)
+	update_pile_label(tribute_root, "Enemy Tribute: " + str(get_visible_tribute_count()), Vector3(0, 0.14, 1.04), opponent_pile_label_font_size)
+
+	ensure_pile_base(discard_root)
+	update_pile_label(discard_root, "Enemy Discard: " + str(get_visible_discard_count()), Vector3(0, 0.14, 1.04), opponent_pile_label_font_size)
+
+
+func ensure_pile_base(root: Node3D) -> MeshInstance3D:
+	if root == null:
+		return null
+
+	var base := root.get_node_or_null(PILE_BASE_NAME) as MeshInstance3D
+	if base != null:
+		return base
+
+	base = CardPileVisual.create_pile_base(PILE_BASE_NAME)
+	root.add_child(base)
+	apply_editor_owner(base)
+	return base
+
+
+func ensure_pile_label(root: Node3D, label_position: Vector3, font_size: int) -> Label3D:
+	if root == null:
+		return null
+
+	var label := root.get_node_or_null(PILE_LABEL_NAME) as Label3D
+	if label == null:
+		label = CardPileVisual.create_counter_label(
+			PILE_LABEL_NAME,
+			"",
+			label_position,
+			opponent_label_pixel_size,
+			font_size
+		)
+		root.add_child(label)
+		apply_editor_owner(label)
+
+	label.position = label_position
+	label.pixel_size = opponent_label_pixel_size
+	label.font_size = font_size
+	return label
+
+
+func update_pile_label(root: Node3D, text: String, label_position: Vector3, font_size: int) -> void:
+	var label := ensure_pile_label(root, label_position, font_size)
+	if label != null:
+		label.text = text
+
+
+func mark_runtime_visual(node: Node) -> void:
+	if node != null:
+		node.set_meta(RUNTIME_VISUAL_META, true)
+
+
+func clear_runtime_children(root: Node) -> void:
+	if root == null:
+		return
+
+	for child in root.get_children():
+		if child.name == PILE_BASE_NAME or child.name == PILE_LABEL_NAME:
+			continue
+		if bool(child.get_meta(RUNTIME_VISUAL_META, false)):
+			child.queue_free()
 
 
 func set_all_card_data(new_deck_count: int, new_hand_count: int, new_tribute_cards: Array, new_discard_cards: Array) -> void:
@@ -79,6 +167,7 @@ func set_all_counts(new_deck_count: int, new_hand_count: int, new_tribute_count:
 
 func rebuild_all() -> void:
 	find_roots()
+	ensure_editable_pile_nodes()
 	rebuild_hand_fan()
 	rebuild_deck_pile()
 	rebuild_tribute_pile()
@@ -133,6 +222,7 @@ func rebuild_hand_fan() -> void:
 	while hand_card_nodes.size() < visible_count:
 		var card := CardPileVisual.create_card_back_visual(card_width, card_height)
 		hand_root.add_child(card)
+		mark_runtime_visual(card)
 		if deck_root != null:
 			card.global_position = deck_root.global_position + Vector3(0.0, 0.24, 0.0)
 			card.global_rotation = deck_root.global_rotation
@@ -217,9 +307,8 @@ func rebuild_face_up_pile(root: Node3D, cards: Array, label_text: String) -> voi
 	if root == null:
 		return
 
-	clear_children(root)
-
-	root.add_child(CardPileVisual.create_pile_base())
+	clear_runtime_children(root)
+	ensure_pile_base(root)
 
 	var start_index: int = max(0, cards.size() - pile_max_visible_cards)
 	var visible_cards: Array = cards.slice(start_index, cards.size())
@@ -231,13 +320,14 @@ func rebuild_face_up_pile(root: Node3D, cards: Array, label_text: String) -> voi
 			continue
 
 		var card_node := CardPileVisual.create_face_up_card_visual(card_data, face_up_pile_card_scale)
+		mark_runtime_visual(card_node)
 
 		card_node.position = Vector3(0.0, 0.045 + float(i) * 0.014, 0.0)
 		card_node.rotation_degrees = Vector3.ZERO
 
 		root.add_child(card_node)
 
-	create_label(
+	update_pile_label(
 		root,
 		label_text + ": " + str(cards.size()),
 		Vector3(0, 0.14, 1.04),
@@ -250,19 +340,19 @@ func rebuild_card_back_pile(root: Node3D, count: int, label_text: String) -> voi
 	if root == null:
 		return
 
-	clear_children(root)
-
-	root.add_child(CardPileVisual.create_pile_base())
+	clear_runtime_children(root)
+	ensure_pile_base(root)
 
 	var visible_count: int = mini(count, pile_max_visible_cards)
 
 	for i in range(visible_count):
 		var card := CardPileVisual.create_card_back_visual(card_width, card_height)
+		mark_runtime_visual(card)
 		card.position = Vector3(0, 0.025 + float(i) * (card_thickness + pile_card_gap), 0)
 		card.rotation_degrees = Vector3.ZERO
 		root.add_child(card)
 
-	create_label(
+	update_pile_label(
 		root,
 		label_text + ": " + str(count),
 		Vector3(0, 0.14, 1.04),
@@ -324,13 +414,13 @@ func clear_parry_cards() -> void:
 
 func create_label(parent: Node3D, text: String, label_position: Vector3, font_size: int) -> void:
 	var label := CardPileVisual.create_counter_label(
-		"PileLabel",
+		PILE_LABEL_NAME,
 		text,
 		label_position,
 		opponent_label_pixel_size,
 		font_size
 	)
-
+	mark_runtime_visual(label)
 	parent.add_child(label)
 
 
