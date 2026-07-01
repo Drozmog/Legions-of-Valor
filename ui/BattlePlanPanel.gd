@@ -11,10 +11,13 @@ var opponent_description_label: Label = null
 
 
 func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	z_index = 100
 	setup_position()
 	setup_visuals()
 	build_ui()
 	clear_battle_plan()
+
 
 
 func setup_position() -> void:
@@ -25,7 +28,7 @@ func setup_position() -> void:
 
 	offset_left = 20.0
 	offset_right = 100.0
-	offset_top = 355.0
+	offset_top = 300.0
 	offset_bottom = 470.0
 
 

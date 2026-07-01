@@ -14,8 +14,6 @@ signal card_selected(card: Control)
 signal card_cleared()
 
 @export var card_scale: float = 0.95
-@export var card_width_scale: float = 0.88
-@export var card_height_scale: float = 1.25
 @export var max_hand_size: int = 7
 
 @export var raised_anchor_from_bottom: float = 70.0
@@ -26,11 +24,14 @@ signal card_cleared()
 @export var max_fan_width: float = 1520.0
 
 @export var max_rotation_degrees: float = 5.0
-@export var fan_curve_drop: float = 5.0
+@export var fan_curve_drop: float = 9.0
 @export var hover_lift: float = 55.0
 @export var tween_time: float = 0.22
 
 @export var draw_drop_zone_from_bottom: float = 330.0
+
+@export var hover_blocker_path: NodePath = NodePath("../BattlePlanPanel")
+@onready var hover_blocker: Control = get_node_or_null(hover_blocker_path) as Control
 
 var cards: Array[CardUI] = []
 var selected_card: CardUI = null
@@ -59,6 +60,36 @@ func _input(event: InputEvent) -> void:
 
 func _process(_delta: float) -> void:
 	update_live_hand_reorder()
+	clear_hand_hover_if_blocked()
+	
+	
+func clear_hand_hover_if_blocked() -> void:
+	if not is_mouse_over_hover_blocker():
+		return
+
+	for card in cards:
+		if card == null:
+			continue
+
+		if not is_instance_valid(card):
+			continue
+
+		if card == dragged_card:
+			continue
+
+		if card == selected_card:
+			continue
+
+		if not card.has_meta("home_position"):
+			continue
+
+		var home_position = card.get_meta("home_position")
+
+		if home_position == null:
+			continue
+
+		_move_card_to(card, home_position)
+
 	
 func set_all_ability_icons_visible(show_icons: bool) -> void:
 	showing_ability_icons = show_icons
@@ -73,7 +104,18 @@ func set_all_ability_icons_visible(show_icons: bool) -> void:
 		if card.has_method("set_ability_icons_visible"):
 			card.set_ability_icons_visible(show_icons)
 
+func is_mouse_over_hover_blocker() -> bool:
+	if hover_blocker == null:
+		return false
 
+	if not is_instance_valid(hover_blocker):
+		return false
+
+	if not hover_blocker.visible:
+		return false
+
+	return hover_blocker.get_global_rect().has_point(get_global_mouse_position())
+	
 func update_live_hand_reorder() -> void:
 	if dragged_card == null:
 		live_reorder_index = -1
@@ -154,7 +196,7 @@ func add_card_to_hand(card_data: CardData, animated: bool = true) -> bool:
 	cards.append(card)
 
 	card.setup(card_data)
-	card.scale = Vector2(card_scale * card_width_scale, card_scale * card_height_scale)
+	card.scale = Vector2(card_scale, card_scale)
 
 	connect_hand_card_signals(card)
 
@@ -218,7 +260,7 @@ func arrange_fan(animated: bool = true, animation_duration: float = -1.0) -> voi
 		else:
 			card.position = target_position
 			card.rotation_degrees = target_rotation
-			card.scale = Vector2(card_scale * card_width_scale, card_scale * card_height_scale)
+			card.scale = Vector2(card_scale, card_scale)
 
 
 func get_hand_area_size() -> Vector2:
@@ -229,6 +271,9 @@ func get_hand_area_size() -> Vector2:
 
 
 func _on_card_hovered(card: CardUI) -> void:
+	if is_mouse_over_hover_blocker():
+		return
+
 	if not hand_is_raised:
 		return
 
@@ -413,7 +458,7 @@ func force_return_card_to_hand(card: CardUI) -> void:
 	selected_card = null
 	live_reorder_index = -1
 
-	card.scale = Vector2(card_scale * card_width_scale, card_scale * card_height_scale)
+	card.scale = Vector2(card_scale, card_scale)
 	card.move_to_front()
 
 	arrange_fan(true)
@@ -450,7 +495,7 @@ func _move_card_to_layout(
 
 	tween.tween_property(card, "position", target_position, duration)
 	tween.parallel().tween_property(card, "rotation_degrees", target_rotation, duration)
-	tween.parallel().tween_property(card, "scale", Vector2(card_scale * card_width_scale, card_scale * card_height_scale), duration)
+	tween.parallel().tween_property(card, "scale", Vector2(card_scale, card_scale), duration)
 
 
 func remove_selected_card() -> void:

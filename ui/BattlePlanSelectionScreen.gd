@@ -12,7 +12,7 @@ const CARD_PICK_LAYER := 16
 const BUTTON_PICK_LAYER := 32
 const BATTLEPLAN_RENDER_LAYER_NUMBER := 20
 const BATTLEPLAN_RENDER_LAYER_MASK := 1 << (BATTLEPLAN_RENDER_LAYER_NUMBER - 1)
-const CARD_BACK_SIZE := Vector2(1.68, 2.30) # 2.5 x 3.5 portrait back.
+const CARD_BACK_SIZE := Vector2(1.68, 2.20) # 2.5 x 3.5 portrait back.
 const BATTLEPLAN_SIZE := Vector2(3.5, 2.5) # Exact 3.5 x 2.5 landscape ratio.
 # Matches Card3DTest's 0.065 radius on a 1.02-wide card.
 const CARD_CORNER_RADIUS_RATIO := 0.064
