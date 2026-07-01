@@ -1,3 +1,4 @@
+@tool
 class_name HandUI
 extends Control
 
@@ -13,23 +14,66 @@ signal card_selected(card: Control)
 @warning_ignore("unused_signal")
 signal card_cleared()
 
-@export var card_scale: float = 0.95
+@export var card_scale: float = 0.95:
+	set(value):
+		card_scale = value
+		_refresh_hand_layout()
 @export var max_hand_size: int = 7
 
-@export var raised_anchor_from_bottom: float = 70.0
-@export var lowered_anchor_below_screen: float = 180.0
+@export_group("Hand Plane Controls")
+@export var hand_plane_lift: float = 0.0:
+	set(value):
+		hand_plane_lift = value
+		_refresh_hand_layout()
+@export var hand_plane_x_offset: float = 0.0:
+	set(value):
+		hand_plane_x_offset = value
+		_refresh_hand_layout()
+@export var hand_plane_angle_degrees: float = 0.0:
+	set(value):
+		hand_plane_angle_degrees = value
+		_refresh_hand_layout()
 
-@export var min_spacing: float = 115.0
-@export var max_spacing: float = 190.0
-@export var max_fan_width: float = 1520.0
+@export_group("Raised/Lowered Positions")
+@export var raised_anchor_from_bottom: float = 70.0:
+	set(value):
+		raised_anchor_from_bottom = value
+		_refresh_hand_layout()
+@export var lowered_anchor_below_screen: float = 180.0:
+	set(value):
+		lowered_anchor_below_screen = value
+		_refresh_hand_layout()
 
-@export var max_rotation_degrees: float = 5.0
-@export var fan_curve_drop: float = 9.0
+@export_group("Fan Shape")
+@export var min_spacing: float = 115.0:
+	set(value):
+		min_spacing = value
+		_refresh_hand_layout()
+@export var max_spacing: float = 190.0:
+	set(value):
+		max_spacing = value
+		_refresh_hand_layout()
+@export var max_fan_width: float = 1520.0:
+	set(value):
+		max_fan_width = value
+		_refresh_hand_layout()
+@export var max_rotation_degrees: float = 5.0:
+	set(value):
+		max_rotation_degrees = value
+		_refresh_hand_layout()
+@export var fan_curve_drop: float = 9.0:
+	set(value):
+		fan_curve_drop = value
+		_refresh_hand_layout()
+
+@export_group("Hover/Animation")
 @export var hover_lift: float = 55.0
 @export var tween_time: float = 0.22
 
+@export_group("Draw Pile Drop")
 @export var draw_drop_zone_from_bottom: float = 330.0
 
+@export_group("Hover Blocker")
 @export var hover_blocker_path: NodePath = NodePath("../BattlePlanPanel")
 @onready var hover_blocker: Control = get_node_or_null(hover_blocker_path) as Control
 
@@ -46,12 +90,24 @@ var last_drawn_card: CardUI = null
 var showing_ability_icons: bool = false
 var live_reorder_index: int = -1
 
+
 func _ready() -> void:
 	hand_is_raised = false
 	arrange_fan(false)
 	set_process(true)
 
+
+func _refresh_hand_layout() -> void:
+	if not is_inside_tree():
+		return
+	if cards.is_empty():
+		return
+	arrange_fan(false)
+
+
 func _input(event: InputEvent) -> void:
+	if Engine.is_editor_hint():
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_SPACE:
 			toggle_hand()
@@ -59,6 +115,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(_delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
 	update_live_hand_reorder()
 	clear_hand_hover_if_blocked()
 	
@@ -104,6 +162,7 @@ func set_all_ability_icons_visible(show_icons: bool) -> void:
 		if card.has_method("set_ability_icons_visible"):
 			card.set_ability_icons_visible(show_icons)
 
+
 func is_mouse_over_hover_blocker() -> bool:
 	if hover_blocker == null:
 		return false
@@ -116,6 +175,7 @@ func is_mouse_over_hover_blocker() -> bool:
 
 	return hover_blocker.get_global_rect().has_point(get_global_mouse_position())
 	
+
 func update_live_hand_reorder() -> void:
 	if dragged_card == null:
 		live_reorder_index = -1
@@ -174,6 +234,7 @@ func raise_hand() -> void:
 func lower_hand() -> void:
 	hand_is_raised = false
 	arrange_fan()
+
 
 func set_max_hand_size(new_limit: int) -> void:
 	max_hand_size = max(new_limit, 0)
@@ -241,12 +302,12 @@ func arrange_fan(animated: bool = true, animation_duration: float = -1.0) -> voi
 		if count > 1:
 			normalized = (float(i) / float(count - 1)) * 2.0 - 1.0
 
-		var target_x := start_x + spacing * float(i)
+		var target_x := start_x + spacing * float(i) + hand_plane_x_offset
 
 		var edge_drop := pow(absf(normalized), 1.2) * fan_curve_drop
-		var target_y := anchor_y + edge_drop
+		var target_y := anchor_y + edge_drop - hand_plane_lift
 
-		var target_rotation := normalized * max_rotation_degrees
+		var target_rotation := hand_plane_angle_degrees + normalized * max_rotation_degrees
 
 		card.pivot_offset = Vector2(card.size.x / 2.0, card.size.y)
 
@@ -413,7 +474,7 @@ func get_reorder_insert_index(screen_x: float, final_count: int) -> int:
 	spacing = clamp(spacing, min_spacing, max_spacing)
 
 	var total_width: float = spacing * float(final_count - 1)
-	var start_x: float = center_x - total_width / 2.0
+	var start_x: float = center_x - total_width / 2.0 + hand_plane_x_offset
 
 	var relative_x: float = screen_x - start_x
 	var raw_index: float = round(relative_x / spacing)
@@ -541,13 +602,14 @@ func start_draw_pile_drag(screen_position: Vector2, preview_card_data: CardData,
 
 	return true
 
+
 func update_draw_pile_drag(screen_position: Vector2) -> void:
 	if draw_drag_card == null:
 		return
 
 	var target := screen_position - draw_drag_card.size * draw_drag_card.scale.x / 2.0
 	draw_drag_card.global_position = draw_drag_card.global_position.lerp(target, 0.46)
-	draw_drag_card.rotation_degrees = lerpf(draw_drag_card.rotation_degrees, 0.0, 0.35)
+	draw_drag_card.rotation_degrees = lerpf(draw_drag_card.rotation_degrees, hand_plane_angle_degrees, 0.35)
 	if is_screen_position_in_hand_drop_zone(screen_position):
 		var preview_index := get_reorder_insert_index(screen_position.x, cards.size() + 1)
 		if preview_index != draw_preview_insert_index:
@@ -638,10 +700,10 @@ func arrange_fan_with_gap(gap_index: int) -> void:
 		var visual_index: int = card_index if card_index < gap_index else card_index + 1
 		var normalized: float = (float(visual_index) / float(final_count - 1)) * 2.0 - 1.0
 		var target_position: Vector2 = Vector2(
-			start_x + spacing * float(visual_index),
-			anchor_y + pow(absf(normalized), 1.2) * fan_curve_drop
+			start_x + spacing * float(visual_index) + hand_plane_x_offset,
+			anchor_y + pow(absf(normalized), 1.2) * fan_curve_drop - hand_plane_lift
 		) - Vector2(card.size.x / 2.0, card.size.y)
-		var target_rotation: float = normalized * max_rotation_degrees
+		var target_rotation: float = hand_plane_angle_degrees + normalized * max_rotation_degrees
 		card.set_meta("home_position", target_position)
 		card.set_meta("home_rotation", target_rotation)
 		_move_card_to_layout(card, target_position, target_rotation, 0.18)
@@ -649,7 +711,7 @@ func arrange_fan_with_gap(gap_index: int) -> void:
 
 func animate_draw_into_hand(card: CardUI) -> void:
 	card.move_to_front()
-	card.rotation_degrees = 0
+	card.rotation_degrees = hand_plane_angle_degrees
 	card.scale = Vector2(card_scale * 1.08, card_scale * 1.08)
 	# The dropped X position has already selected this card's index. Move the
 	# incoming card and its neighbours together so the hand opens and closes
