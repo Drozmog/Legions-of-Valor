@@ -979,6 +979,7 @@ func update_discard_warning_overlay() -> void:
 
 func create_bottom_hud_3d() -> void:
 	bottom_hud_3d = BattlefieldBottomHud3D.new()
+	bottom_hud_3d.plans_open_changed.connect(_on_battleplans_popup_changed)
 	bottom_hud_3d.name = "BattlefieldBottomHud3D"
 	bottom_hud_3d.phase_action_pressed.connect(_on_next_phase_pressed)
 	add_child(bottom_hud_3d)
@@ -992,6 +993,11 @@ func create_bottom_hud_3d() -> void:
 			old_log_panel.visible = false
 	refresh_bottom_hud()
 
+
+func _on_battleplans_popup_changed(open: bool) -> void:
+	if player_hand_3d != null:
+		player_hand_3d.set_modal_blocked(open)
+		
 
 func refresh_bottom_hud() -> void:
 	if bottom_hud_3d == null or phase_label == null or next_phase_button == null:

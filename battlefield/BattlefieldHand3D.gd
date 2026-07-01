@@ -138,11 +138,16 @@ func update_card_layout(delta: float) -> void:
 		if visual == null or not is_instance_valid(visual):
 			continue
 		var hidden := hidden_card_ids.has(card_id)
+		var dealing := deal_animation_states.has(card_id)
 		var screen_center := get_proxy_screen_center(proxy)
 		var onscreen := screen_center.y > -180.0 and screen_center.y < viewport_size.y + 100.0
-		visual.visible = not hidden and onscreen
-		set_visual_pickable(visual, not blocked and not hidden and onscreen)
-		if hidden or not onscreen:
+
+		visual.visible = not hidden and (onscreen or dealing)
+
+		# Do not allow hover/click while a card is still being dealt.
+		set_visual_pickable(visual, not blocked and not hidden and onscreen and not dealing)
+
+		if hidden or (not onscreen and not dealing):
 			continue
 		var target_position := get_proxy_target_position(proxy)
 		target_position.y += float(index) * 0.008
@@ -322,20 +327,23 @@ func _input(event: InputEvent) -> void:
 	if _is_modal_blocked():
 		clear_hand_interaction_state()
 		return
-	if event is InputEventMouseButton:
-		var mouse_event := event as InputEventMouseButton
-		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
-			if pressed_card == null:
-				var proxy := get_hand_proxy_at_screen_position(mouse_event.position)
-				if proxy != null:
-					begin_card_press(proxy, mouse_event.position)
-			return
-	if pressed_card == null:
+
+	if not event is InputEventMouseButton:
 		return
-	if event is InputEventMouseButton:
-		var mouse_event := event as InputEventMouseButton
-		if mouse_event.button_index != MOUSE_BUTTON_LEFT or mouse_event.pressed:
-			return
+
+	var mouse_event := event as InputEventMouseButton
+
+	if mouse_event.button_index != MOUSE_BUTTON_LEFT:
+		return
+
+	if mouse_event.pressed:
+		if pressed_card == null:
+			var proxy := get_hand_proxy_at_screen_position(mouse_event.position)
+			if proxy != null:
+				begin_card_press(proxy, mouse_event.position)
+		return
+
+	if pressed_card != null:
 		release_pressed_card(mouse_event.position)
 		get_viewport().set_input_as_handled()
 

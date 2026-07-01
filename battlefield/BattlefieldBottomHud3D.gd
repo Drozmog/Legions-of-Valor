@@ -2,6 +2,7 @@ class_name BattlefieldBottomHud3D
 extends Node3D
 
 signal phase_action_pressed
+signal plans_open_changed(open: bool)
 
 const INSPECT_BUTTON_TEXTURE: Texture2D = preload("res://ui/combat_buttons/inspect_button.png")
 
@@ -369,8 +370,12 @@ func toggle_log() -> void:
 func toggle_plans() -> void:
 	if modal_blocked:
 		return
+
 	plans_open = not plans_open
+	plans_open_changed.emit(plans_open)
+
 	animate_foldout(plan_surface, plans_open, plan_open_position, plan_closed_position, false)
+
 	if plans_open:
 		log_open = false
 		animate_foldout(log_surface, false, log_open_position, log_closed_position, true)
