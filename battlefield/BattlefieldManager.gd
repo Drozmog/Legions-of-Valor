@@ -85,6 +85,8 @@ var has_selected_card: bool = false
 
 var game_has_started: bool = false
 
+var admin_discard_pit_controller: AdminDiscardPitController = null
+
 var opening_hand_deal_active := false
 var phase_tip_panel: PhaseTipPanel = null
 
@@ -416,6 +418,7 @@ func _ready() -> void:
 	create_ability_prompt_panel()
 	create_insight_presenter()
 	create_debug_tp_button()
+	setup_admin_discard_pit_controller()
 	set_phase(BattlePhase.BATTLEPLAN)
 	setup_deck_selection_flow()
 	create_spell_choice_panel()
@@ -1205,6 +1208,18 @@ func _on_hand_card_drag_started(card: CardUI) -> void:
 
 
 func _on_hand_card_drag_released(card: CardUI, screen_position: Vector2) -> void:
+	if admin_discard_pit_controller == null:
+		admin_discard_pit_controller = get_node_or_null("AdminDiscardPitController") as AdminDiscardPitController
+
+	if admin_discard_pit_controller != null:
+		print("Manager checking admin pit drop. Active: ", admin_discard_pit_controller.active)
+
+		if await admin_discard_pit_controller.try_consume_hand_release(card, screen_position):
+			print("Manager: admin pit consumed card.")
+			return
+	else:
+		print("Manager: admin pit controller is NULL.")
+
 	await interaction_controller._on_hand_card_drag_released(card, screen_position)
 
 
@@ -1731,6 +1746,18 @@ func update_tribute_counter() -> void:
 		tribute_pile.set_status_text(tribute_manager.get_counter_text())
 
 
+func setup_admin_discard_pit_controller() -> void:
+	admin_discard_pit_controller = get_node_or_null("AdminDiscardPitController") as AdminDiscardPitController
+
+	if admin_discard_pit_controller == null:
+		push_warning("BattlefieldManager: AdminDiscardPitController node not found.")
+		return
+
+	admin_discard_pit_controller.setup(self)
+
+	print("BattlefieldManager linked AdminDiscardPitController: ", admin_discard_pit_controller.get_path())
+
+
 func create_debug_tp_button() -> void:
 	if get_node_or_null("UI/DebugAddTPButton") != null:
 		return
@@ -1826,7 +1853,7 @@ func play_player_hand_to_node_animation(card_data: CardData, target_node: Node, 
 		target_node,
 		face_down
 	)
-
+	
 
 func play_enemy_hand_to_node_animation(card_data: CardData, target_node: Node, face_down: bool = false) -> void:
 	if card_animation_manager == null:
