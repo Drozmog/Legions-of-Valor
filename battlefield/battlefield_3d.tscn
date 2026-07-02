@@ -34,13 +34,9 @@
 [ext_resource type="Shape3D" uid="uid://c6778xo1s4mny" path="res://battlefield/extracted_resources/battlefield_3d/0021_CollisionShape3D_shape_BoxShape3D.tres" id="19_3bjup"]
 [ext_resource type="Script" uid="uid://rpa2sw7oae1o" path="res://battlefield/OpponentVisuals.gd" id="19_moveh"]
 [ext_resource type="PackedScene" uid="uid://cs0d3y4vas4rh" path="res://Objects/Battlefield/campfire wood/campfire_wood_survival_warm_and_light.glb" id="20_e8p8s"]
-[ext_resource type="BoxMesh" uid="uid://5xe8qgnibt68" path="res://battlefield/extracted_resources/battlefield_3d/0020_DrawPileBase_mesh_BoxMesh.res" id="20_opbyf"]
 [ext_resource type="Script" uid="uid://bvdqqom8n8net" path="res://battlefield/CardAnimationManager.gd" id="20_xm46m"]
 [ext_resource type="Material" uid="uid://w5kawbveajsk" path="res://battlefield/extracted_resources/battlefield_3d/0010_PileBase_surface_material_override_0_StandardMaterial3D.tres" id="21_268fb"]
 [ext_resource type="Shape3D" uid="uid://b6q40fujto7in" path="res://battlefield/extracted_resources/battlefield_3d/0019_CollisionShape3D_shape_BoxShape3D.tres" id="24_7ywu2"]
-[ext_resource type="BoxMesh" uid="uid://dr58mnirj7t1l" path="res://battlefield/extracted_resources/battlefield_3d/0018_TributeBase_mesh_BoxMesh.res" id="25_drmvw"]
-[ext_resource type="Material" uid="uid://dskhkb3mbgmtq" path="res://battlefield/extracted_resources/battlefield_3d/0016_DiscardBase_material_override_StandardMaterial3D.tres" id="27_fmsdi"]
-[ext_resource type="BoxMesh" uid="uid://bwgw8todp5hn8" path="res://battlefield/extracted_resources/battlefield_3d/0017_DiscardBase_mesh_BoxMesh.res" id="28_ut5nc"]
 [ext_resource type="Shape3D" uid="uid://b84k4xk77tovv" path="res://battlefield/extracted_resources/battlefield_3d/0015_CollisionShape3D_shape_BoxShape3D.tres" id="29_7v4dr"]
 [ext_resource type="PackedScene" uid="uid://n35h4jkweov5" path="res://Objects/Battlefield/stone_altar/stone_altar.glb" id="29_yn4tq"]
 [ext_resource type="ArrayMesh" uid="uid://caysn7d88m2cw" path="res://battlefield/extracted_resources/battlefield_3d/0013_ParryPit_mesh_ArrayMesh.res" id="32_t4lem"]
@@ -415,7 +411,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.18, 0)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.7078722, 0.1, 2.19526)
 script = ExtResource("6_do6fa")
 stack_base_offset = Vector3(0, 0.31, 0)
-base_local_offset = Vector3(0, 0.38, 0)
 counter_side_offset = -0.135
 counter_forward_offset = -1.045
 click_area_local_offset = Vector3(0, 0.31, 0)
@@ -426,13 +421,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.31, 0)
 [node name="CollisionShape3D" type="CollisionShape3D" parent="DrawPile/ClickArea" unique_id=240919002]
 shape = ExtResource("19_3bjup")
 
-[node name="DrawPileBase" type="MeshInstance3D" parent="DrawPile" unique_id=513359539]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38, 0)
-visible = false
-mesh = ExtResource("20_opbyf")
-surface_material_override/0 = ExtResource("21_268fb")
-
-[node name="DrawPileBase2" parent="DrawPile" unique_id=921256526 instance=ExtResource("29_yn4tq")]
+[node name="DrawPileBase" parent="DrawPile" unique_id=921256526 instance=ExtResource("29_yn4tq")]
 transform = Transform3D(0.0001047143, 0, 0.007998782, 0, 0.004, 0, -0.0059990864, 0, 0.00013961908, 0, 0, 0)
 
 [node name="DrawPileCounter" type="Label3D" parent="DrawPile" unique_id=1390699272]
@@ -449,7 +438,6 @@ outline_size = 6
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.708, 0, 2.195)
 script = ExtResource("9_yr2pt")
 stack_base_offset = Vector3(0, 0.31, 0)
-base_local_offset = Vector3(0, 0.38, 0)
 counter_side_offset = 0.07
 counter_height = 0.16
 counter_forward_offset = -1.155
@@ -461,12 +449,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.31, 0)
 [node name="CollisionShape3D" type="CollisionShape3D" parent="TributePile/ClickArea" unique_id=173903481]
 shape = ExtResource("24_7ywu2")
 
-[node name="TributeBase" type="MeshInstance3D" parent="TributePile" unique_id=1790176541]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38, 0)
-visible = false
-mesh = ExtResource("25_drmvw")
-surface_material_override/0 = ExtResource("21_268fb")
-
 [node name="StatusLabel" type="Label3D" parent="TributePile" unique_id=1248832003]
 transform = Transform3D(1.26, 0, 0, 0, 1.26, 0, 0, 0, 1.26, 0.07, 0.16, -1.155)
 pixel_size = 0.006
@@ -477,24 +459,17 @@ text = "TP 0/0"
 font_size = 20
 outline_size = 6
 
-[node name="DrawPileBase3" parent="TributePile" unique_id=703185974 instance=ExtResource("29_yn4tq")]
+[node name="TributeBase" parent="TributePile" unique_id=703185974 instance=ExtResource("29_yn4tq")]
 transform = Transform3D(0.0001047143, 0, 0.007998782, 0, 0.004, 0, -0.0059990864, 0, 0.00013961908, 0, 0, 0)
 
 [node name="DiscardPile" type="Node3D" parent="." unique_id=1628121275]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.15666, 0.1, 2.2)
 script = ExtResource("17_daqav")
 stack_base_offset = Vector3(0, 0.31, 0)
-base_local_offset = Vector3(0, 0.38, 0)
 counter_side_offset = -0.135
 counter_forward_offset = -1.045
 drop_area_local_offset = Vector3(0, 0.31, 0)
 drop_collision_local_offset = Vector3(0, 0.31, 0)
-
-[node name="DiscardBase" type="MeshInstance3D" parent="DiscardPile" unique_id=1094618952]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.38, 0)
-visible = false
-material_override = ExtResource("27_fmsdi")
-mesh = ExtResource("28_ut5nc")
 
 [node name="DropArea" type="Area3D" parent="DiscardPile" unique_id=1294903070]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.31, 0)
@@ -513,7 +488,7 @@ text = "Discard: 0"
 font_size = 20
 outline_size = 6
 
-[node name="DrawPileBase2" parent="DiscardPile" unique_id=2058992741 instance=ExtResource("29_yn4tq")]
+[node name="DiscardBase" parent="DiscardPile" unique_id=2058992741 instance=ExtResource("29_yn4tq")]
 transform = Transform3D(-2.6226832e-10, 0, -0.008, 0, 0.004, 0, 0.006, 0, -3.496911e-10, 0, 0, 0.08)
 
 [node name="ParryPit" type="Node3D" parent="." unique_id=2130131975]
@@ -708,7 +683,7 @@ text = "Enemy Deck: 8"
 font_size = 35
 outline_size = 6
 
-[node name="DrawPileBase2" parent="OpponentVisuals/EnemyDrawPileVisual" unique_id=1556861164 instance=ExtResource("29_yn4tq")]
+[node name="DrawPileBase" parent="OpponentVisuals/EnemyDrawPileVisual" unique_id=1556861164 instance=ExtResource("29_yn4tq")]
 transform = Transform3D(0.0001047143, 0, 0.007998782, 0, 0.004, 0, -0.0059990864, 0, 0.00013961908, 0, 0, 0)
 
 [node name="EnemyTributePileVisual" type="Node3D" parent="OpponentVisuals" unique_id=1091892875]
@@ -730,7 +705,7 @@ text = "Enemy Tribute: 2"
 font_size = 35
 outline_size = 6
 
-[node name="DrawPileBase3" parent="OpponentVisuals/EnemyTributePileVisual" unique_id=1281310912 instance=ExtResource("29_yn4tq")]
+[node name="TributeBase" parent="OpponentVisuals/EnemyTributePileVisual" unique_id=1281310912 instance=ExtResource("29_yn4tq")]
 transform = Transform3D(0.0001047143, 0, 0.007998782, 0, 0.004, 0, -0.0059990864, 0, 0.00013961908, 0, 0, 0)
 
 [node name="EnemyDiscardPileVisual" type="Node3D" parent="OpponentVisuals" unique_id=1566977570]
@@ -752,7 +727,7 @@ text = "Enemy Discard: 2"
 font_size = 35
 outline_size = 6
 
-[node name="DrawPileBase2" parent="OpponentVisuals/EnemyDiscardPileVisual" unique_id=229922138 instance=ExtResource("29_yn4tq")]
+[node name="DiscardBase" parent="OpponentVisuals/EnemyDiscardPileVisual" unique_id=229922138 instance=ExtResource("29_yn4tq")]
 transform = Transform3D(-2.6226832e-10, 0, -0.008, 0, 0.004, 0, 0.006, 0, -3.496911e-10, 0, 0, 0)
 
 [node name="EnemyParryPitVisual" type="Node3D" parent="OpponentVisuals" unique_id=347655592]
@@ -762,22 +737,22 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.19, 0.1, 0)
 script = ExtResource("20_xm46m")
 
 [node name="PlayerHandOrigin" type="Node3D" parent="CardAnimationManager" unique_id=1235106769]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4430811, 3.0187287)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.58, 3.073574)
 
 [node name="EnemyHandOrigin" type="Node3D" parent="CardAnimationManager" unique_id=1032167219]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.246, -2.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16876, -4.56688)
 
 [node name="PlayerTributeTarget" type="Node3D" parent="CardAnimationManager" unique_id=410709231]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.708, 0, 2.195)
 
 [node name="EnemyTributeTarget" type="Node3D" parent="CardAnimationManager" unique_id=1572632379]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.599, 0, -2.076)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.708, 0, -2.076)
 
 [node name="PlayerDiscardTarget" type="Node3D" parent="CardAnimationManager" unique_id=2128081715]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.157, 0.1, 2.195)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.15666, 0.1, 2.2)
 
 [node name="EnemyDiscardTarget" type="Node3D" parent="CardAnimationManager" unique_id=64227198]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.955, 0.1, -2.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.157, 0.1, -2.2)
 
 [node name="PlayerParryPitTarget" type="Node3D" parent="CardAnimationManager" unique_id=1141560511]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.19, 0.1, 0)
